@@ -388,9 +388,21 @@ $(function ()
         {
             deleteTestParameterOk();
         });
+        $('#addParameterMenu').click(function ()
+        {
+            addTestParameterMenu();
+        });
+        $('#addAssertionMenu').click(function ()
+        {
+            addTestAssertionMenu();
+        });
         $('#addParameterOk').click(function ()
         {
             addTestParameterOk();
+        });
+        $('#addAssertionOk').click(function ()
+        {
+            addAssertionOk();
         });
         $('#showRefsToMenu').click(function ()
         {
@@ -524,6 +536,21 @@ $(function ()
             runCurrentTest();
         });
 
+        $('#defaultRunTestButton').click(function ()
+        {
+            runCurrentTest();
+        });
+
+        $('#runTestMenu').click(function ()
+        {
+            runCurrentTest();
+        });
+
+        $('#runTestMenu').click(function ()
+        {
+            runCurrentTest();
+        });
+
         $('#renameCurrentTestMenu').click(function ()
         {
             renameCurrentTestMenu();
@@ -539,9 +566,21 @@ $(function ()
             duplicateCurrentTestOk();
         });
 
+        $("#assertionsGoToTop").click(function ()
+        {
+            $('#testLayoutCenter > .well').animate({
+                scrollTop: $('#testParametersDiv').offset().top
+            }, 200);
 
+        });
 
+        $("#resultsGoToTop").click(function ()
+        {
+            $('#testLayoutCenter > .well').animate({
+                scrollTop: $('#testParametersDiv').offset().top
+            }, 200);
 
+        });
 
         _editCellRadioURL.change(function()
         {
@@ -648,7 +687,6 @@ $(function ()
                     //var span = anchor.find("span");
                     //span.addClass("glyphicon-check");
                     anchor.toggleClass("selected");
-                    loadTestView(index);
                 }
 
                 anchor.click(function(e) {
@@ -670,7 +708,7 @@ $(function ()
 //                    }
 
                     enableTestItems();
-                    loadTestView(index);
+                    loadTestView(_testSelectionAnchor);
                 }
 
 
@@ -683,6 +721,7 @@ $(function ()
             $('#testList').hide();
             $('#testListWarning').fadeIn("fast");
         }
+        loadTestView(_testSelectionAnchor);
         enableTestItems();
     }
 
@@ -786,8 +825,14 @@ $(function ()
         $("#duplicateCurrentTestMenu").parent().toggleClass('disabled', count != 1);
 
         if (count != 1) {
-            $('#testView').empty();
-            $('#testResult').empty();
+            $('#testParametersDiv').hide();
+            $('#testParameters').empty();
+            $('#testAssertionsDiv').hide();
+            $('#testAssertions').empty();
+            $('#testResultsDiv').hide();
+            $('#testResults').empty();
+            $('#testNameDiv').hide();
+            $('#testButtonGroupDiv').hide();
         }
     }
 
@@ -1152,24 +1197,46 @@ $(function ()
 
         var testData = _testData[index];
 
-        var testCtrl = $('#testView');
-        testCtrl.empty();
-        var testResult = $('#testResult');
+        $('#testParametersDiv').hide();
+        $('#testAssertionsDiv').hide();
+        $('#testNameDiv').hide();
+        $('#testButtonGroupDiv').hide();
+
+        var testParameters = $('#testParameters');
+        testParameters.empty();
+        var testAssertions = $('#testAssertions');
+        testAssertions.empty();
+        var testResult = $('#testResults');
         testResult.empty();
 
         try {
+            $('#selectedTestName').html(testData['name']);
 
-           testCtrl.append(buildTestName(testData['name']));
+            var coordinate = testData['coord'];
+            if (coordinate != null  && coordinate) {
+                $.each(coordinate, function (key, value) {
+                    if (key.substring(0, 1) != "@") {
+                        var isUrl = value == null ? null : value['isUrl'];
+                        var v = value == null ? null : value['value'];
+                        var dataType = value == null ? null : value['dataType'];
+                        testParameters.append(buildParameter(key, dataType, isUrl, v, false));
+                    }
+                });
+            }
 
-            $.each(testData['coord'], function (key, value) {
-                if (key.substring(0, 1) != "@") {
-                    var isUrl = value == null ? null : value['isUrl'];
-                    var v = value == null ? null : value['value'];
-                    var type = value == null ? null : value['type'];
-                    testCtrl.append(buildParameter(key, type, isUrl, v));
-                }
-            });
+            var assertions = testData['expected'];
+            if (assertions != null  && assertions) {
+                $.each(assertions, function (key, value) {
+                    if (key.substring(0, 1) != "@") {
+                        var isUrl = value == null ? null : value['isUrl'];
+                        var v = value == null ? null : value['value'];
+                        var dataType = value == null ? null : value['dataType'];
+                        testAssertions.append(buildParameter(key, "exp", isUrl, v, true));
+                    }
+                });
+            }
 
+            /*
             $.each(testData['expected'], function (key, value) {
                 if (key.substring(0, 1) != "@") {
                     var isUrl = value == null ? null : value['isUrl'];
@@ -1178,6 +1245,7 @@ $(function ()
                     testCtrl.append(buildParameter(key, type, isUrl, v));
                 }
             });
+            */
 
         } catch (e) {
             _errorId = showNote('Unable to load test view ' + testData['name'] + ':<hr class="hr-small"/>' + e.message);
@@ -1185,60 +1253,14 @@ $(function ()
 
         $('.selectpicker').selectpicker();
 
+        /*  should be in index.html
+        testParameters.append(buildTestButton());
+        */
+        $('#testParametersDiv').fadeIn('fast');
+        $('#testAssertionsDiv').fadeIn('fast');
+        $('#testNameDiv').fadeIn('fast');
+        $('#testButtonGroupDiv').fadeIn('fast');
 
-
-        testCtrl.append(buildTestButton());
-
-    }
-
-    function buildTestButton() {
-        var formGroup = $("<div/>").attr({'id':'test-button', 'class': 'form-group'});
-        var buttonGroup = $("<div/>").attr({'class' : 'btn-group pull-right'});
-
-        var defaultButton = $("<button/>").attr({'class' : 'btn btn-primary', 'type':'button'});
-        defaultButton.text('Run Test');
-
-        defaultButton.click(function ()
-        {
-            runCurrentTest();
-        });
-
-
-
-        var dropDown = $("<button/>").attr({'class' : 'btn btn-primary dropdown-toggle', 'data-toggle':'dropdown', 'href':'#'});
-        dropDown.html("<span class='caret'></span><span class='sr-only'>Toggle Dropdown</span>");
-
-
-        var list = [{"name" : "Run Test" , "func" : function() { runCurrentTest(); }},
-                    {"name" : "divider" },
-                    {"name" : "Add Parameter" , "func" : function() { addTestParameterMenu(); }}];
-
-        var ul = $("<ul/>").attr({'class':'dropdown-menu'});
-
-        $.each(list, function (index, value) {
-
-            var li = $("<li/>");
-            if (value["name"] == "divider") {
-                li = $('<li class="divider"></li>');
-            } else {
-                var a = $("<a/>");
-                a.html(value["name"]);
-                a.click(value["func"]);
-                li.append(a);
-            }
-
-            ul.append(li);
-        });
-
-
-
-
-        buttonGroup.append(defaultButton);
-        buttonGroup.append(dropDown);
-        buttonGroup.append(ul);
-        formGroup.append(buttonGroup);
-
-        return formGroup;
 
     }
 
@@ -1416,40 +1438,7 @@ $(function ()
 
      */
 
-    function buildTestName(name) {
-
-        var labelGroup = $("<div/>").attr({'class': 'form-group'});
-        var label = $("<label/>").attr({'for': 'selectedTestName', 'class': 'control-label'});
-        label.html("Test Name");
-        labelGroup.append(label);
-
-        var controls = $("<div/>").attr({'class': 'controls'});
-        var inputGroup = $("<div/>").attr({'class':'input-group input-group-sm'});
-
-        var input = $("<input/>").attr({'class': 'form-control', 'type': 'text', 'id': 'selectedTestName', 'readonly':'readonly'});
-        input.val(name);
-
-        var inputGroupAddOn = $("<span/>").attr({'class':'input-group-btn'});
-
-        var renameButton = $("<button/>").attr({'type':'button', 'class': 'btn btn-default'});
-        renameButton.text("Rename");
-
-        renameButton.click(function ()
-        {
-            renameCurrentTestMenu();
-        });
-
-        inputGroupAddOn.append(renameButton);
-        inputGroup.append(inputGroupAddOn);
-        inputGroup.append(input);
-
-        controls.append(inputGroup);
-        labelGroup.append(controls);
-
-        return labelGroup;
-    }
-
-    function buildParameter(coordId, type, isUrl, value) {
+    function buildAssertion(coordId, isUrl, value) {
         var labelGroup = $("<div/>").attr({'class': 'form-group', 'parameter-id':coordId});
 
         var cat = coordId + "-value";
@@ -1462,7 +1451,69 @@ $(function ()
         deleteParamButton.click(function (e)
         {
             var param = $(e.currentTarget).attr("data-ref");
-            var test = $('#selectedTestName').val();
+            var test = $('#selectedTestName').html();
+
+            deleteTestAssertion(test, param);
+        });
+
+
+        labelGroup.append(label);
+        labelGroup.append(deleteParamButton);
+
+
+        var inputGroupAddon = $("<span/>").attr({'class':'input-group-btn'});
+        var controls = $("<div/>").attr({'class': 'controls'});
+        var inputGroup = $("<div/>").attr({'class':'input-group input-group-sm'});
+
+        var urlId = coordId + "-url";
+        var urlButton = $("<button/>").attr({'type':'button', 'class':'btn btn-default', 'name':urlId, 'id':urlId, 'value':'url'});
+
+        if (isUrl) {
+            urlButton.html("&nbsp;URL&nbsp;");
+        } else {
+            urlButton.html("Value");
+        }
+
+        urlButton.click(function ()
+        {
+            var txt = urlButton.text();
+            if (txt == "Value") {
+                urlButton.html("&nbsp;URL&nbsp;");
+            } else {
+                urlButton.html("Value");
+            }
+            _testsDirty = true;
+        });
+
+
+        inputGroupAddon.append(urlButton);
+        inputGroup.append(inputGroupAddon);
+
+        var input = $("<input/>").attr({'class': 'form-control', 'type': 'text', 'id': cat}); //placeholder?
+        input.val(value);
+
+        inputGroup.append(input);
+
+        controls.append(inputGroup);
+        labelGroup.append(controls);
+
+        return labelGroup;
+    }
+
+    function buildParameter(coordId, type, isUrl, value, isAssertion) {
+        var labelGroup = $("<div/>").attr({'class': 'form-group', 'parameter-id':coordId});
+
+        var cat = coordId + "-value";
+        var label = $("<label/>").attr({'for': cat, 'class': 'control-label'});
+        label.html(coordId);
+
+        var deleteParamButton = $("<a/>").attr({'class':'btn btn-danger pull-right', 'font-size':'9px', 'data-ref':coordId, 'style':'padding: 1px 3px; font-size: 9px; line-height: 1.5; border-radius: 3px;', 'title':'Delete ' + coordId});
+        var glyph = $("<span/>").attr({'class':'glyphicon glyphicon-remove', 'style':'vertical-align: -1px;' });
+        deleteParamButton.append(glyph);
+        deleteParamButton.click(function (e)
+        {
+            var param = $(e.currentTarget).attr("data-ref");
+            var test = $('#selectedTestName').html();
 
             deleteTestParameter(test, param);
         });
@@ -1504,7 +1555,10 @@ $(function ()
         input.val(value);
 
         inputGroup.append(input);
-        inputGroup.append(createTypeSelector(coordId, type, isUrl));
+
+        if (!isAssertion) {
+            inputGroup.append(createTypeSelector(coordId, type, isUrl));
+        }
 
         controls.append(inputGroup);
         labelGroup.append(controls);
@@ -1766,11 +1820,35 @@ $(function ()
             return;
         }
 
-        $('#deleteParameterLabel').html('Delete \'' + parameterName + '\' from the test \'' + testName + '\'?');
+        $('#deleteParameterLabel').html('Delete parameter \'' + parameterName + '\'?');
         $('#deleteParameterHiddenId').val(parameterName);
         $('#deleteParameterModal').modal({
             keyboard: true
         });
+    }
+
+    function deleteTestAssertion(testName, parameterName)
+    {
+        clearError();
+        if (!_selectedApp || !_selectedVersion || !_selectedCubeName || !_selectedStatus)
+        {
+            _errorId = showNote('No n-cube selected. Nothing to delete.');
+            return;
+        }
+
+        $('#deleteAssertionLabel').html('Delete assertion \'' + parameterName + '\'?');
+        $('#deleteAssertionHiddenId').val(parameterName);
+        $('#deleteAssertionModal').modal({
+            keyboard: true
+        });
+    }
+
+    function deleteTestAssertionOk()
+    {
+        $('#deleteAssertionModal').modal('hide');
+        var id = $('#deleteAssertionHiddenId').val();
+        $("#testAssertions > div[parameter-id='" + id + "']").remove();
+        saveAllTests(false);
     }
 
 
@@ -1779,7 +1857,7 @@ $(function ()
     {
         $('#deleteParameterModal').modal('hide');
         var id = $('#deleteParameterHiddenId').val();
-        $("#testView > div[parameter-id='" + id + "']").remove();
+        $("#testParameters > div[parameter-id='" + id + "']").remove();
         saveAllTests(false);
     }
 
@@ -1947,11 +2025,8 @@ $(function ()
 
         _testsDirty = true;
 
-        // change name of selected itm
-        var item = $('#selectedTestName');
-        if (item != null) {
-            item.val(newName);
-        }
+        // change name of selected test
+        $('#selectedTestName').html(newName);
 
         // change currently selected model item
         var test = _testData[_testSelectionAnchor];
@@ -2346,7 +2421,7 @@ $(function ()
     {
         var test = {};
 
-        var name = $("#selectedTestName").val();
+        var name = $("#selectedTestName").html();
 
         if (name == null) {
             return null;
@@ -2355,7 +2430,7 @@ $(function ()
         test["name"] = name;
         test["@type"] = "com.cedarsoftware.ncube.NCubeTest";
 
-        var parameters = $("#testView > div[parameter-id]");
+        var parameters = $("#testParameters > div[parameter-id]");
 
         var coord = {"@type":"java.util.HashMap"};
 
@@ -2367,12 +2442,12 @@ $(function ()
 
         test["coord"] = coord;
 
-        var expected = $("#testView > div[expected-id]");
+        var expected = $("#testAssertions > div[parameter-id]");
 
         var results = {"@type":"java.util.HashMap"};
         $.each(expected, function (index, value)
         {
-            var id = value.getAttribute("expected-id");
+            var id = value.getAttribute("parameter-id");
             results[id] = retrieveParameter(id);
         });
 
@@ -2387,6 +2462,16 @@ $(function ()
         parameter["value"] = $("#" + id + "-value").val();
         parameter["isUrl"] = $("#" + id + "-url").text() != "Value";
         parameter["dataType"] = $("#" + id + "-selector").val();
+
+        return parameter;
+    }
+
+    function retrieveAssertion(id) {
+        var parameter = {"@type":"com.cedarsoftware.ncube.CellInfo"};
+
+        parameter["value"] = $("#" + id + "-value").val();
+        parameter["isUrl"] = $("#" + id + "-url").text() != "Value";
+        parameter["dataType"] = "exp";
 
         return parameter;
     }
@@ -2414,7 +2499,7 @@ $(function ()
         //validate
         var param = buildParameter(id, "string", false, '');
 
-        param.insertBefore('#test-button');
+        param.insertAfter('#testParameters .form-group:last');
         $('.selectpicker').selectpicker();
 
         saveAllTests(false);
@@ -2445,49 +2530,47 @@ $(function ()
             }
 
 
-            var resultPane = $('#testResult');
-            resultPane.hide();
-            resultPane.empty();
-            resultPane.append(createTestResult(result.status, result.data));
-            resultPane.fadeIn("fast");
+            showTestResult(result.status, result.data);
         } catch (e) {
             _errorId = showNote("Could not run cube test '" + axisName + "':<hr class=\"hr-small\"/>" + e.message);
         }
     }
 
-    function createTestResult(success, data) {
-        var panel;
-        var p = $('<p/>');
+    function showTestResult(success, data) {
+        var testResultsDiv = $('#testResultsDiv');
+        testResultsDiv.hide();
 
+        var testResults = $('#testResults');
+        testResults.empty();
 
-        var header = $('<div/>').prop({class: "panel-heading"});
         if (success) {
+            /*
             var item = null;
             try {
                 item = $.parseJSON(data);
             } catch (e) {
                 _errorId = showNote("Error parsing message :<hr class=\"hr-small\"/>" + e.message);
             }
+            */
 
-            header.html("Result");
-            panel = $('<div/>').prop({class: "panel"});
-            if (item["status"] == "Success") {
-                panel.addClass("panel-success");
+            if (data["status"] == "Success") {
+                testResultsDiv.addClass("panel-success");
+                testResultsDiv.removeClass("panel-danger");
+                testResultsDiv.removeClass("panel-warning");
             } else {
-                panel.addClass("panel-danger");
+                testResultsDiv.addClass("panel-warning");
+                testResultsDiv.removeClass("panel-success");
+                testResultsDiv.removeClass("panel-danger");
             }
-            p.html(item["message"]);
         } else {
-            panel = $('<div/>').prop({class: "panel panel-danger"});
-            header.html("Failure");
-            p.html(data);
+            testResultsDiv.addClass("panel-danger");
+            testResultsDiv.removeClass("panel-success");
+            testResultsDiv.removeClass("panel-warning");
         }
 
-        var body = $('<div/>').prop({class: "panel-body"});
-        body.append(p);
-        panel.append(header);
-        panel.append(body);
-        return panel;
+        testResults.text(data["message"]);
+
+        testResultsDiv.fadeIn("fast");
     }
 
     function updateAxis(axisName)

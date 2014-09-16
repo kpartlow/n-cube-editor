@@ -10,6 +10,7 @@ import com.cedarsoftware.ncube.NCubeInfoDto;
 import com.cedarsoftware.ncube.NCubeManager;
 import com.cedarsoftware.ncube.NCubeTest;
 import com.cedarsoftware.ncube.ReleaseStatus;
+import com.cedarsoftware.ncube.formatters.TestResultsFormatter;
 import com.cedarsoftware.service.ncube.NCubeService;
 import com.cedarsoftware.servlet.JsonCommandServlet;
 import com.cedarsoftware.util.CaseInsensitiveMap;
@@ -114,28 +115,15 @@ public class NCubeController extends BaseController
         return urls;
     }
 
-    public String runTest(String name, String app, String version, String status, NCubeTest test) {
+    public Map runTest(String name, String app, String version, String status, NCubeTest test) {
         try
         {
             NCube ncube = nCubeService.getCube(name, app, version, status);
             Map coord = test.createCoord();
-            coord.put("ncube", ncube);
 
             Map output = new LinkedHashMap();
-
             Object actual = ncube.getCells(coord, output);
-            //Object expected = test.createExpected();
 
-
-            // For UrlCommands we need to actually execute the command for an apple to apple comparison.
-            // Note:  a GroovyExpression that returns true is the same as a Boolean.True return type.
-//            if (expected instanceof UrlCommandCell) {
-//                UrlCommandCell cell = (UrlCommandCell)expected;
-//
-//                coord.put("input", new HashMap());
-//                coord.put("output", new HashMap());
-//                expected = cell.execute(coord);
-//            }
 
 //            if (!DeepEquals.deepEquals(actual, expected)) {
 //                HashMap map = new HashMap();
@@ -145,8 +133,8 @@ public class NCubeController extends BaseController
 //            }
 
             output.put("status", "Success");
-            output.put("message", JsonWriter.objectToJson(output));
-            return JsonWriter.objectToJson(output);
+            output.put("message", new TestResultsFormatter(output).format());
+            return output;
         }
         catch(Exception e)
         {

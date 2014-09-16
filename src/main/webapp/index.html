@@ -310,10 +310,56 @@
             </div>
 
             <div id="testLayoutCenter" class="pane ui-layout-center">
-                <div class="well well-lg" style="height:100%;">
-                    <form id="testView" role="form">
-                    </form>
-                    <div id="testResult" class="content col-sm-12">
+                <div class="well">
+                    <div id="testButtonGroupDiv" class="btn-group pull-right">
+                        <button id="defaultRunTestButton" class="btn btn-primary" type="button">Run Test</button>
+                        <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                            <span class="caret"></span><span class="sr-only">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a id="runTestMenu" href="#">Run Test</a></li>
+                            <li class="divider" />
+                            <li><a id="addParameterMenu" href="#">Add Parameter</a></li>
+                            <li><a id="addAssertionMenu" href="#">Add Assertion</a></li>
+                        </ul>
+                    </div>
+                    <div id="testNameDiv">
+                        <h3 id="selectedTestName"></h3>
+                    </div>
+                    <div id="testParametersDiv" class="panel panel-info">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <span>Parameters</span>
+                            </h4>
+                        </div>
+                        <div class="panel-body">
+                            <form id="testParameters" role="form">
+                            </form>
+                        </div>
+                    </div>
+                    <div id="testAssertionsDiv" class="panel panel-default">
+                        <div class="panel-heading">
+                            <a id="assertionsGoToTop" class="pull-right"><span class="glyphicon glyphicon-arrow-up"></span><span class="sr-only">Go back to top</span></a>
+                            <h4 class="panel-title">
+                                <span>Assertions</span>
+                            </h4>
+                        </div>
+                        <div class="panel-body">
+                            <form id="testAssertions" role="form">
+                            </form>
+                        </div>
+                    </div>
+                    <div id="testResultsDiv" class="panel">
+                        <div class="panel-heading">
+                            <a id="resultsGoToTop" class="pull-right"><span class="glyphicon glyphicon-arrow-up"></span><span class="sr-only">Go back to top</span></a>
+                            <h4 class="panel-title">
+                                <span>Execution Log</span>
+                            </h4>
+                        </div>
+                        <div class="panel-body">
+                            <pre id="testResults">
+                            </pre>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -501,10 +547,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 id="deleteParameterLabel" class="modal-title"></h3>
+                <h3 class="modal-title">Delete Parameter?</h3>
             </div>
             <div class="modal-body">
-                <h4>Are you sure?</h4>
+                <h4 id="deleteParameterLabel"></h4>
             </div>
             <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
@@ -512,6 +558,27 @@
             </div>
         </div>
         <input type="hidden" id="deleteParameterHiddenId" value="" />
+    </div>
+</div>
+
+<!-- Delete Cube Modal -->
+<div id="deleteAssertionModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteAssertionLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 class="modal-title">Delete Assertion?</h3>
+            </div>
+            <div class="modal-body">
+                <h4 id="deleteAssertionLabel"></h4>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteAssertionOk" class="btn btn-primary">Delete</button>
+            </div>
+        </div>
+        <input type="hidden" id="deleteAssertionHiddenId" value="" />
     </div>
 </div>
 

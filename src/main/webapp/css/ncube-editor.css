@@ -33,9 +33,15 @@ a.ncube-notselected:hover {
 .panel-heading {
     padding: 5px;
 }
-.panel-body {
+
+div#west div.panel-body {
     padding: 10px 5px;
     overflow: auto;
+}
+
+div#east div.panel-body {
+  overflow: auto;
+  height: 100%;
 }
 
 .modal-header {
@@ -70,7 +76,6 @@ a.ncube-notselected:hover {
 }
 
 #west, #testLayoutEast {
-    background-color: #555;
     height:100%;
     width: 100%;
     text-align: left;
@@ -83,6 +88,19 @@ a.ncube-notselected:hover {
     padding-top: 0;
     padding-left: 6px;
     padding-right: 6px;
+
+    background: #7d7e7d; /* Old browsers */
+    background-repeat: repeat-x;
+    border-color: #dcdcdc;
+    border: none;
+    border-radius: 0px;
+    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzdkN2U3ZCIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwZTBlMGUiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+    background: -webkit-linear-gradient(top, #7d7e7d 0%,#0e0e0e 100%); /* Chrome10+,Safari5.1+ */
+    background: linear-gradient(to bottom, #7d7e7d 0%,#0e0e0e 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#7d7e7d', endColorstr='#0e0e0e',GradientType=0 ); /* IE6-8 */
+    -webkit-box-shadow: inset 0 1px 3px rgba(0,0,0,0.05),0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05),0 1px 0 rgba(255,255,255,0.1);
+
 }
 
 #west > a.accordion-toggle {
@@ -112,6 +130,29 @@ a.ncube-notselected:hover {
 
 #testLayoutCenter > .well {
     margin-bottom: 0;
+    height: 100%;
+    background: #b5bdc8; /* Old browsers */
+    background-repeat: repeat-x;
+    border-color: #dcdcdc;
+    border: none;
+    border-radius: 0px;
+    background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2I1YmRjOCIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjM2JSIgc3RvcC1jb2xvcj0iIzgyOGM5NSIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyODM0M2IiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+    background: -webkit-linear-gradient(top,  #b5bdc8 0%,#828c95 36%,#28343b 100%); /* Chrome10+,Safari5.1+ */
+    background: linear-gradient(to bottom,  #b5bdc8 0%,#828c95 36%,#28343b 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b5bdc8', endColorstr='#28343b',GradientType=0 ); /* IE6-8 */
+    -webkit-box-shadow: inset 0 1px 3px rgba(0,0,0,0.05),0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05),0 1px 0 rgba(255,255,255,0.1);
+    overflow: auto;
+}
+
+
+
+#testParameters > .panel-body {
+    padding: 15px;
+}
+
+#testParametersDiv {
+    overflow: visible;
 }
 
 #testLayoutEast {
@@ -148,6 +189,13 @@ a.ncube-notselected:hover {
     min-width: 740px;
 }
 
+#selectedTestName {
+    color: white;
+    font-weight: bold;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+}
+
 #testLayoutEast div#testList {
     margin-bottom: 0;
     border-radius: 0;
@@ -156,7 +204,7 @@ a.ncube-notselected:hover {
 #testList div.panel-body {
     padding: 0;
     margin: 0;
-    height: 100%;
+    overflow: auto;
 }
 
 #testListItems a.selected {
@@ -166,6 +214,10 @@ a.ncube-notselected:hover {
 
 #testListItems a.list-group-item {
     padding: 5px;
+}
+
+#testAssertionsDiv, #testResultsDiv {
+    margin-top: 20px;
 }
 
 .navbar-custom {
