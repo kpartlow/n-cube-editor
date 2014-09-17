@@ -127,18 +127,18 @@ $(function ()
             ,	livePaneResizing:			true
 
             //	some resizing/toggling settings
-//            ,	north__slidable:			false	// OVERRIDE the pane-default of 'slidable=true'
-//            ,	north__togglerLength_closed: '100%'	// toggle-button is full-width of resizer-bar
-//            ,	north__spacing_closed:		20		// big resizer-bar when open (zero height)
-//            ,	south__resizable:			false	// OVERRIDE the pane-default of 'resizable=true'
-//            ,	south__spacing_open:		0		// no resizer-bar when open (zero height)
-//            ,	south__spacing_closed:		20		// big resizer-bar when open (zero height)
+            //            ,	north__slidable:			false	// OVERRIDE the pane-default of 'slidable=true'
+            //            ,	north__togglerLength_closed: '100%'	// toggle-button is full-width of resizer-bar
+            //            ,	north__spacing_closed:		20		// big resizer-bar when open (zero height)
+            //            ,	south__resizable:			false	// OVERRIDE the pane-default of 'resizable=true'
+            //            ,	south__spacing_open:		0		// no resizer-bar when open (zero height)
+            //            ,	south__spacing_closed:		20		// big resizer-bar when open (zero height)
 
             //	some pane-size settings
             //,	west__minSize:				100
-//            ,	east__size:					300
-//            ,	east__minSize:				200
-//            ,	east__maxSize:				.5 // 50% of layout width
+            //            ,	east__size:					300
+            //            ,	east__minSize:				200
+            //            ,	east__maxSize:				.5 // 50% of layout width
             // ,   center__paneSelector: "#center"
             // ,   west__paneSelector: "#west"
 
@@ -162,7 +162,7 @@ $(function ()
             {
                 ncubeListPanel.height(west.height() - hApp - hStat - hVer - 110);
                 secondaryLayout.resizeAll();
-//                _editor.resize();
+                //                _editor.resize();
             }
 
         });
@@ -227,7 +227,7 @@ $(function ()
         var options =
         {
             mode: 'code',
-//            modes:['code','tree','view','form','text'],
+            //            modes:['code','tree','view','form','text'],
             change: function()
             {
                 setDirtyStatus(true);
@@ -691,25 +691,25 @@ $(function ()
 
                 anchor.click(function(e) {
 
-                    var link = $(e.currentTarget);
-//                    var target = link.find("span");
+                        var link = $(e.currentTarget);
+                        //                    var target = link.find("span");
 
-//                    if (e.shiftKey)
-//                    {
-//                    } else if (e.ctrlKey) {
-//                        target.toggleClass("glyphicon-unchecked glyphicon-check");
-//                        link.toggleClass("selected");
-//                    } else {
+                        //                    if (e.shiftKey)
+                        //                    {
+                        //                    } else if (e.ctrlKey) {
+                        //                        target.toggleClass("glyphicon-unchecked glyphicon-check");
+                        //                        link.toggleClass("selected");
+                        //                    } else {
                         _testSelectionAnchor = index;
                         clearTestSelection();
                         //target.addClass("glyphicon-check");
                         //target.removeClass("glyphicon-unchecked");
                         link.addClass("selected");
-//                    }
+                        //                    }
 
-                    enableTestItems();
-                    loadTestView(_testSelectionAnchor);
-                }
+                        enableTestItems();
+                        loadTestView(_testSelectionAnchor);
+                    }
 
 
 
@@ -900,14 +900,14 @@ $(function ()
                 return _testData[i];
             }
         }
-/*
-        var list = $("#testListItems a");
-        for (i=0; i<list.length; i++) {
-            if (list[i].innerText.trim() == test) {
-                return list[i];
-            }
-        }
-*/
+        /*
+         var list = $("#testListItems a");
+         for (i=0; i<list.length; i++) {
+         if (list[i].innerText.trim() == test) {
+         return list[i];
+         }
+         }
+         */
         return null;
     }
 
@@ -1237,15 +1237,15 @@ $(function ()
             }
 
             /*
-            $.each(testData['expected'], function (key, value) {
-                if (key.substring(0, 1) != "@") {
-                    var isUrl = value == null ? null : value['isUrl'];
-                    var v = value == null ? null : value['value'];
-                    var type = value == null ? null : value['type'];
-                    testCtrl.append(buildParameter(key, type, isUrl, v));
-                }
-            });
-            */
+             $.each(testData['expected'], function (key, value) {
+             if (key.substring(0, 1) != "@") {
+             var isUrl = value == null ? null : value['isUrl'];
+             var v = value == null ? null : value['value'];
+             var type = value == null ? null : value['type'];
+             testCtrl.append(buildParameter(key, type, isUrl, v));
+             }
+             });
+             */
 
         } catch (e) {
             _errorId = showNote('Unable to load test view ' + testData['name'] + ':<hr class="hr-small"/>' + e.message);
@@ -1254,8 +1254,8 @@ $(function ()
         $('.selectpicker').selectpicker();
 
         /*  should be in index.html
-        testParameters.append(buildTestButton());
-        */
+         testParameters.append(buildTestButton());
+         */
         $('#testParametersDiv').fadeIn('fast');
         $('#testAssertionsDiv').fadeIn('fast');
         $('#testNameDiv').fadeIn('fast');
@@ -1270,7 +1270,7 @@ $(function ()
         }
         var selectorId = parameterId + "-selector"
         var selector = $("<select/>").attr({'class': 'selectpicker show-tick show-menu-arrow', 'data-width':'auto', 'data-style': 'btn-default', 'id':selectorId});
-//        var selector = $("<select/>").attr({'class': 'selectpicker show-tick show-menu-arrow col-lg-2', 'data-width': 'auto', 'data-style': 'btn-default', 'id':selectorId});
+        //        var selector = $("<select/>").attr({'class': 'selectpicker show-tick show-menu-arrow col-lg-2', 'data-width': 'auto', 'data-style': 'btn-default', 'id':selectorId});
 
         //var selector = $("<button/>").attr({'class' : 'btn btn-default', 'id':selectorId})
         return fillTypeSelector(selector, typeStr, url);
@@ -1309,73 +1309,73 @@ $(function ()
     /*
      * Bootstrap way?
 
-    function createTypeSelector(parameterId, typeStr, url) {
-        if (typeStr == null) {
-            typeStr = 'string';
-        }
-        var selectorId = parameterId + "-selector"
+     function createTypeSelector(parameterId, typeStr, url) {
+     if (typeStr == null) {
+     typeStr = 'string';
+     }
+     var selectorId = parameterId + "-selector"
 
-        var inputGroupBtn = $("<div/>").attr({'class':'input-group-btn'});
-        //inputGroupBtn.append(createTypeSelector(parameterId, type, url != null))
-
-
-//        var selector = $("<select/>").attr({'class': 'selectpicker show-tick show-menu-arrow', 'data-width':'auto', 'data-style': 'btn-default', 'id':selectorId});
-
-        var button = $("<button/>").attr({'type':'button', 'class' : 'btn btn-default'});
-        //button.html("String");
+     var inputGroupBtn = $("<div/>").attr({'class':'input-group-btn'});
+     //inputGroupBtn.append(createTypeSelector(parameterId, type, url != null))
 
 
-        var selector = $("<button/>").attr({'type':'button', 'class':'btn btn-default dropdown-toggle', 'data-toggle':'dropdown', 'href':'#'});
-        selector.html("<span class='caret'></span><span class='sr-only'>Toggle Dropdown</span>");
+     //        var selector = $("<select/>").attr({'class': 'selectpicker show-tick show-menu-arrow', 'data-width':'auto', 'data-style': 'btn-default', 'id':selectorId});
 
-        var ul = $("<ul/>").attr({'class':'dropdown-menu'});
-
-        fillTypeSelector(button, ul, typeStr, url);
-
-        inputGroupBtn.append(button);
-        inputGroupBtn.append(selector);
-        inputGroupBtn.append(ul);
-
-        return inputGroupBtn;
-    }
+     var button = $("<button/>").attr({'type':'button', 'class' : 'btn btn-default'});
+     //button.html("String");
 
 
-    function fillTypeSelector(button, selector, typeStr, url) {
+     var selector = $("<button/>").attr({'type':'button', 'class':'btn btn-default dropdown-toggle', 'data-toggle':'dropdown', 'href':'#'});
+     selector.html("<span class='caret'></span><span class='sr-only'>Toggle Dropdown</span>");
 
-        if (selector == null) {
-            return;
-        }
-        selector.empty();
+     var ul = $("<ul/>").attr({'class':'dropdown-menu'});
 
-        var options = null;
+     fillTypeSelector(button, ul, typeStr, url);
 
-        if (url) {
-            options = $('#datatypes-url').find('option');
-        } else {
-            options = $('#datatypes-value').find('option');
-        }
+     inputGroupBtn.append(button);
+     inputGroupBtn.append(selector);
+     inputGroupBtn.append(ul);
 
-        $.each(options, function (i, value)
-        {
-            var item = $(value);
+     return inputGroupBtn;
+     }
 
-            var li = $("<li/>");
-            var a = $("<a/>").attr({'href':'#', 'data-value':item.val()});
-            a.text(item.text());
 
-            a.click(function ()
-            {
-                alert("Success!");
-            });
+     function fillTypeSelector(button, selector, typeStr, url) {
 
-            if (typeStr != null && typeStr == item.val()) {
-                button.text(item.text());
-            }
+     if (selector == null) {
+     return;
+     }
+     selector.empty();
 
-            li.append(a);
-            selector.append(li);
-        });
-    }
+     var options = null;
+
+     if (url) {
+     options = $('#datatypes-url').find('option');
+     } else {
+     options = $('#datatypes-value').find('option');
+     }
+
+     $.each(options, function (i, value)
+     {
+     var item = $(value);
+
+     var li = $("<li/>");
+     var a = $("<a/>").attr({'href':'#', 'data-value':item.val()});
+     a.text(item.text());
+
+     a.click(function ()
+     {
+     alert("Success!");
+     });
+
+     if (typeStr != null && typeStr == item.val()) {
+     button.text(item.text());
+     }
+
+     li.append(a);
+     selector.append(li);
+     });
+     }
 
      function buildUrlToggle(coordId, urlIsSelected) {
      var togglediv = $("<div/>").attr({'class' : 'btn-group col-sm-2', 'data-toggle':'buttons'});
@@ -1563,7 +1563,7 @@ $(function ()
         controls.append(inputGroup);
         labelGroup.append(controls);
 
-//        labelGroup.append(buildUrlToggle(parameterId, url != null));
+        //        labelGroup.append(buildUrlToggle(parameterId, url != null));
 
 
         return labelGroup;
@@ -2545,13 +2545,13 @@ $(function ()
 
         if (success) {
             /*
-            var item = null;
-            try {
-                item = $.parseJSON(data);
-            } catch (e) {
-                _errorId = showNote("Error parsing message :<hr class=\"hr-small\"/>" + e.message);
-            }
-            */
+             var item = null;
+             try {
+             item = $.parseJSON(data);
+             } catch (e) {
+             _errorId = showNote("Error parsing message :<hr class=\"hr-small\"/>" + e.message);
+             }
+             */
 
             if (data["status"] == "Success") {
                 testResultsDiv.addClass("panel-success");

@@ -40,8 +40,8 @@ div#west div.panel-body {
 }
 
 div#east div.panel-body {
-  overflow: auto;
-  height: 100%;
+    overflow: auto;
+    height: 100%;
 }
 
 .modal-header {
@@ -61,7 +61,7 @@ div#east div.panel-body {
     height: 100%;
     width: 100%;
     overflow: hidden !important;
- }
+}
 
 .json-textarea {
     height: 100%;
