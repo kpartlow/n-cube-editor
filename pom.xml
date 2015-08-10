@@ -1,11 +1,10 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <name>n-cube-editor</name>
     <groupId>com.cedarsoftware</groupId>
     <artifactId>n-cube-editor</artifactId>
     <packaging>war</packaging>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
     <description>n-cube Web Editor / Manager</description>
     <url>https://github.com/jdereg/n-cube-editor</url>
 
@@ -33,17 +32,29 @@
     </developers>
 
     <properties>
-        <version.json-io>2.7.1</version.json-io>
-        <version.java-util>1.12.0</version.java-util>
-        <version.json-command-servlet>1.1.0</version.json-command-servlet>
-        <version.ncube>2.9.11-SNAPSHOT</version.ncube>
+        <version.java-util>1.19.3</version.java-util>
+        <version.json-io>4.1.6</version.json-io>
+        <version.ncube>3.3.7-SNAPSHOT</version.ncube>
+        <version.json-command-servlet>1.2.5</version.json-command-servlet>
+        <version.log4j>2.1</version.log4j>
+        <version.urlrewrite>4.0.4</version.urlrewrite>
+        <version.groovy>2.4.4</version.groovy>
         <version.junit>4.11</version.junit>
-        <version.spring>3.2.6.RELEASE</version.spring>
+        <version.spring>4.1.6.RELEASE</version.spring>
         <version.servlet>3.0.1</version.servlet>
-        <version.log4j>1.2.16</version.log4j>
-        <version.esapi>1.2.9</version.esapi>
-		<version.core.util>3.9.0</version.core.util>
-		<version.ra.ws.client>1.10.0</version.ra.ws.client>
+        <version.java>1.7</version.java>
+        <version.mysql>5.1.35</version.mysql>
+        <version.tuckey>4.0.4</version.tuckey>
+        <version.plugin.compiler>3.2</version.plugin.compiler>
+        <version.plugin.deploy>2.8.2</version.plugin.deploy>
+        <version.plugin.source>2.4</version.plugin.source>
+        <version.plugin.javadoc>2.10.1</version.plugin.javadoc>
+        <version.plugin.gpg>1.5</version.plugin.gpg>
+        <version.plugin.release>2.5.1</version.plugin.release>
+        <version.plugin.war>2.6</version.plugin.war>
+        <version.plugin.groovy.eclipse.compiler>2.9.2-01</version.plugin.groovy.eclipse.compiler>
+        <version.plugin.groovy.eclipse.batch>2.4.3-01</version.plugin.groovy.eclipse.batch>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <pluginRepositories>
@@ -76,9 +87,33 @@
     <build>
         <plugins>
             <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${version.plugin.compiler}</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                    <compilerId>groovy-eclipse-compiler</compilerId>
+                    <!-- <verbose>true</verbose> -->
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-compiler</artifactId>
+                        <version>${version.plugin.groovy.eclipse.compiler}</version>
+                    </dependency>
+
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-batch</artifactId>
+                        <version>${version.plugin.groovy.eclipse.batch}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
+                <version>${version.plugin.source}</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -92,7 +127,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9.1</version>
+                <version>${version.plugin.javadoc}</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -106,7 +141,7 @@
             <!--<plugin>-->
                 <!--<groupId>org.apache.maven.plugins</groupId>-->
                 <!--<artifactId>maven-gpg-plugin</artifactId>-->
-                <!--<version>1.4</version>-->
+                <!--<version>${version.plugin.gpg}</version>-->
                 <!--<executions>-->
                     <!--<execution>-->
                         <!--<id>sign-artifacts</id>-->
@@ -120,18 +155,8 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.3.2</version>
+                <version>${version.plugin.release}</version>
                 <configuration>
                     <mavenExecutorId>forked-path</mavenExecutorId>
                 </configuration>
@@ -140,6 +165,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
+                <version>2.6</version>
                 <configuration>
                     <packagingExcludes>**/*CprLocal.properties</packagingExcludes>
                     <archiveClasses>false</archiveClasses>
@@ -154,6 +180,23 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.tuckey</groupId>
+            <artifactId>urlrewritefilter</artifactId>
+            <version>${version.tuckey}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${version.mysql}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>${version.groovy}</version>
+        </dependency>
+        <dependency>
             <groupId>com.cedarsoftware</groupId>
             <artifactId>n-cube</artifactId>
             <version>${version.ncube}</version>
@@ -166,12 +209,23 @@
         <dependency>
             <groupId>org.tuckey</groupId>
             <artifactId>urlrewritefilter</artifactId>
-            <version>4.0.4</version>
+            <version>${version.urlrewrite}</version>
         </dependency>
         <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
             <version>${version.log4j}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${version.log4j}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-web</artifactId>
+            <version>${version.log4j}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -236,26 +290,11 @@
             <!--<artifactId>core-renderer</artifactId>-->
             <!--<version>${version.xhtml.renderer}</version>-->
         <!--</dependency>-->
-        <dependency>
-            <groupId>com.gaic.security</groupId>
-            <artifactId>esapi</artifactId>
-            <version>${version.esapi}</version>
-        </dependency>
         <!--<dependency>-->
         	<!--<groupId>commons-beanutils</groupId>-->
         	<!--<artifactId>commons-beanutils</artifactId>-->
         	<!--<version>${version.commons-beanutils}</version>-->
         <!--</dependency>-->
-		<dependency>
-			<groupId>com.gaic.bue.uwd</groupId>
-			<artifactId>core-util</artifactId>
-			<version>${version.core.util}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.gaic.bue.uwd</groupId>
-			<artifactId>ra-ws-clients</artifactId>
-			<version>${version.ra.ws.client}</version>
-		</dependency>
 	</dependencies>
 
     <dependencyManagement>

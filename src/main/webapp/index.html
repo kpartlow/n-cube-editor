@@ -4,81 +4,75 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <title>n-cube</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="HTML 5 GUI Editor for building NCubes">
     <meta name="author" content="John DeRegnaucourt">
 
-    <link href='http://fonts.googleapis.com/css?family=Open+Sans:600' rel='stylesheet' type='text/css'>
-    <link href="./css/jquery.layout-1.4.0.css" rel="stylesheet"/>
-    <link href="./css/jquery-ui-1.11.0.css" rel="stylesheet"/>
-    <link href="./css/jquery.gritter.css" rel="stylesheet"/>
-    <link href="./css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="./css/bootstrap-theme.min.css" rel="stylesheet"/>
-    <link href="./css/bootstrap-select.min.css" rel="stylesheet"/>
-    <link href="./css/ncube-editor.css" rel="stylesheet"/>
-
-    <!-- Fav and touch icons -->
-    <!--<link rel="apple-touch-icon-precomposed" sizes="144x144" href="./ico/apple-touch-icon-144-precomposed.png">-->
-    <!--<link rel="apple-touch-icon-precomposed" sizes="114x114" href="./ico/apple-touch-icon-114-precomposed.png">-->
-    <!--<link rel="apple-touch-icon-precomposed" sizes="72x72" href="./ico/apple-touch-icon-72-precomposed.png">-->
-    <!--<link rel="apple-touch-icon-precomposed" href="./ico/apple-touch-icon-57-precomposed.png">-->
-    <!--<link rel="shortcut icon" href="./ico/favicon.png">-->
+    <link href="css/jquery.layout-1.4.4.css" rel="stylesheet"/>
+    <link href="css/jquery-ui-1.11.0.min.css" rel="stylesheet"/>
+    <link href="css/jquery.gritter.css" rel="stylesheet"/>
+    <link href="css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
+    <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
+    <link href="css/ncube-editor.css" rel="stylesheet"/>
 
     <!-- jsoneditor -->
-    <link rel="stylesheet" type="text/css" href="./jsoneditor/jsoneditor.min.css">
-    <script type="text/javascript" src="./jsoneditor/jsoneditor.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="jsoneditor/jsoneditor.min.css">
+    <script type="text/javascript" src="jsoneditor/jsoneditor.min.js"></script>
 
     <!-- ace code editor -->
-    <script type="text/javascript" src="./jsoneditor/asset/ace/ace.js"></script>
-    <script type="text/javascript" src="./jsoneditor/asset/ace/mode-json.js"></script>
-    <script type="text/javascript" src="./jsoneditor/asset/ace/theme-textmate.js"></script>
-    <script type="text/javascript" src="./jsoneditor/asset/ace/theme-jsoneditor.js"></script>
+    <script type="text/javascript" src="jsoneditor/asset/ace/ace.js"></script>
+    <script type="text/javascript" src="jsoneditor/asset/ace/mode-json.js"></script>
+    <script type="text/javascript" src="jsoneditor/asset/ace/theme-textmate.js"></script>
+    <script type="text/javascript" src="jsoneditor/asset/ace/theme-jsoneditor.js"></script>
 
     <!-- json lint -->
-    <script type="text/javascript" src="./jsoneditor/asset/jsonlint/jsonlint.js"></script>
+    <script type="text/javascript" src="jsoneditor/asset/jsonlint/jsonlint.js"></script>
 </head>
 
 <body>
 
-<header class="navbar navbar-custom navbar-fixed-top bs-docs-nav" role="banner">
+<header class="navbar navbar-custom navbar-fixed-top noselect" role="banner">
     <div class="navbar-header">
-        <button class="navbar-toggle collapsed" type="button" data-toggle="collapse"
-                data-target=".bs-navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
+        <button class="navbar-toggle collapsed" type="button" data-toggle="collapse">
         </button>
-        <img height="45" src="./img/cube-logo.png"/><a class="navbar-brand" href="#">Configuration Editor</a>
+        <!--suppress CheckImageSize -->
+        <img height="40" src="img/cube-logo.png"/><a id="appTitle" class="navbar-brand" href="#"></a>
     </div>
-    <nav class="navbar-collapse bs-navbar-collapse collapse" role="navigation" style="height: 1px;">
-        <ul class="nav navbar-nav">
-            <li>
-                <a id="ncubeTab" href="#ncube" data-toggle="tab">n-cube</a>
+    <nav class="navbar-collapse collapse" role="navigation" style="height: 1px;">
+        <ul id="menuList" class="nav navbar-nav">
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown">
+                <a id="DataMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Data <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                    <li><a id="dataChangeType" href="#">Change type...</a></li>
+                    <li class="divider"></li>
+                    <li><a id="clearCache" href="#">Clear Cache</a></li>
+                </ul>
             </li>
-            <li>
-                <a id="jsonTab" href="#json" data-toggle="tab">JSON</a>
-            </li>
-            <li>
-                <a id="detailsTab" href="#details" data-toggle="tab">Details</a>
-            </li>
-            <li>
-                <a id="testTab" href="#tests" data-toggle="tab">Tests</a>
-            </li>
-            <li>
-                <a id="picTab" href="#drillPic" data-toggle="tab">Picture</a>
+            <li class="dropdown">
+                <a id="BranchMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Branch: </a>
+                <ul class="dropdown-menu dropdown-menu-right">
+                    <li><a id="branchSelect" href="#">Select/Create Branch...</a></li>
+                    <li><a id="branchUpdate" href="#">Update Branch</a></li>
+                    <li><a id="branchDelete" href="#">Delete Branch</a></li>
+                    <li class="divider"></li>
+                    <li><a id="branchCommit" href="#">Commit...</a></li>
+                    <li><a id="branchRollback" href="#">Rollback...</a></li>
+                </ul>
             </li>
         </ul>
     </nav>
 </header>
 
-<div id="west" class="ui-layout-west" style="overflow: hidden">
-    <div id="app-list-div" class="panel panel-warning">
+<div id="west" class="ui-layout-west noselect">
+    <div id="app-list-div" class="panel">
         <div class="panel-heading">
-            <h4 class="panel-title">
-                <button type="button" class="btn btn-warning active">App</button>
-                <span id="appCount" class="badge pull-right"></span>
-            </h4>
+            <div class="btn-group">
+                <a class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown" role="button" href="#">App</a>
+            </div>
+            <span id="appCount" class="badge pull-right"></span>
         </div>
         <div class="panel-body">
             <ul class="nav nav-list" id="app-list">
@@ -86,33 +80,18 @@
         </div>
     </div>
 
-    <div id="status-list-div" class="panel panel-warning">
+    <div id="version-list-div" class="panel">
         <div class="panel-heading">
-            <h4 class="panel-title">
-                <button type="button" class="btn btn-warning active">Status</button>
-            </h4>
-        </div>
-        <div class="panel-body">
-            <ul class="nav nav-list" id="status-list">
-            </ul>
-        </div>
-    </div>
-
-
-    <div id="version-list-div" class="panel panel-warning">
-        <div class="panel-heading">
-            <h4 class="panel-title">
-                <div class="btn-group">
-                    <button type="button" class="btn-sm btn-warning dropdown-toggle" data-toggle="dropdown">
-                        <span>Version</span><span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a href="#" id="releaseCubesMenu">Release SNAPSHOT</a></li>
-                        <li><a href="#" id="changeVerMenu">Change SNAPSHOT version</a></li>
-                    </ul>
-                </div>
-                <span id="verCount" class="badge pull-right"></span>
-            </h4>
+            <div class="btn-group">
+                <a id="foo" href="#" class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown" role="button">
+                    <span>Version</span><span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="foo">
+                    <li><a href="#" id="releaseCubesMenu">Release SNAPSHOT</a></li>
+                    <li><a href="#" id="changeVerMenu">Change SNAPSHOT version</a></li>
+                </ul>
+            </div>
+            <span id="verCount" class="badge pull-right"></span>
         </div>
         <div class="panel-body">
             <ul class="nav nav-list" id="version-list">
@@ -120,174 +99,91 @@
         </div>
     </div>
 
-    <div id="ncube-list-div" class="panel panel-warning">
-        <div class="panel-heading">
-            <h4 class="panel-title">
-                <div class="btn-group">
-                    <button type="button" class="btn-sm btn-warning dropdown-toggle" data-toggle="dropdown">
-                        <span>n-cubes</span><span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a href="#" id="newCubeMenu">New</a></li>
-                        <li><a href="#" id="renameCubeMenu">Rename</a></li>
-                        <li><a href="#" id="dupeCubeMenu">Duplicate</a></li>
-                        <li><a href="#" id="deleteCubeMenu">Delete</a></li>
-                        <li class="divider"></li>
-                        <li><a href="#" id="showRefsToMenu">Show inbound references</a></li>
-                        <li><a href="#" id="showRefsFromMenu">Show outbound references</a></li>
-                        <li><a href="#" id="showReqScopeMenu">Show required scope</a></li>
-                    </ul>
-                </div>
-                <span id="ncubeCount" class="badge pull-right"></span>
-            </h4>
+    <div id="status-list-div" class="panel">
+        <div class="main-list">
+            <ul class="nav nav-list" id="status-list">
+            </ul>
         </div>
-        <div class="panel-body">
-            <div class="accordion" id="ncube-list">
+    </div>
+
+    <div id="ncube-list-div" class="panel">
+        <div class="panel-heading">
+            <div class="btn-group">
+                <a href="#" class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown"
+                   role="button">
+                    <span>n-cubes</span><span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a href="#" id="newCubeMenu">New</a></li>
+                    <li><a href="#" id="renameCubeMenu">Rename</a></li>
+                    <li><a href="#" id="dupeCubeMenu">Duplicate</a></li>
+                    <li><a href="#" id="deleteCubeMenu">Delete</a></li>
+                    <li><a href="#" id="restoreCubeMenu">Restore</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#" id="revisionHistoryMenu">Show revision history</a></li>
+                    <li><a href="#" id="showRefsToMenu">Show inbound references</a></li>
+                    <li><a href="#" id="showRefsFromMenu">Show outbound references</a></li>
+                    <li><a href="#" id="showReqScopeMenu">Show required scope</a></li>
+                </ul>
             </div>
+            <span id="ncubeCount" class="badge pull-right"></span>
+        </div>
+        <div class="input-group input-group-sm">
+            <input id="cube-search" type="text" class="form-control" placeholder="Names matching...">
+            <span class="input-group-btn">
+                <button id="cube-search-reset" class="btn btn-sm btn-default" type="button">
+                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                </button>
+            </span>
+        </div>
+        <input id="cube-search-content" style="font-size:12px" type="text" class="form-control" placeholder="Cubes containing...">
+        <div class="panel-body">
+            <ul class="nav nav-list" id="ncube-list">
+            </ul>
         </div>
     </div>
 </div>
 
 <div id="center" class="ui-layout-center">
-    <div id="ncubeTabContent" class="tab-content ui-layout-content" style="padding:0px">
-        <div id="ncube" class="tab-pane fade in active">
-            <div id="ncube-content" style="overflow:visible">
+    <div id="ncubeTabContent" class="tab-content ui-layout-content" style="padding:0">
+        <div id="ncube" class="tab-pane in active">
+            <div class="well">
+                <div id="ncube-content" style="overflow:visible">
+                </div>
             </div>
         </div>
 
         <!-- JSON Editor -->
 
         <!--<a class="coinbase-button" data-code="b5a778fb54e80f56eb34f1ef4b643f3d" data-button-style="custom_large" data-custom="ncube-editor" href="https://coinbase.com/checkouts/b5a778fb54e80f56eb34f1ef4b643f3d">Donate Bitcoins</a><script src="https://coinbase.com/assets/button.js" type="text/javascript"></script>-->
-        <div id="json" class="tab-pane fade" style="height:100%;width:100%">
+        <div id="json" class="tab-pane" style="height:100%;width:100%">
             <div id="jsoneditor" style="height:100%;width:100%"></div>
         </div>
 
-        <div id="details" class="tab-pane fade" style="overflow:hidden">
-            <br/>
+        <div id="tests" class="tab-pane container">
+            <div id="testLayoutEast" class="pane ui-layout-east" title="Tests" aria-disabled="false">
 
-            <form role="form" class="container">
-                <div class="row">
-                    <div class="col-md-5">
-                        <label for="cube_id">ID</label>
-                        <input class="form-control" type="text" id="cube_id" readonly/>
-                    </div>
-
-                    <div class="col-md-5 col-md-offset-1">
-                        <label for="cube_app">Application</label>
-                        <input class="form-control" type="text" id="cube_app" readonly/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-5">
-                        <label for="cube_name">Name</label>
-                        <input class="form-control" type="text" id="cube_name" readonly/>
-                    </div>
-
-                    <div class="col-md-5 col-md-offset-1">
-                        <label class="control-label" for="cube_version">Version</label>
-                        <input class="form-control" type="text" id="cube_version" readonly/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-5">
-                        <label class="control-label" for="cube_status">Status</label>
-                        <input class="form-control" type="text" id="cube_status" readonly/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-5">
-                        <label class="control-label" for="cube_createDate">Create Date</label>
-                        <input class="form-control" type="text" id="cube_createDate" readonly/>
-                    </div>
-
-                    <div class="col-md-5 col-md-offset-1">
-                        <label class="control-label" for="cube_updateDate">Update Date</label>
-                        <input class="form-control" type="text" id="cube_updateDate" readonly/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-5">
-                        <label class="control-label" for="cube_createHid">Create HID</label>
-                        <input class="form-control" type="text" id="cube_createHid" readonly/>
-                    </div>
-
-                    <div class="col-md-5 col-md-offset-1">
-                        <label class="control-label" for="cube_updateHid">Update HID</label>
-                        <input class="form-control" type="text" id="cube_updateHid" readonly/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-5">
-                        <label class="control-label" for="cube_sysEffDate">System Eff. Date</label>
-                        <input class="form-control" type="text" id="cube_sysEffDate" readonly/>
-                    </div>
-
-                    <div class="col-md-5 col-md-offset-1">
-                        <label class="control-label" for="cube_sysEndDate">System End Date</label>
-                        <input class="form-control" type="text" id="cube_sysEndDate" readonly/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-5">
-                        <label class="control-label" for="cube_bizEffDate">Bus. Eff. Date</label>
-                        <input class="form-control" type="text" id="cube_bizEffDate" readonly/>
-                    </div>
-
-                    <div class="col-md-5 col-md-offset-1">
-                        <label class="control-label" for="cube_bizEndDate">Bus. End Date</label>
-                        <input class="form-control" type="text" id="cube_bizEndDate" readonly/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-5">
-                        <label class="control-label" for="cube_defValue">Default Value</label>
-                        <input class="form-control" type="text" id="cube_defValue"/>
-                    </div>
-                </div>
-
-                <div class="row top-buffer">
-                    <div class="col-md-10">
-                        <label class="control-label" for="cube_notes">Notes</label>
-                        <textarea class="form-control" type="text" id="cube_notes"></textarea>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <div id="tests" class="tab-pane fade container" style="height:100%;width:100%">
-            <div id="testLayoutEast" class="pane ui-layout-east" title="Tests" style="overflow: hidden;" aria-disabled="false">
-
-                <div id="testList" class="panel panel-warning">
+                <div id="testList" class="panel">
                     <div class="panel-heading">
-                        <h4 class="panel-title">
-                            <div class="btn-group">
-                                <a id="runSelectedTests" type="button" class="btn btn-primary">Run Tests</a>
-                                <a type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
-                                    <span class="caret"></span>
-                                    <span class="sr-only">Toggle Dropdown</span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a id="saveAllTests" href="#">Save All</a></li>
-                                    <li><a id="runAllTests" href="#">Run All</a></li>
-                                    <li class="divider"></li>
-                                    <li><a id="clearTestSelection">Clear Selection</a></li>
-                                    <li><a id="selectAllTests">Select All</a></li>
-                                    <li class="divider"></li>
-                                    <li><a id="renameCurrentTestMenu" href="#">Rename Test</a></li>
-                                    <li><a id="runCurrentTestMenu">Run Test</a></li>
-                                    <li class="divider"></li>
-                                    <li><a id="duplicateCurrentTestMenu" href="#">Duplicate Test</a></li>
-                                </ul>
-                            </div>
-                            <span id="testCount" class="badge pull-right">4</span>
-                        </h4>
+                        <div class="btn-group">
+                            <a id="runAllTestsButton" type="button" class="btn btn-primary"><span class="glyphicon glyphicon-play" style="color:white"></span>&nbsp;Run All</a>
+                            <a type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
+                                <span class="caret"></span>
+                                <span class="sr-only">Toggle Dropdown</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a id="runAllTestsMenu" href="#">Run All</a></li>
+                                <li><a id="runCurrentTestMenu">Run Selected</a></li>
+                                <li class="divider"></li>
+                                <li><a id="renameCurrentTestMenu">Rename Test</a></li>
+                                <li><a id="deleteCurrentTestMenu">Delete Test</a></li>
+                                <li><a id="deleteAllTestsMenu">Delete All Tests</a></li>
+                                <li class="divider"></li>
+                                <li><a id="createNewTestMenu">Create Test</a></li>
+                                <li><a id="duplicateCurrentTestMenu">Duplicate Test</a></li>
+                            </ul>
+                        </div>
+                        <span id="testCount" class="badge pull-right">4</span>
                     </div>
                     <div class="panel-body" style="height: 100%;">
                         <ul class="list-group" id="testListItems">
@@ -301,35 +197,37 @@
                         </h4>
                     </div>
                     <div class="panel-body">
-                        <p>There were no tests found for this cube.  Would you like to <a id="generateTestsLink" href="#">generate tests?</a></p>
+                        <p>There were no tests found for this cube.  Would you like to <a id="generateTestsLink" href="#">generate tests</a> or <a id="createTestsLink" href="#">create a single test</a>?</p>
                     </div>
                 </div>
-
-
-
             </div>
 
             <div id="testLayoutCenter" class="pane ui-layout-center">
                 <div class="well">
                     <div id="testButtonGroupDiv" class="btn-group pull-right">
-                        <button id="defaultRunTestButton" class="btn btn-primary" type="button">Run Test</button>
-                        <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                        <button id="runTestButton" class="btn btn-default" type="button"><span class="glyphicon glyphicon-play" style="color:green"></span>&nbsp;Run</button>
+                        <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
                             <span class="caret"></span><span class="sr-only">Toggle Dropdown</span>
                         </button>
                         <ul class="dropdown-menu" role="menu">
-                            <li><a id="runTestMenu" href="#">Run Test</a></li>
-                            <li class="divider" />
-                            <li><a id="addParameterMenu" href="#">Add Parameter</a></li>
+                            <li><a id="runTestMenu" href="#">Run</a></li>
+                            <li class="divider" ></li>
+                            <li><a id="renameTestMenu" href="#">Rename</a></li>
+                            <li><a id="deleteTestMenu" href="#">Delete</a></li>
+                            <li class="divider" ></li>
+                            <li><a id="addParameterMenu" href="#">Add Input</a></li>
                             <li><a id="addAssertionMenu" href="#">Add Assertion</a></li>
+                            <li class="divider" ></li>
+                            <li><a id="duplicateTestMenu" href="#">Duplicate</a></li>
                         </ul>
                     </div>
                     <div id="testNameDiv">
                         <h3 id="selectedTestName"></h3>
                     </div>
-                    <div id="testParametersDiv" class="panel panel-info">
+                    <div id="testParametersDiv" class="panel panel-default">
                         <div class="panel-heading">
                             <h4 class="panel-title">
-                                <span>Parameters</span>
+                                <strong>Input</strong>
                             </h4>
                         </div>
                         <div class="panel-body">
@@ -339,9 +237,8 @@
                     </div>
                     <div id="testAssertionsDiv" class="panel panel-default">
                         <div class="panel-heading">
-                            <a id="assertionsGoToTop" class="pull-right"><span class="glyphicon glyphicon-arrow-up"></span><span class="sr-only">Go back to top</span></a>
                             <h4 class="panel-title">
-                                <span>Assertions</span>
+                                <strong>Assertions</strong>
                             </h4>
                         </div>
                         <div class="panel-body">
@@ -351,22 +248,15 @@
                     </div>
                     <div id="testResultsDiv" class="panel">
                         <div class="panel-heading">
-                            <a id="resultsGoToTop" class="pull-right"><span class="glyphicon glyphicon-arrow-up"></span><span class="sr-only">Go back to top</span></a>
                             <h4 class="panel-title">
-                                <span>Execution Log</span>
+                                <strong>Output</strong>
                             </h4>
                         </div>
-                        <div class="panel-body">
-                            <pre id="testResults">
-                            </pre>
+                        <div id="testResults" class="panel-body">
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div id="drillPic" class="tab-pane fade" style="height:100%;width:100%">
-           Product Model
         </div>
 
     </div>
@@ -487,20 +377,205 @@
     </div>
 </div>
 
+<!-- Restore Cube Modal -->
+<div id="restoreCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="restoreCubeLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="restoreCubeLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+                <ul id="deletedCubeList" class="list-group no-padding">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button id="restoreSelectAll" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select All</button>
+                <button id="restoreSelectNone" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select None</button>
+                <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Don't restore</button>
+                <button id="restoreCubeOk" class="btn btn-primary btn-sm">Restore</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- New Name Modal -->
+<!-- Revision History Modal -->
+<div id="revisionHistoryModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="revisionHistoryLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="revisionHistoryLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+                <ul id="revisionHistoryList" class="list-group">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <!--<button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>-->
+                <button id="revisionHistoryOk" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Commit / Rollback Modal -->
+<div id="commitRollbackModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="commitRollbackLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="commitRollbackLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+                <ul id="commitRollbackList" class="list-group">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button id="commitRollbackSelectAll" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select All</button>
+                <button id="commitRollbackSelectNone" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select None</button>
+                <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button id="commitOk" class="btn btn-primary btn-sm">Commit</button>
+                <button id="rollbackOk" class="btn btn-primary btn-sm">Rollback</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Select or Create Branch Modal -->
+<div id="selectBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="chooseBranchLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="chooseBranchLabel" class="modal-title">Select or Create Branch</h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+
+                <form role="form">
+                    <div class="well well-sm">
+                        <span class="help-block">Before a change can be made, a <b>branch</b> must selected or created.</span>
+                    </div>
+                </form>
+
+                <form role="form">
+                    <div class="form-group">
+                        <div id="branchNameWarning" class="alert alert-warning alert-dismissible" role="alert">
+                            <button type="button" class="close" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            Name must contain only a-z, A-Z, 0-9, _ (underscope), - (dash), or . (dot). Cannot be 'HEAD'.
+                        </div>
+                        <label for="newBranchName">New Branch Name</label>
+                        <div class="input-group">
+                            <input id="newBranchName" type="text" class="form-control">
+                            <span class="input-group-btn">
+                                <button id="createBranch" class="btn btn-default" type="button">Create</button>
+                            </span>
+                        </div>
+                    </div>
+                </form>
+
+                <form role="form">
+                    <div class="form-group">
+                        <label for="branchList">Select Existing Branch:</label>
+                        <ul id="branchList" class="list-group">
+                        </ul>
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Branch Modal -->
+<div id="deleteBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteBranchLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="deleteBranchLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body">
+                <h4>Are you sure?</h4>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteBranchOk" class="btn btn-primary">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Merge Branch Modal -->
+<div id="mergeBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="mergeBranchLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id=mergeBranchLabel" class="modal-title">Merge Branch</h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+
+                <form role="form">
+                    <div class="well well-sm">
+                        <span class="help-block">One or more cubes has been changed since your created / updated the cubes in your branch.  Each conflict needs to be resolved in order to commit or update branch.</span>
+                    </div>
+                </form>
+
+                <form role="form">
+                    <div class="form-group">
+                        <label for="newBranchName">Conflict description:</label>
+                        <textarea id="deltaDesc" class="form-control" rows="5"></textarea>
+                    </div>
+                </form>
+
+                <form role="form">
+                    <div class="form-group">
+                        <button id="acceptMine" class="btn btn-primary btn-sm">Accept Mine</button>
+                        <button id="acceptTheirs" class="btn btn-primary btn-sm">Accept Theirs</button>
+                    </div>
+                </form>
+
+                <form role="form">
+                    <div class="form-group">
+                        <label for="mergeList">Select conflicting cube:</label>
+                        <ul id="mergeList" class="list-group">
+                        </ul>
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Input Variable Modal -->
 <div id="addParameterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="addParameterTitle"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 id="addParameterTitle" class="modal-title">Create New Parameter</h3>
+                <h3 id="addParameterTitle" class="modal-title">Add Input</h3>
             </div>
             <div class="modal-body">
                 <form role="form">
                     <div class="form-group">
-                        <label for="addParameterField">New Parameter Name</label>
+                        <label for="addParameterField">Input Name</label>
                         <input class="form-control" type="text" id="addParameterField" placeholder="Type Name Here"/>
                     </div>
                 </form>
@@ -513,7 +588,53 @@
     </div>
 </div>
 
-<!-- New Name Modal -->
+<!-- Create New Test Modal -->
+<div id="createNewTestModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="createNewTestTitle"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="createNewTestTitle" class="modal-title">Create New Test</h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="addParameterField">New Test Name</label>
+                        <input class="form-control" type="text" id="createNewTestField" placeholder="Type New Test Name Here"/>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't create</button>
+                <button id="createNewTestOk" class="btn btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Tests Modal -->
+<div id="deleteAllTestsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteAllTestsTitle"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="deleteAllTestsTitle" class="modal-title">Delete All Tests?</h3>
+            </div>
+            <div class="modal-body">
+                <p class="text-warning"><span class="glyphicon glyphicon-warning-sign"></span>&nbsp;&nbsp;Are you sure you want to delete all tests?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteAllTestsOk" class="btn btn-primary">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Duplicate Test Modal -->
 <div id="duplicateTestModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="duplicateTestTitle"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog">
@@ -538,8 +659,6 @@
     </div>
 </div>
 
-
-
 <!-- Delete Parameter Modal -->
 <div id="deleteParameterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteParameterLabel"
      aria-hidden="true" data-backdrop="static">
@@ -547,7 +666,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 class="modal-title">Delete Parameter?</h3>
+                <h3 class="modal-title" id="deleteParameterTitle"></h3>
             </div>
             <div class="modal-body">
                 <h4 id="deleteParameterLabel"></h4>
@@ -561,27 +680,26 @@
     </div>
 </div>
 
-<!-- Delete Assertion Modal -->
-<div id="deleteAssertionModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteAssertionLabel"
+<!-- Delete Test Modal -->
+<div id="deleteTestModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteTestTitle"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 class="modal-title">Delete Assertion?</h3>
+                <h3 class="modal-title" id="deleteTestTitle"></h3>
             </div>
             <div class="modal-body">
-                <h4 id="deleteAssertionLabel"></h4>
+                <h4 id="deleteTestLabel"></h4>
             </div>
             <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
-                <button id="deleteAssertionOk" class="btn btn-primary">Delete</button>
+                <button id="deleteTestOk" class="btn btn-primary">Delete</button>
             </div>
         </div>
-        <input type="hidden" id="deleteAssertionHiddenId" value="" />
+        <input type="hidden" id="deleteTestHiddenId" value="" />
     </div>
 </div>
-
 
 <!-- Duplicate Cube Modal -->
 <div id="dupeCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dupeCubeLabel"
@@ -642,7 +760,7 @@
 <!-- 'Show References to' Modal -->
 <div id="showRefsToCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="showRefsToLabel"
      aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -662,7 +780,7 @@
 <!-- 'Show References from' Modal -->
 <div id="showRefsFromCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="showRefsFromLabel"
      aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -716,7 +834,7 @@
                     </div>
                     <div class="form-group">
                         <label for="releaseCubesVersion">New SNAPSHOT Version</label>
-                        <input class="form-control" type="text" placeholder="" id="releaseCubesVersion"/>
+                        <input class="form-control" type="text" placeholder="Enter version number n.n.n here" id="releaseCubesVersion"/>
                     </div>
                 </form>
             </div>
@@ -741,7 +859,7 @@
                 <form role="form">
                     <div class="form-group">
                         <label for="changeVerValue">Change to</label>
-                        <input class="form-control" type="text" placeholder="" id="changeVerValue"/>
+                        <input class="form-control" type="text" placeholder="Enter version number n.n.n here" id="changeVerValue"/>
                     </div>
                 </form>
             </div>
@@ -764,6 +882,9 @@
             </div>
             <div class="modal-body">
                 <form role="form">
+                    <div class="form-group alert alert-warning">
+                        <span class="help-block">Note: All cells will be cleared when an axis is added.</span>
+                    </div>
                     <div class="form-group">
                         <label for="addAxisName">Axis name</label>
                         <input class="form-control" type="text" placeholder="Axis name" id="addAxisName"/>
@@ -794,9 +915,6 @@
                             <input id="addAxisValueTypeName" type="text" class="form-control" value="STRING" readonly>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <span class="help-block">Note: All cells will be cleared when an axis is added.</span>
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -818,13 +936,12 @@
             </div>
             <div class="modal-body">
                 <form role="form">
+                    <div class="form-group alert alert-warning">
+                        <span class="help-block">Note: All cells will be cleared when an axis is deleted.</span>
+                    </div>
                     <div class="form-group">
                         <label for="deleteAxisName">Axis to delete</label>
                         <input id="deleteAxisName" type="text" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <span class="help-block">Note: All cells will be cleared when an axis is deleted.</span>
-                        <span class="help-block">This operation cannot be undone.</span>
                     </div>
                 </form>
             </div>
@@ -860,7 +977,7 @@
                         <input id="updateAxisValueTypeName" type="text" class="form-control" readonly>
                     </div>
                     <div class="form-group">
-                        <div class="checkbox">
+                        <div class="checkbox" id="updateAxisDefaultColRow">
                             <label>
                                 <input id="updateAxisDefaultCol" type="checkbox">Has Default Column
                             </label>
@@ -870,6 +987,13 @@
                         <div class="checkbox" id="updateAxisSortOrderRow">
                             <label>
                                 <input id="updateAxisSortOrder" type="checkbox">Sorted
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox" id="updateAxisFireAllRow">
+                            <label>
+                                <input id="updateAxisFireAll" type="checkbox">Fire all matching (versus first matching)
                             </label>
                         </div>
                     </div>
@@ -886,24 +1010,37 @@
 <!-- 'Update Columns' Modal -->
 <div id="editColumnsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="editColumnsLabel"
      aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="editColumnsLabel" class="modal-title"></h3>
             </div>
-            <div class="modal-body" style="overflow: auto;height:450px">
+            <div class="modal-body" style="overflow-y: auto;height:500px">
+                <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="headingOne">
+                            <h4 class="panel-title">
+                                <a id="editColInstTitle" data-toggle="collapse" data-parent="#accordion" href="#collapseOne"
+                                   aria-expanded="true" aria-controls="collapseOne">Instructions</a>
+                            </h4>
+                        </div>
+                        <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+                            <div id="editColInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
                 <ul id="editColumnsList" class="list-group">
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="editColSelectAll" type="button" class="btn btn-info btn-sm">Select All</button>
-                <button id="editColSelectNone" type="button" class="btn btn-info btn-sm">Select None</button>
-                <button id="editColUp" type="button" class="btn btn-info btn-sm">Up</button>
-                <button id="editColDown" type="button" class="btn btn-info btn-sm">Down</button>
+                <button id="editColSelectAll" type="button" class="btn btn-info btn-sm pull-left">Select All</button>
+                <button id="editColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
+                <button id="editColUp" type="button" class="btn btn-info btn-sm pull-left">Up</button>
+                <button id="editColDown" type="button" class="btn btn-info btn-sm pull-left">Down</button>
                 <button id="editColAdd" type="button" class="btn btn-success btn-sm">Add</button>
                 <button id="editColDelete" type="button" class="btn btn-danger btn-sm">Delete</button>
-                <button id="editColumnsCancel" class="btn btn-default btn-sm">Dont's save</button>
+                <button id="editColumnsCancel" class="btn btn-default btn-sm">Don't save</button>
                 <button id="editColumnsSave" class="btn btn-primary btn-sm">Save</button>
             </div>
         </div>
@@ -928,7 +1065,7 @@
 
                     <div class="form-group">
                         <label for="renameTestNewName">New Test Name</label>
-                        <input class="form-control" type="text" id="renameTestNewName" placeholder="Type name here"/>
+                        <input class="form-control" type="text" id="renameTestNewName" placeholder="Type new name here"/>
                     </div>
                 </form>
             </div>
@@ -954,7 +1091,7 @@
                 <form role="form">
                     <div class="form-group">
                         <label for="editCellValue">Change to</label>
-                        <textarea class="form-control" type="text" placeholder="Enter cell value here" id="editCellValue" rows="4"></textarea>
+                        <textarea class="form-control" placeholder="Enter cell value here" id="editCellValue" rows="4"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -1002,18 +1139,21 @@
         </div>
     </div>
 </div>
+<div id="nce-clipboard-container">
+    <textarea id="cell-clipboard"></textarea>
+</div>
 
-<script type="text/javascript" src="./js/jquery-2.1.1.min.js"></script>
-<script type="text/javascript" src="./js/jquery-ui-1.11.0.js"></script>
-<script type="text/javascript" src="./js/bootstrap.min.js"></script>
-<script type="text/javascript" src="./js/bootstrap-select.min.js"></script>
-<script type="text/javascript" src="./js/jquery.layout-1.4.0.js"></script>
-<script type="text/javascript" src="./js/jquery.gritter.min.js"></script>
-<script type="text/javascript" src="./js/mitDate.js"></script>
-<script type="text/javascript" src="./js/jsonUtil.js"></script>
-<script type="text/javascript" src="./js/constants.js"></script>
-<script type="text/javascript" src="./js/ncube-editor.js"></script>
-
+<script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.11.0.min.js"></script>
+<script type="text/javascript" src="js/bootstrap.min.js"></script>
+<script type="text/javascript" src="js/bootstrap-select.min.js"></script>
+<script type="text/javascript" src="js/jquery.layout-1.4.4.js"></script>
+<script type="text/javascript" src="js/jquery.gritter.min.js"></script>
+<script type="text/javascript" src="js/jquery-scroll-into-view.js"></script>
+<script type="text/javascript" src="js/mitDate.js"></script>
+<script type="text/javascript" src="js/jsonUtil.js"></script>
+<script type="text/javascript" src="js/constants.js"></script>
+<script type="text/javascript" src="js/ncube-editor.js"></script>
 
 </body>
 </html>

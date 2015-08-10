@@ -79,11 +79,10 @@ function buildJsonCmdUrl(target)
     var match = regexp.exec(location.pathname);
     if (match == null || match.length != 2)
     {
-        throw "Missing context in location.pathname";
+        return location.protocol + '//' + location.hostname + ":" + location.port + "/cmd/" + controller + "/" + method;
     }
     var ctx = match[1];
-    var url = location.protocol + '//' + location.hostname + ":" + location.port + "/" + ctx + "/cmd/" + controller + "/" + method;
-    return url;
+    return location.protocol + '//' + location.hostname + ":" + location.port + "/" + ctx + "/cmd/" + controller + "/" + method;
 }
 
 function buildJsonArgs(args)
@@ -94,6 +93,12 @@ function buildJsonArgs(args)
     }
 
     return JSON.stringify(args);
+}
+
+function exec(target, args, params)
+{
+    args.push(target);
+    return call("ncubeController.execute", args, params);
 }
 
 /**
@@ -138,8 +143,8 @@ function call(target, args, params)
 
     if (params != null)
     {
-        async = (params.callback != "undefined" && params.callback != null && typeof params.callback === "function");
-        if (params.timeout != "undefined" && params.timeout != null)
+        async = (params.callback && typeof params.callback === "function");
+        if (params.timeout)
         {
             timeout = params.timeout;
         }
@@ -166,7 +171,7 @@ function call(target, args, params)
                 }
                 else
                 {
-                    // resolveRefs(result.data);
+                    resolveRefs(result.data);
                     params.callback(result);
                 }
             }
@@ -196,6 +201,7 @@ function call(target, args, params)
             return {status:null,data:'Communications error.  Check your network connection.'};
         }
 
+        resolveRefs(result.data);
         return result;
     }
 }

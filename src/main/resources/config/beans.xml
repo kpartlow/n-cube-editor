@@ -1,92 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans" 
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-  xmlns:tx="http://www.springframework.org/schema/tx"
-  xmlns:aop="http://www.springframework.org/schema/aop"
-  xmlns:p="http://www.springframework.org/schema/p"
-  xmlns:util="http://www.springframework.org/schema/util"
-  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
-  	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
-  	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
-    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd"        >
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+  	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
 
-	<bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-        <constructor-arg ref="ncubeService"/>
-	</bean>
+    <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
+        <constructor-arg>
+            <bean class="com.cedarsoftware.service.ncube.NCubeService" />
+        </constructor-arg>
+    </bean>
 
-    <!--
-    p:username="execdash"
-    p:password="puCupRaQaZe3"
-    -->
 
     <bean id="ncubeTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
         <property name="dataSource" ref="ncubeDataSource" />
     </bean>
 
-    <tx:annotation-driven transaction-manager="ncubeTransactionManager" />
     <tx:advice id="ncubeTxAdvice" transaction-manager="ncubeTransactionManager">
         <tx:attributes>
             <tx:method name="*" propagation="REQUIRED"/>
             <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
             <tx:method name="is*" propagation="REQUIRED" read-only="true"/>
             <tx:method name="has*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="does*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="search*" propagation="REQUIRED" read-only="true"/>
         </tx:attributes>
     </tx:advice>
 
     <aop:config>
-        <aop:pointcut id="ncubeServiceMethods" expression="within(com.cedarsoftware.service.ncube.*)"/>
+        <aop:pointcut id="ncubeServiceMethods" expression="execution(* com.cedarsoftware.service.ncube.NCubeService.*(..))"/>
         <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeServiceMethods"/>
     </aop:config>
 
-    <bean id="ncubeService" class="com.cedarsoftware.service.ncube.NCubeService">
-        <property name="dataSource" ref="ncubeDataSource"/>
-    </bean>
-
-    <!--  Method for setting version information for a single app. -->
     <!--
-    <bean id="version" class="java.lang.String">
-        <constructor-arg value="1.1.14" />
-    </bean>
-
-    <util:list id="urlParameters" value-type="java.lang.Object">
-        <util:list value-type="java.lang.String">
-            <value>https://cdn.gaig.com/private/ud/ra-resources/#{version.toString()}/public</value>
-            <value>https://cdn.gaig.com/private/ud/ra-resources/#{version.toString()}/private</value>
-            <value>https://cdn.gaig.com/private/ud/ra-resources/#{version.toString()}/private/groovy</value>
-        </util:list>
-        <value type="java.lang.String">#{version.toString()}</value>
-    </util:list>
-
-    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="staticMethod" value="com.cedarsoftware.ncube.NCubeManager.addBaseResourceUrls"/>
-        <property name="arguments" ref="urlParameters"/>
-    </bean>
+    p:username="execdash"
+    p:password="puCupRaQaZe3"
     -->
 
-    <util:list id="defaultUrls" value-type="java.lang.Object">
-        <util:list value-type="java.lang.String">
-            <value>https://cdn.gaig.com/private/ud/ra-resources/${version}/public</value>
-            <value>https://cdn.gaig.com/private/ud/ra-resources/${version}/private</value>
-            <value>https://cdn.gaig.com/private/ud/ra-resources/${version}/private/groovy</value>
-        </util:list>
-    </util:list>
-
-    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="staticMethod" value="com.cedarsoftware.controller.NCubeController.setDefaultUrls"/>
-        <property name="arguments" ref="defaultUrls"/>
+    <bean id="connectionProvider" class="com.cedarsoftware.util.SpringConnectionProvider">
+        <constructor-arg ref="ncubeDataSource" />
     </bean>
 
+    <bean id="persister" class="com.cedarsoftware.ncube.NCubeJdbcPersisterAdapter">
+        <constructor-arg ref="connectionProvider" />
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="staticMethod" value="com.cedarsoftware.ncube.NCubeManager.setNCubePersister"/>
+        <property name="arguments">
+            <list>
+                <ref bean="persister"/>
+            </list>
+        </property>
+    </bean>
 
     <!--
         When using mysql as your test database, set an environment variable spring.profiles.active=mysql
         The profiles list can be comma separated if you need more than one profile
     -->
 
-    <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
+    <!--<bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"-->
+          <!--p:driverClassName="com.mysql.jdbc.Driver"-->
+          <!--p:url="jdbc:mysql://mysqldev.cwge6txtewt5.us-east-1.rds.amazonaws.com:3306/ncube"-->
+          <!--p:username="ncube"-->
+          <!--p:password="ncube"-->
+          <!--p:initialSize="5"-->
+          <!--p:minIdle="5"-->
+          <!--p:maxIdle="10"-->
+          <!--p:maxActive="100"-->
+          <!--p:maxWait="120000"-->
+          <!--p:jmxEnabled="true"-->
+          <!--p:removeAbandoned="true"-->
+          <!--p:removeAbandonedTimeout="180"-->
+          <!--p:testOnBorrow="true"-->
+          <!--p:testOnReturn="false"-->
+          <!--p:testWhileIdle="false"-->
+          <!--p:timeBetweenEvictionRunsMillis="30000"-->
+          <!--p:minEvictableIdleTimeMillis="30000"-->
+          <!--p:validationInterval="60000"-->
+          <!--p:validationQuery="/* ping */">-->
+    <!--</bean>-->
+
+    <bean id="ncubeDataSource" destroy-method="close"
+          class="org.apache.tomcat.jdbc.pool.DataSource"
           p:driverClassName="oracle.jdbc.driver.OracleDriver"
-          p:url="jdbc:oracle:thin:@10.50.214.14:1526:uwdeskd"
-          p:username="ra_desktop"
-          p:password="p0rtal"
+          p:url="jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com"
+          p:username="nce"
+          p:password="quality"
           p:initialSize="5"
           p:minIdle="5"
           p:maxIdle="10"
@@ -101,8 +104,8 @@
           p:timeBetweenEvictionRunsMillis="30000"
           p:minEvictableIdleTimeMillis="30000"
           p:validationInterval="60000"
-          p:validationQuery="select 1 from dual"
-            />
+          p:validationQuery="select 1 from dual">
+    </bean>
 
 
     <beans profile="mysql">
@@ -125,8 +128,58 @@
               p:timeBetweenEvictionRunsMillis="30000"
               p:minEvictableIdleTimeMillis="30000"
               p:validationInterval="60000"
-              p:validationQuery="/* ping */"
-                />
+              p:validationQuery="/* ping */">
+        </bean>
+    </beans>
+
+    <beans profile="exa-dev">
+        <bean id="ncubeDataSource" destroy-method="close"
+              class="org.apache.tomcat.jdbc.pool.DataSource"
+              p:driverClassName="oracle.jdbc.driver.OracleDriver"
+              p:url="jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com"
+              p:username="nce"
+              p:password="quality"
+              p:initialSize="5"
+              p:minIdle="5"
+              p:maxIdle="10"
+              p:maxActive="100"
+              p:maxWait="120000"
+              p:jmxEnabled="true"
+              p:removeAbandoned="true"
+              p:removeAbandonedTimeout="180"
+              p:testOnBorrow="true"
+              p:testOnReturn="false"
+              p:testWhileIdle="false"
+              p:timeBetweenEvictionRunsMillis="30000"
+              p:minEvictableIdleTimeMillis="30000"
+              p:validationInterval="60000"
+              p:validationQuery="select 1 from dual">
+        </bean>
+    </beans>
+
+    <beans profile="exa-prod">
+        <bean id="ncubeDataSource" destroy-method="close"
+              class="org.apache.tomcat.jdbc.pool.DataSource"
+              p:driverClassName="oracle.jdbc.driver.OracleDriver"
+              p:url="jdbc:oracle:thin:@dm01-scan.td.afg:1521/app_ncubep.prod.gai.com"
+              p:username="nce"
+              p:password="quality"
+              p:initialSize="5"
+              p:minIdle="5"
+              p:maxIdle="10"
+              p:maxActive="100"
+              p:maxWait="120000"
+              p:jmxEnabled="true"
+              p:removeAbandoned="true"
+              p:removeAbandonedTimeout="180"
+              p:testOnBorrow="true"
+              p:testOnReturn="false"
+              p:testWhileIdle="false"
+              p:timeBetweenEvictionRunsMillis="30000"
+              p:minEvictableIdleTimeMillis="30000"
+              p:validationInterval="60000"
+              p:validationQuery="select 1 from dual">
+        </bean>
     </beans>
 
 
