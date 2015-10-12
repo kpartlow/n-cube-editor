@@ -1,31 +1,13 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.ApplicationID
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.AxisType
-import com.cedarsoftware.ncube.AxisValueType
-import com.cedarsoftware.ncube.CellInfo
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.Delta
-import com.cedarsoftware.ncube.GroovyExpression
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.NCubeInfoDto
-import com.cedarsoftware.ncube.NCubeManager
-import com.cedarsoftware.ncube.NCubeTest
-import com.cedarsoftware.ncube.RuleInfo
-import com.cedarsoftware.ncube.StringValuePair
+import com.cedarsoftware.ncube.*
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.service.ncube.NCubeService
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.DateUtilities
-import com.cedarsoftware.util.StringUtilities
-import com.cedarsoftware.util.ThreadAwarePrintStream
-import com.cedarsoftware.util.ThreadAwarePrintStreamErr
+import com.cedarsoftware.util.*
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -696,19 +678,31 @@ class NCubeController extends BaseController
                 return null
             }
             NCube ncube = nCubeService.getCube(appId, cubeName)
-            Map coord = test.createCoord()
+            Map<String, Object> coord = test.createCoord()
+            boolean success = true
             Map output = new LinkedHashMap()
+            Map args = [input:coord, output:output, ncube:ncube]
+            Map<String, Object> copy = new LinkedHashMap(coord)
+
+            // If any of the input values are a CommandCell, execute them.  Use the fellow (same) input as input.
+            // In other words, other key/value pairs on the input map can be referenced in a CommandCell.
+            copy.each { key, value ->
+                if (value instanceof CommandCell)
+                {
+                    CommandCell cmd = (CommandCell) value
+                    coord[key] = cmd.execute(args)
+                }
+            }
+
+            Set<String> errors = new LinkedHashSet<>()
             ncube.getCell(coord, output)               // Execute test case
 
             RuleInfo ruleInfoMain = (RuleInfo) output[(NCube.RULE_EXEC_INFO)]
             ruleInfoMain.setSystemOut(ThreadAwarePrintStream.getContent())
             ruleInfoMain.setSystemErr(ThreadAwarePrintStreamErr.getContent())
 
-            Map args = [input:coord, output:output, ncube:ncube]
             List<GroovyExpression> assertions = test.createAssertions()
-            boolean success = true
             int i = 0;
-            Set<String> errors = new LinkedHashSet<>()
 
             for (GroovyExpression exp : assertions)
             {
@@ -883,7 +877,7 @@ class NCubeController extends BaseController
             {
                 Object cellValue = cellInfo.isUrl ?
                         CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
-                        CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, false)
+                        CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
                 ncube.setCellById(cellValue, colIds)
             }
             nCubeService.updateNCube(ncube, getUserForDatabase())
@@ -1278,17 +1272,20 @@ class NCubeController extends BaseController
         {
             appId = addTenant(appId)
             int dot = command.indexOf('.')
-            def controller = command.substring(0, dot)
-            def method = command.substring(dot + 1)
+            String controller = command.substring(0, dot)
+            String method = command.substring(dot + 1)
 
             if (!isAllowed(appId, controller, null))
             {
                 return null
             }
-            def coordinate = ['method' : method, 'args' : args, 'service': nCubeService]
+            Map coordinate = ['method' : method, 'service': nCubeService]
+            coordinate.putAll(args);
             NCube cube = nCubeService.getCube(appId, controller)
             Map output = [:]
-            return [value: cube.getCell(coordinate, output), output: output]
+            cube.getCell(coordinate, output)    // return value is set on 'return' key of output Map
+            output.remove('_rule')  // remove execution meta information (too big to send - add special API if needed)
+            return output
         }
         catch (Exception e)
         {
@@ -1312,8 +1309,84 @@ class NCubeController extends BaseController
         }
         catch (Exception e)
         {
+            LOG.info("Unable to load sys.menu (sys.menu cube likely not in appId: " + appId.toString() + ", exception: " + e.getMessage())
+            return ['~Title':'Title Goes Here',
+                    'n-cube':[html:'html/ncube.html'],
+                    JSON:[html:'html/jsonEditor.html'],
+                    Details:[html:'html/details.html'],
+                    Test:[html:'html/test.html']
+            ]
+        }
+    }
+
+    Object getDefaultCell(ApplicationID appId, String cubeName)
+    {
+        try
+        {
+            appId = addTenant(appId)
+
+            if (!isAllowed(appId, cubeName, null))
+            {
+                return null
+            }
+            NCube menuCube = nCubeService.getCube(appId, cubeName)
+            CellInfo cellInfo = new CellInfo(menuCube.getDefaultCellValue())
+            cellInfo.collapseToUiSupportedTypes()
+            return cellInfo
+        }
+        catch (Exception e)
+        {
             fail(e)
             return null
+        }
+    }
+
+    boolean clearDefaultCell(ApplicationID appId, String cubeName)
+    {
+        try
+        {
+            appId = addTenant(appId)
+
+            if (!isAllowed(appId, cubeName, Delta.Type.UPDATE))
+            {
+                return false
+            }
+            NCube ncube = nCubeService.getCube(appId, cubeName)
+            ncube.setDefaultCellValue(null)
+            nCubeService.updateNCube(ncube, getUserForDatabase())
+            return true
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return false
+        }
+    }
+
+    boolean updateDefaultCell(ApplicationID appId, String cubeName, CellInfo cellInfo)
+    {
+        try
+        {
+            appId = addTenant(appId)
+
+            if (!isAllowed(appId, cubeName, Delta.Type.UPDATE))
+            {
+                return false
+            }
+
+            Object cellValue = cellInfo.isUrl ?
+                    CellInfo.parseJsonValue(null, cellInfo.value, cellInfo.dataType, cellInfo.isCached) :
+                    CellInfo.parseJsonValue(cellInfo.value, null, cellInfo.dataType, cellInfo.isCached)
+
+            NCube ncube = nCubeService.getCube(appId, cubeName)
+            ncube.setDefaultCellValue(cellValue)
+            nCubeService.updateNCube(ncube, getUserForDatabase())
+            return true
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return false
         }
     }
 
@@ -1495,15 +1568,6 @@ class NCubeController extends BaseController
             colIds.add(Long.parseLong((String)id))
         }
         return colIds;
-    }
-
-    /**
-     * Build out General Group
-     * @return [group:'General', prefix: ""]
-     */
-    private static Map<String, Object> makeGenericAugInfo()
-    {
-        return [group:'General',prefix:""]
     }
 
     private ApplicationID addTenant(ApplicationID appId)

@@ -38,6 +38,8 @@ import javax.servlet.http.HttpServletResponse
 @CompileStatic
 class ProxyRouter
 {
+    static final String SYS_CLASSPATH_PREFIX = 'sys.classpath.prefix'
+
     private static final Logger LOG = LogManager.getLogger(ProxyRouter.class);
 
     /**
@@ -48,32 +50,41 @@ class ProxyRouter
         Map<String, String[]> requestParams = request.getParameterMap()
         if (!requestParams.containsKey('appId'))
         {
-            String msg = '"appId" parameter missing - it is required and should contain the ApplicationID fields app, verison, status, branch in JSON format.'
-            LOG.error(msg)
-            throw new IllegalArgumentException(msg)
+            try
+            {
+                String msg = '"appId" parameter missing - it is required and should contain the ApplicationID fields app, verison, status, branch in JSON format.'
+                LOG.error(msg)
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
+            }
+            catch (Exception ignore)
+            { }
         }
 
         try
         {
-            // TODO: Should we attempt to route to http:// URLs here too, to get the advantage of the allowAllCerts?
-            // Does www.google.com protect itself from running in an iframe on the Javascript side?
             ApplicationID appId = buildAppId(requestParams)
             NCube finder = new NCube('router')
             finder.setApplicationID(appId)
-            Axis find = new Axis('dontcare', AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY, 1)
-            finder.addAxis(find)
-            String sysPath = request.getAttribute('ctx')
-            String servletPath = request.getServletPath()
-            CommandCell cmd = new StringUrlCmd(servletPath.substring(sysPath.length() + 2), false)  // +2 = leading and trailing slash
-            Map input = [(CdnRouter.HTTP_REQUEST):request, (CdnRouter.HTTP_RESPONSE):response]
+            finder.addAxis(new Axis('dontcare', AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY, 1))
+            String sysPathPrefix = request.getAttribute(SYS_CLASSPATH_PREFIX)
+            String path = '/' + sysPathPrefix + '/'
+            String actualPath = request.getServletPath() - path     // Groovy String subtraction
+
+            CommandCell cmd = new StringUrlCmd(actualPath, false)
             finder.setCell(cmd, [:])
+            Map input = [(CdnRouter.HTTP_REQUEST): request, (CdnRouter.HTTP_RESPONSE): response]
             finder.getCell(input)
         }
         catch (Exception e)
         {
             String msg = '"appId" parameter not parsing as valid JSON: ' + requestParams.appId
-            LOG.error(msg, e)
-            throw new IllegalArgumentException(msg, e)
+            try
+            {
+                LOG.error(msg, e)
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, msg);
+            }
+            catch (Exception ignore)
+            { }
         }
     }
 

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="../"/>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Testing</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="n-cube test panel">
+    <meta name="author" content="Ken Partlow">
+
+    <link href="css/jquery.layout-1.4.4.css" rel="stylesheet"/>
+    <link href="css/jquery-ui-1.11.0.min.css" rel="stylesheet"/>
+    <link href="css/jquery.gritter.css" rel="stylesheet"/>
+    <link href="css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
+    <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
+    <link href="css/common.css" rel="stylesheet"/>
+    <link href="css/test.css" rel="stylesheet"/>
+
+    <script src="js/jquery-2.1.3.min.js"></script>
+    <script src="js/jquery-ui-1.11.0.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/bootstrap-select.min.js"></script>
+    <script src="js/jquery.layout-1.4.4.js"></script>
+    <script src="js/jquery.gritter.min.js"></script>
+    <script src="js/jquery-scroll-into-view.js"></script>
+    <script src="js/mitDate.js"></script>
+    <script src="js/test.js"></script>
+
+</head>
+<body class="noselect" id="testBody">
+
+<div id="testLayoutCenter" class="pane ui-layout-center center-bkgnd">
+    <div id="testButtonGroupDiv" class="btn-group">
+        <button id="runTestButton" class="btn btn-default" type="button"><span class="glyphicon glyphicon-play" style="color:green"></span>&nbsp;Run</button>
+        <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+            <span class="caret"></span><span class="sr-only">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu" role="menu">
+            <li><a id="runTestMenu" href="#">Run</a></li>
+            <li class="divider" ></li>
+            <li><a id="addParameterMenu" href="#">Add Input</a></li>
+            <li><a id="addAssertionMenu" href="#">Add Assertion</a></li>
+        </ul>
+    </div>
+    <div id="testNameDiv">
+        <h3 id="selectedTestName"></h3>
+    </div>
+    <div id="testParametersDiv" class="panel panel-default">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <strong>Input</strong>
+            </h4>
+        </div>
+        <div class="panel-body">
+            <form id="testParameters" role="form">
+            </form>
+        </div>
+    </div>
+    <div id="testAssertionsDiv" class="panel panel-default">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <strong>Assertions</strong>
+            </h4>
+        </div>
+        <div class="panel-body">
+            <form id="testAssertions" role="form">
+            </form>
+        </div>
+    </div>
+    <div id="testResultsDiv" class="panel panel-default">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <strong>Output</strong>
+            </h4>
+        </div>
+        <div id="testResults" class="panel-body">
+        </div>
+    </div>
+</div>
+
+<div id="testLayoutEast" class="pane ui-layout-east" title="Tests" aria-disabled="false">
+    <div id="testList" class="panel" style="height:calc(100% - 10px)">
+        <div class="panel-heading">
+            <div class="btn-group">
+                <a type="button" class="btn-sm btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
+                    <span>Tests</span><span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a id="renameCurrentTestMenu">Rename Test</a></li>
+                    <li><a id="deleteCurrentTestMenu">Delete Test</a></li>
+                    <li><a id="deleteAllTestsMenu">Delete All Tests</a></li>
+                    <li class="divider"></li>
+                    <li><a id="createNewTestMenu">Create Test</a></li>
+                    <li><a id="duplicateCurrentTestMenu">Duplicate Test</a></li>
+                </ul>
+            </div>
+            <span id="testCount" class="badge pull-right">4</span>
+        </div>
+        <div class="panel-body">
+            <ul class="nav nav-list" id="testListItems">
+            </ul>
+        </div>
+    </div>
+    <div id="testListWarning" class="panel panel-info">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <span>No tests were found</span>
+            </h4>
+        </div>
+        <div class="panel-body">
+            <p>There were no tests found for this cube.  Would you like to <a id="generateTestsLink" href="#">generate tests</a> or <a id="createTestsLink" href="#">create a single test</a>?</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Input Variable Modal -->
+<div id="addParameterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="addParameterTitle"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="addParameterTitle" class="modal-title">Add Input</h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="addParameterField">Input Name</label>
+                        <input class="form-control" type="text" id="addParameterField" placeholder="Type Name Here"/>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't create</button>
+                <button id="addParameterOk" class="btn btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create New Test Modal -->
+<div id="createNewTestModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="createNewTestTitle"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="createNewTestTitle" class="modal-title">Create New Test</h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="addParameterField">New Test Name</label>
+                        <input class="form-control" type="text" id="createNewTestField" placeholder="Type New Test Name Here"/>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't create</button>
+                <button id="createNewTestOk" class="btn btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Tests Modal -->
+<div id="deleteAllTestsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteAllTestsTitle"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="deleteAllTestsTitle" class="modal-title">Delete All Tests?</h3>
+            </div>
+            <div class="modal-body">
+                <p class="text-warning"><span class="glyphicon glyphicon-warning-sign"></span>&nbsp;&nbsp;Are you sure you want to delete all tests?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteAllTestsOk" class="btn btn-primary">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Duplicate Test Modal -->
+<div id="duplicateTestModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="duplicateTestTitle"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="duplicateTestTitle" class="modal-title"></h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="duplicateTestNameField">New Test Name</label>
+                        <input class="form-control" type="text" id="duplicateTestNameField"/>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't Duplicate</button>
+                <button id="duplicateCurrentTestOk" class="btn btn-primary">Duplicate</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Parameter Modal -->
+<div id="deleteParameterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteParameterLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 class="modal-title" id="deleteParameterTitle"></h3>
+            </div>
+            <div class="modal-body">
+                <h4 id="deleteParameterLabel"></h4>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteParameterOk" class="btn btn-primary">Delete</button>
+            </div>
+        </div>
+        <input type="hidden" id="deleteParameterHiddenId" value="" />
+    </div>
+</div>
+
+<!-- Delete Test Modal -->
+<div id="deleteTestModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteTestTitle"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 class="modal-title" id="deleteTestTitle"></h3>
+            </div>
+            <div class="modal-body">
+                <h4 id="deleteTestLabel"></h4>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteTestOk" class="btn btn-primary">Delete</button>
+            </div>
+        </div>
+        <input type="hidden" id="deleteTestHiddenId" value="" />
+    </div>
+</div>
+
+<!-- Rename Test Cube Modal -->
+<div id="renameTestModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="renameTestModal"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="renameTestLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="renameTestOldName">Old Test Name</label>
+                        <input id="renameTestOldName" type="text" class="form-control" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="renameTestNewName">New Test Name</label>
+                        <input class="form-control" type="text" id="renameTestNewName" placeholder="Type new name here"/>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Don't rename</button>
+                <button id="renameTestOk" class="btn btn-primary">Rename</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div>
+    <select id="datatypes-value" class="form-control">
+        <option id="dt-string" value="string">String</option>
+        <option id="dt-integer" value="long">Integer (64-bit)</option>
+        <option id="dt-date" value="date">Date</option>
+        <option id="dt-boolean" value="boolean">Boolean (true / false)</option>
+        <option id="dt-bigdecimal" value="bigdec">Decimal Financial (unlimited size)</option>
+        <option id="dt-double" value="double">Decimal Engineering (64-bit double precision)</option>
+        <option id="dt-exp" value="exp">Expression (Groovy language)</option>
+        <option id="dt-template" value="template">Groovy Template</option>
+        <option id="dt-binary" value="binary">Binary (byte[])</option>
+        <option id="dt-latlon" value="latlon">Lat / Lon (lat, lon)</option>
+        <option id="dt-point2d" value="point2d">2D point (x, y)</option>
+        <option id="dt-point3d" value="point3d">3D point (x, y, z)</option>
+    </select>
+    <select id="datatypes-url" class="form-control" style="display:none">
+        <option id="dt-url-exp" value="exp">Expression (Groovy language)</option>
+        <option id="dt-url-method" value="method">Method (Groovy language)</option>
+        <option id="dt-url-string" value="string">String</option>
+        <option id="dt-url-binary" value="binary">Binary (byte[])</option>
+        <option id="dt-url-template" value="template">Template</option>
+    </select>
+</div>
+
+</body>
+</html>

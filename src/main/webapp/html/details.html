@@ -4,7 +4,7 @@
     <base href="../"/>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>n-cube</title>
+    <title>Details</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="n-cube detail editor">
     <meta name="author" content="John DeRegnaucourt">
@@ -15,27 +15,92 @@
     <link href="css/bootstrap.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
-    <link href="css/ncube-editor.css" rel="stylesheet"/>
+    <link href="css/common.css" rel="stylesheet"/>
+    <link href="css/details.css" rel="stylesheet"/>
 
-    <script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
-    <script type="text/javascript" src="js/jquery-ui-1.11.0.min.js"></script>
-    <script type="text/javascript" src="js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="js/bootstrap-select.min.js"></script>
-    <script type="text/javascript" src="js/jquery.layout-1.4.4.js"></script>
-    <script type="text/javascript" src="js/jquery.gritter.min.js"></script>
-    <script type="text/javascript" src="js/jquery-scroll-into-view.js"></script>
-    <script type="text/javascript" src="js/mitDate.js"></script>
-    <script type="text/javascript" src="js/jsonUtil.js"></script>
-    <script type="text/javascript" src="js/constants.js"></script>
-    <script type="text/javascript" src="js/details.js"></script>
+    <script src="js/jquery-2.1.3.min.js"></script>
+    <script src="js/jquery-ui-1.11.0.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/bootstrap-select.min.js"></script>
+    <script src="js/jquery.layout-1.4.4.js"></script>
+    <script src="js/jquery.gritter.min.js"></script>
+    <script src="js/jquery-scroll-into-view.js"></script>
+    <script src="js/mitDate.js"></script>
+    <script src="js/details.js"></script>
 
 </head>
-<body style="padding:0px">
-    <form role="form" class="container">
+<body class="noselect" id="mainBody">
+    <form role="form" class="container no-lr-margin">
         <div class="row top-buffer">
-            <div class="col-md-10">
+            <div class="col-md-12">
                 <label for="cube_name">Name</label>
                 <input class="form-control" type="text" id="cube_name" readonly/>
+            </div>
+        </div>
+
+        <div class="panel panel-default top-buffer-2x">
+            <div class="panel-heading">
+                <h3 class="panel-title">Default Cell Value</h3>
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <textarea class="form-control" id="cube_defValue" placeholder="Enter default cell value here" rows="4"></textarea>
+                    </div>
+                </div>
+
+                <div class="row top-buffer">
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Data type</label>
+                            <select id="datatypes-value" class="form-control">
+                                <option id="dt-string" value="string">String</option>
+                                <option id="dt-integer" value="long">Integer (64-bit)</option>
+                                <option id="dt-date" value="date">Date</option>
+                                <option id="dt-boolean" value="boolean">Boolean (true / false)</option>
+                                <option id="dt-bigdecimal" value="bigdec">Decimal Financial (unlimited size)</option>
+                                <option id="dt-double" value="double">Decimal Engineering (64-bit double precision)</option>
+                                <option id="dt-exp" value="exp">Expression (Groovy language)</option>
+                                <option id="dt-template" value="template">Groovy Template</option>
+                                <option id="dt-binary" value="binary">Binary (byte[])</option>
+                                <option id="dt-latlon" value="latlon">Lat / Lon (lat, lon)</option>
+                                <option id="dt-point2d" value="point2d">2D point (x, y)</option>
+                                <option id="dt-point3d" value="point3d">3D point (x, y, z)</option>
+                            </select>
+                            <select id="datatypes-url" class="form-control" style="display:none">
+                                <option id="dt-url-exp" value="exp">Expression (Groovy language)</option>
+                                <option id="dt-url-method" value="method">Method (Groovy language)</option>
+                                <option id="dt-url-string" value="string">String</option>
+                                <option id="dt-url-binary" value="binary">Binary (byte[])</option>
+                                <option id="dt-url-template" value="template">Template</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label id="isURL"><input type="checkbox">URL</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label id="isCached"><input type="checkbox">Cache result* (use in rare cases for Groovy Expression/Method/Template - 1st execution is cached without regard to input variables)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div id="defaultCellClear" class="btn btn-primary">Clear</div>
+                    <div id="defaultCellUpdate" class="btn btn-primary">Update</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row top-buffer">
+            <div class="col-md-12">
+                <label class="control-label" for="cube_notes">Notes</label>
+                <textarea class="form-control" id="cube_notes" readonly></textarea>
             </div>
         </div>
 
@@ -48,37 +113,15 @@
 
         <div class="row top-buffer">
             <div class="col-md-5">
-                <label class="control-label" for="cube_createDate">Create Date</label>
-                <input class="form-control" type="text" id="cube_createDate" readonly/>
-            </div>
-        </div>
-
-        <div class="row top-buffer">
-            <div class="col-md-5">
                 <label class="control-label" for="cube_createHid">Created By</label>
                 <input class="form-control" type="text" id="cube_createHid" readonly/>
             </div>
-
         </div>
 
         <div class="row top-buffer">
             <div class="col-md-5">
-                <label class="control-label" for="cube_defValue">Default Value</label>
-                <input class="form-control" type="text" id="cube_defValue"/>
-            </div>
-        </div>
-
-        <div class="row top-buffer">
-            <div class="col-md-10">
-                <label class="control-label" for="cube_notes">Notes</label>
-                <textarea class="form-control" id="cube_notes" readonly></textarea>
-            </div>
-        </div>
-
-        <div class="row top-buffer">
-            <div class="col-md-5">
-                <label class="control-label" for="cube_id">ID</label>
-                <input class="form-control" type="text" id="cube_id" readonly/>
+                <label class="control-label" for="cube_createDate">Create Date</label>
+                <input class="form-control" type="text" id="cube_createDate" readonly/>
             </div>
         </div>
 
@@ -93,6 +136,13 @@
             <div class="col-md-5">
                 <label class="control-label" for="cube_headSha1">HEAD SHA-1</label>
                 <input class="form-control" type="text" id="cube_headSha1" readonly/>
+            </div>
+        </div>
+
+        <div class="row top-buffer">
+            <div class="col-md-5">
+                <label class="control-label" for="cube_id">ID</label>
+                <input class="form-control" type="text" id="cube_id" readonly/>
             </div>
         </div>
 

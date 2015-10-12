@@ -1,0 +1,68 @@
+#rpmBody {
+    color:black;
+    background:#D1C5B7;
+    padding:0
+}
+
+.control-group {
+    max-width:1200px;
+    float:left;
+    margin-right:10px;
+    margin-left:10px;
+    margin-top:10px;
+    margin-bottom:0;
+}
+
+.main-panel {
+    margin-top:10px;
+    margin-bottom:0 !important;
+    margin-left:10px !important;
+    margin-right:10px;
+    padding:0 !important;
+    color:white;
+}
+
+.no-vmargins {
+    margin-top:0 !important;
+    margin-bottom:0 !important;
+}
+
+.btn.active {
+    box-shadow: inset 0 6px 14px rgba(0,0,0,.70) !important;
+}
+
+div.select-all {
+    background-color:#D1C5B7;
+    font-size:13px;
+}
+
+a.white-text:link {
+    color:#fff !important;
+    text-decoration: none;
+}
+
+a.white-text:hover {
+    color:lightcyan !important;
+    text-decoration: underline;
+}
+
+a.white-text:active {
+    color:lightcyan !important;
+    text-decoration: underline;
+}
+
+.handsontable table thead th {
+    background-color: #777;
+    color:white;
+    font-weight:normal;
+    font-size:14px;
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.handsontable table tbody tr th {
+    background-color: #777;
+    color:white;
+    font-weight:normal;
+    font-size:14px;
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
