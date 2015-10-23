@@ -21,23 +21,35 @@
 var NCubeEditor = (function ($)
 {
     var nce = null;
-    var _columnList = $('#editColumnsList');
-    var _editCellModal = $('#');
-    var _editCellValue = $('#editCellValue');
-    var _editCellCache = $('#editCellCache');
-    var _editCellRadioURL = $('#editCellRadioURL');
-    var _valueDropdown = $('#datatypes-value');
-    var _urlDropdown = $('#datatypes-url');
+    var _columnList = null;
+    var _editCellModal = null;
+    var _editCellValue = null;
+    var _editCellCache = null;
+    var _editCellRadioURL = null;
+    var _valueDropdown = null;
+    var _urlDropdown = null;
     var _axisName;
-    var _cellId = null; // TODO: Needs to be resettable from index.js
+    var _cellId = null;
     var _uiCellId = null;
+    var _focusedElement = null;
+    var _clipboard = null;
     var _colIds = -1;   // Negative and gets smaller (to differentiate on server side what is new)
 
     var init = function(info)
     {
         if (!nce)
         {
-            nce = info.fn;
+            nce = info;
+
+            _columnList = $('#editColumnsList');
+            _editCellModal = $('#editCellModal');
+            _editCellValue = $('#editCellValue');
+            _editCellCache = $('#editCellCache');
+            _editCellRadioURL = $('#editCellRadioURL');
+            _valueDropdown = $('#datatypes-value');
+            _urlDropdown = $('#datatypes-url');
+            _clipboard = $('#cell-clipboard');
+
             addColumnEditListeners();
             addEditCellListeners();
 
@@ -57,7 +69,43 @@ var NCubeEditor = (function ($)
             {
                 enabledDisableCheckBoxes()
             });
+            $('#addAxisOk').click(function ()
+            {
+                addAxisOk()
+            });
+            $('#deleteAxisOk').click(function ()
+            {
+                deleteAxisOk()
+            });
+            $('#updateAxisMenu').click(function ()
+            {
+                updateAxis()
+            });
+            $('#updateAxisOk').click(function ()
+            {
+                updateAxisOk()
+            });
 
+            $(document).keydown(function(e)
+            {
+                var isModalDisplayed = $('body').hasClass('modal-open');
+
+                var focus = $('input:focus');
+                if (!isModalDisplayed && focus && focus.attr('id') != 'cube-search' && focus.attr('id') != 'cube-search-content')
+                {
+                    if (e.metaKey || e.ctrlKey)
+                    {   // Control Key (command in the case of Mac)
+                        if (e.keyCode == 88 || e.keyCode == 67)
+                        {   // Ctrl-C or Ctrl-X
+                            editCutCopy(e.keyCode == 88);
+                        }
+                        else if (e.keyCode == 86)
+                        {   // Ctrl-V
+                            editPaste();
+                        }
+                    }
+                }
+            });
         }
     };
 
@@ -65,12 +113,14 @@ var NCubeEditor = (function ($)
     {
         if (!nce.getCubeMap() || !nce.doesCubeExist())
         {
+            $('#ncube-content').innerHTML = '';
             return;
         }
 
         var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
         if (!info)
         {
+            $('#ncube-content').innerHTML = '';
             return;
         }
 
@@ -84,10 +134,11 @@ var NCubeEditor = (function ($)
             $('#ncube-content').html('No n-cubes to load');
             return;
         }
-        var result = nce.call("ncubeController.getHtml", [nce.getAppId(), nce.getSelectedCubeName()]);
+
+        var result = nce.call("ncubeController.getHtml", [nce.getAppId(), nce.getSelectedCubeName()], {noResolveRefs:true});
         if (result.status === true)
         {
-            $('#ncube-content').html(result.data);
+            document.getElementById('ncube-content').innerHTML = result.data;
 
             // Disallow any selecting within the table
             var table = $('table');
@@ -101,8 +152,9 @@ var NCubeEditor = (function ($)
                 var li = $('<li/>');
                 var an = $('<a href="#">');
                 an.html("Update Axis...");
-                an.click(function ()
+                an.click(function (e)
                 {
+                    e.preventDefault();
                     updateAxis(axisName)
                 });
                 li.append(an);
@@ -110,8 +162,9 @@ var NCubeEditor = (function ($)
                 li = $('<li/>');
                 an = $('<a href="#">');
                 an.html("Add Axis...");
-                an.click(function ()
+                an.click(function (e)
                 {
+                    e.preventDefault();
                     addAxis();
                 });
                 li.append(an);
@@ -119,8 +172,9 @@ var NCubeEditor = (function ($)
                 li = $('<li/>');
                 an = $('<a href="#">');
                 an.html("Delete Axis...");
-                an.click(function ()
+                an.click(function (e)
                 {
+                    e.preventDefault();
                     deleteAxis(axisName)
                 });
                 li.append(an);
@@ -130,8 +184,9 @@ var NCubeEditor = (function ($)
                 li = $('<li/>');
                 an = $('<a href="#">');
                 an.html("Edit " + axisName + " columns...");
-                an.click(function ()
+                an.click(function (e)
                 {
+                    e.preventDefault();
                     editColumns(axisName)
                 });
                 li.append(an);
@@ -145,19 +200,10 @@ var NCubeEditor = (function ($)
             nce.showNote('Unable to load ' + nce.getSelectedCubeName() + ':<hr class="hr-small"/>' + result.data);
         }
 
-        $('.column').each(function ()
-        {
-            $(this).dblclick(function()
-            {   // On double click, bring up column value editor modal
-                var col = $(this);
-                editColumns(col.attr('data-axis'));
-            });
-        });
-
         $('.cell-url a, .column-url a').each(function()
         {
             var anchor = $(this);
-            anchor.click(function()
+            anchor.click(function(event)
             {
                 nce.clearError();
                 var link = anchor.html();
@@ -167,7 +213,7 @@ var NCubeEditor = (function ($)
                 }
                 else
                 {
-                    var result = nce.call("ncubeController.resolveRelativeUrl", [nce.getAppId(), link]);
+                    var result = nce.call("ncubeController.resolveRelativeUrl", [nce.getAppId(), link], {noResolveRefs:true});
                     if (result.status === true && result.data)
                     {
                         link = result.data;
@@ -179,96 +225,116 @@ var NCubeEditor = (function ($)
                         nce.showNote('Unable to open ' + link + ':<hr class="hr-small"/>' + msg);
                     }
                 }
+                event.preventDefault();
             });
         });
+
         processCellClicks();
-        buildCubeNameLinks();
+        if (nce.getSelectedCubeName().indexOf('erne.') != 0)
+        {
+            buildCubeNameLinks();
+        }
     };
 
     var processCellClicks = function()
     {
+        var ncubeTable = $('.table-ncube');
+
+        // Install double-click handler on columns for easy access to 'edit columns' modal.
+        ncubeTable.on('dblclick', 'th', function (e)
+        {
+            var col = $(e.target);
+            if (col.hasClass('column'))
+            {
+                editColumns(col.attr('data-axis'));
+            }
+        });
+
+        // Install double-click handle on the td tags for pop-up cell editing
+        ncubeTable.on('dblclick', 'td', function (e)
+        {
+            _uiCellId = $(e.target);
+            if (_uiCellId.hasClass('cell'))
+            {
+                _cellId = _uiCellId.attr('data-id').split("_");
+                editCell();
+            }
+        });
+
+        // Install click handler for selection rectangle support
+        ncubeTable.on('click', 'td', function (e)
+        {
+            var cell = $(e.target);
+            if (!cell.hasClass('cell')) {
+                return;
+            }
+
+            if (event.shiftKey || event.ctrlKey)
+            {
+                var selectedCell = $('td.cell-selected');
+                if (!selectedCell || selectedCell.length == 0)
+                {
+                    clearSelectedCells();
+                    cell.addClass('cell-selected');
+                    cell.children().addClass('cell-selected');
+                }
+                else
+                {
+                    var table = $(".table-ncube")[0];
+                    var minRow = 10000000000;
+                    var minCol = 10000000000;
+                    var maxRow = -1;
+                    var maxCol = -1;
+                    var tableRows = table.rows;
+
+                    selectedCell.each(function()
+                    {
+                        var iCell = $(this);
+                        var iRow = getRow(iCell);
+                        var iCol = getCol(iCell) - countTH(tableRows[iRow].cells);
+                        if (iRow < minRow) minRow = iRow;
+                        if (iRow > maxRow) maxRow = iRow;
+                        if (iCol < minCol) minCol = iCol;
+                        if (iCol > maxCol) maxCol = iCol;
+                    });
+                    var aRow = getRow(cell);
+                    var aCol = getCol(cell) - countTH(tableRows[aRow].cells);
+
+                    // Ensure that the rectangle goes from top left to lower right
+                    if (aCol > maxCol) maxCol = aCol;
+                    if (aCol < minCol) minCol = aCol;
+                    if (aRow > maxRow) maxRow = aRow;
+                    if (aRow < minRow) minRow = aRow;
+
+                    for (var column = minCol; column <= maxCol; column++)
+                    {
+                        for (var row = minRow; row <= maxRow; row++)
+                        {
+                            var numTH = countTH(tableRows[row].cells);
+                            var domCell = tableRows[row].cells[column + numTH]; // This is a DOM "TD" element
+                            var jqCell = $(domCell);                             // Now it's a jQuery object.
+                            jqCell.addClass('cell-selected');
+                            jqCell.children().addClass('cell-selected');
+                        }
+                    }
+                }
+            }
+            else
+            {   // On a straight-up click, nuke any existing selection.
+                clearSelectedCells();
+                cell.addClass('cell-selected');
+                cell.children().addClass('cell-selected');
+            }
+        });
+
         // Add ability for the user to double-click axis and pop-up the 'Update Axis' modal
         $('.ncube-head').each(function()
-        {
+        {   // Only 1 per dimension, so no big deal adding listener this way.
             $(this).dblclick(function()
             {
                 var div = $(this).find('div');
                 var axisName = div.attr('data-id');
                 updateAxis(axisName);
-            });
-        });
-
-        // Add support for individual and shift-selection of cells within the table cell area
-        $('td.cell').each(function ()
-        {
-            var cell = $(this);
-            cell.click(function (event)
-            {
-                if (event.shiftKey || event.ctrlKey)
-                {
-                    var selectedCell = $('td.cell-selected');
-                    if (!selectedCell || selectedCell.length == 0)
-                    {
-                        clearSelectedCells();
-                        cell.addClass('cell-selected');
-                        cell.children().addClass('cell-selected');
-                    }
-                    else
-                    {
-                        var table = $(".table-ncube")[0];
-                        var minRow = 10000000000;
-                        var minCol = 10000000000;
-                        var maxRow = -1;
-                        var maxCol = -1;
-                        var tableRows = table.rows;
-
-                        selectedCell.each(function()
-                        {
-                            var iCell = $(this);
-                            var iRow = getRow(iCell);
-                            var iCol = getCol(iCell) - countTH(tableRows[iRow].cells);
-                            if (iRow < minRow) minRow = iRow;
-                            if (iRow > maxRow) maxRow = iRow;
-                            if (iCol < minCol) minCol = iCol;
-                            if (iCol > maxCol) maxCol = iCol;
-                        });
-                        var aRow = getRow(cell);
-                        var aCol = getCol(cell) - countTH(tableRows[aRow].cells);
-
-                        // Ensure that the rectangle goes from top left to lower right
-                        if (aCol > maxCol) maxCol = aCol;
-                        if (aCol < minCol) minCol = aCol;
-                        if (aRow > maxRow) maxRow = aRow;
-                        if (aRow < minRow) minRow = aRow;
-
-                        for (var column = minCol; column <= maxCol; column++)
-                        {
-                            for (var row = minRow; row <= maxRow; row++)
-                            {
-                                var numTH = countTH(tableRows[row].cells);
-                                var domCell = tableRows[row].cells[column + numTH]; // This is a DOM "TD" element
-                                var jqCell = $(domCell);                             // Now it's a jQuery object.
-                                jqCell.addClass('cell-selected');
-                                jqCell.children().addClass('cell-selected');
-                            }
-                        }
-                    }
-                }
-                else
-                {   // On a straight-up click, nuke any existing selection.
-                    clearSelectedCells();
-                    cell.addClass('cell-selected');
-                    cell.children().addClass('cell-selected');
-                }
-            });
-
-            cell.dblclick(function (e)
-            {   // On double click open Edit Cell modal
-                e.preventDefault();
-                // TODO: Double click doing nothing!
-                _uiCellId = cell;
-                _cellId = _uiCellId.attr('data-id').split("_");
-                editCell();
             });
         });
     };
@@ -308,19 +374,28 @@ var NCubeEditor = (function ($)
 
     var buildCubeNameLinks = function()
     {
-        // Build cube list names string for pattern matching
+        // Step 1: Build giant cube list names string for pattern matching
         var s = "";
-        var word = '(\\b)';
-        var word1 = word + '|';
+        var prefixes = ['rpm.class.', 'rpm.enum.', ''];
+        var cubeMap = nce.getCubeMap();
 
-        $.each(nce.getCubeMap(), function (key)
+        $.each(cubeMap, function (key)
         {
             if (key.length > 2)
             {   // 1. Only support n-cube names with 3 or more characters in them (too many false replaces will occur otherwise)
-                // 2. Reverse the cube list order (comes from server alphabetically case-insensitively sorted) to match
+                // 2. Chop off accepted prefixes.
+                for (var i=0; i < prefixes.length; i++)
+                {
+                    if (key.indexOf(prefixes[i]) == 0)
+                    {
+                        key = key.replace(prefixes[i], '');
+                        break;
+                    }
+                }
+                // 3. Reverse the cube list order (comes from server alphabetically case-insensitively sorted) to match
                 // longer strings before shorter strings.
-                // 3. Replace '.' with '\.' so that they are only matched againsts dots (period), not any character.
-                s = word + key.replace(/\./g, '\\.') + word1 + s;
+                // 4. Replace '.' with '\.' so that they are only matched against dots (period), not any character.
+                s = escapeRegExp(key) + '|' + s;
             }
         });
 
@@ -328,14 +403,23 @@ var NCubeEditor = (function ($)
         {
             s = s.substring(0, s.length - 1);
         }
+        s = '\\b(' + s + ')\\b';
+        var regex = new RegExp(s, 'gi');
 
-        var failedCheck = {};
-        var regex = new RegExp(s, "i");
+        // Step 2: Iterate through all columns and cells, replace matches with anchor tags
 
-        $('.column, .cell').each(function ()
+        $('.column:not(.column-url), .cell:not(.cell-url, .cell-code-def, .cell-def)').each(function ()
         {
             var cell = $(this);
-            var html = cell.html();
+            var html;
+            if (cell.hasClass('column-code'))
+            {
+                html = cell[0].innerHTML;
+            }
+            else
+            {
+                html = cell[0].textContent;  // WAY faster than JQuery .html() or .text()
+            }
             if (html && html.length > 2)
             {
                 var found = false;
@@ -343,55 +427,34 @@ var NCubeEditor = (function ($)
                 html = html.replace(regex, function (matched)
                 {
                     found = true;
-                    return '<a class="ncube-anchor" href="#">' + matched + '</a>';
+                    return '<a class="nc-anc">' + matched + '</a>';
                 });
 
                 if (found)
                 {   // substitute new text with anchor tag
-                    cell.html(html);
-                }
-                else
-                {
-                    var loHtml = html.toLowerCase();
-                    if (!failedCheck[html] && (nce.getCubeMap()['rpm.class.' + loHtml] || nce.getCubeMap()['rpm.enum.' + loHtml]))
+                    cell[0].innerHTML = html;       // Much faster than JQuery .html('') or .text('')
+
+                    // Add click handler that opens clicked cube names
+                    cell.find('a').each(function ()
                     {
-                        html = '<a class="ncube-anchor" href="#">' + html + '</a>';
-                        cell.html(html);
-                    }
-                    else
-                    {
-                        failedCheck[html] = true;
-                    }
+                        var link = $(this);
+                        link.click(function (e)
+                        {
+                            e.preventDefault();
+                            var cubeName = link[0].textContent.toLowerCase();
+
+                            for (var i=0; i < prefixes.length; i++)
+                            {
+                                if (cubeMap[prefixes[i] + cubeName])
+                                {
+                                    nce.selectCubeByName(nce.getProperCubeName(prefixes[i] + link[0].textContent));
+                                    break;
+                                }
+                            }
+                        });
+                    });
                 }
             }
-        });
-
-        failedCheck = null;
-
-        // Add click handler that opens clicked cube names
-        $('.ncube-anchor').each(function ()
-        {
-            var link = $(this);
-            link.click(function (e)
-            {
-                e.preventDefault();
-                var cubeName = link.html().toLowerCase();
-                if (nce.getCubeMap()[cubeName])
-                {
-                    nce.selectCubeByName(nce.getProperCubeName(link.html()));
-                }
-                else
-                {
-                    if (nce.getCubeMap()['rpm.class.' + cubeName])
-                    {
-                        nce.selectCubeByName(nce.getProperCubeName('rpm.class.' + link.html()));
-                    }
-                    else if (nce.getCubeMap()['rpm.enum.' + cubeName])
-                    {
-                        nce.selectCubeByName(nce.getProperCubeName('rpm.enum.' + link.html()));
-                    }
-                }
-            });
         });
     };
 
@@ -431,7 +494,7 @@ var NCubeEditor = (function ($)
         var result = nce.call("ncubeController.addAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName, axisType, axisValueType]);
         if (result.status === true)
         {
-            loadCube();
+            nce.loadCube();
         }
         else
         {
@@ -457,7 +520,7 @@ var NCubeEditor = (function ($)
         var result = nce.call("ncubeController.deleteAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName]);
         if (result.status === true)
         {
-            loadCube();
+            nce.loadCube();
         }
         else
         {
@@ -557,7 +620,7 @@ var NCubeEditor = (function ($)
         var result = nce.call("ncubeController.updateAxis", [nce.getAppId(), nce.getSelectedCubeName(), _axisName, axisName, hasDefault, sortOrder, fireAll]);
         if (result.status === true)
         {
-            loadCube();
+            nce.loadCube();
         }
         else
         {
@@ -673,6 +736,7 @@ var NCubeEditor = (function ($)
                     inputBtn[0].checked = true;
                 }
 
+                // For rules with URL to conditions, support URL: (or url:) in front of URL - then store as URL
                 if (axis.type.name == 'RULE')
                 {
                     if (!item.metaProps)
@@ -695,7 +759,17 @@ var NCubeEditor = (function ($)
                     item.value = inputText.val();
                 });
 
-                inputText.val(item.value);
+                var prefix = '';
+                if (item.isUrl)
+                {
+                    prefix += 'url|';
+                }
+                if (item.isCached)
+                {
+                    prefix += 'cache|';
+                }
+
+                inputText.val(prefix + item.value);
                 span.append(inputBtn);
                 div.append(span);
                 if (axis.type.name == 'RULE')
@@ -964,7 +1038,7 @@ var NCubeEditor = (function ($)
         {
             nce.showNote("Unable to update columns for axis '" + axis.name + "':<hr class=\"hr-small\"/>" + result.data);
         }
-        reloadCube();
+        nce.reloadCube();
     };
 
     // =============================================== End Column Editing ==============================================
@@ -1030,6 +1104,7 @@ var NCubeEditor = (function ($)
         // Set the Cache check box state
         _editCellCache.find('input').prop('checked', cellInfo.isCached);
 
+        //_editCellModal.modal('show');
         _editCellModal.modal('show');
     };
 
@@ -1074,23 +1149,22 @@ var NCubeEditor = (function ($)
             return;
         }
 
+        _uiCellId.text(cellInfo.value);
         if (cellInfo.isUrl)
         {
-            _uiCellId.html(cellInfo.value);
             _uiCellId.attr({'class':'cell cell-url'});
         }
         else if (cellInfo.dataType == "exp" || cellInfo.dataType == "method")
         {
-            _uiCellId.html(cellInfo.value);
             _uiCellId.attr({'class':'cell cell-code'});
         }
         else
         {
-            _uiCellId.html(cellInfo.value);
             _uiCellId.attr({'class':'cell'});
         }
         _cellId = null;
-        reloadCube();
+
+        nce.reloadCube();
     };
 
     var enabledDisableCheckBoxes = function()
@@ -1122,6 +1196,175 @@ var NCubeEditor = (function ($)
         else
         {
             _editCellCache.addClass('disabled');
+        }
+    };
+
+    var getCellId = function(cell)
+    {
+        var cellId = cell.attr('data-id');
+        if (cellId)
+        {
+            return cellId.split("_");
+        }
+        return null;
+    };
+
+    var editCutCopy = function(isCut)
+    {
+        if (isCut && !nce.ensureModifiable('Cannot cut / copy cells.'))
+        {
+            return;
+        }
+        _focusedElement = $(':focus');
+        var cells = [];
+        var lastRow = -1;
+        var clipData = "";
+
+        $('td.cell-selected').each(function ()
+        {   // Visit selected cells in spreadsheet
+            var cell = $(this);
+            var cellRow = getRow(cell);
+            if (lastRow == cellRow)
+            {
+                clipData += '\t';
+            }
+            else
+            {
+                if (lastRow != -1) clipData += '\n';
+                lastRow = cellRow;
+            }
+            clipData = clipData + cell[0].innerText;
+            var cellId = getCellId(cell);
+            if (cellId)
+            {
+                cells.push(cellId);
+            }
+            if (isCut)
+            {
+                cell.empty();
+            }
+        });
+        clipData += '\n';
+        // TODO: Talk to Ryan, see if there is a non-JQuery way to put the clipData in the text area
+        _clipboard.val(clipData);
+        _clipboard.focusin();
+        _clipboard.select();
+
+        // Clear cells from database
+        if (isCut)
+        {
+            var result = nce.call("ncubeController.clearCells", [nce.getAppId(), nce.getSelectedCubeName(), cells]);
+            if (!result.status)
+            {
+                nce.showNote('Error cutting cells:<hr class="hr-small"/>' + result.data);
+            }
+        }
+    };
+
+    var editPaste = function()
+    {
+        if (!nce.ensureModifiable('Cannot paste cells.'))
+        {
+            return;
+        }
+        var firstCell = $('td.cell-selected');
+        if (!firstCell || firstCell.length < 1)
+        {
+            return;
+        }
+        var lastCell = $(firstCell[firstCell.length - 1]);
+        firstCell = $(firstCell[0]);
+
+        var table = $(".table-ncube")[0];
+        var tableRows = table.rows;
+
+        // Location of first selected cell in 2D spreadsheet view.
+        var row = getRow(firstCell);
+        var col = getCol(firstCell) - countTH(tableRows[row].cells);
+
+        // Location of the last selected cell in 2D spreadsheet view.
+        var lastRow = getRow(lastCell);
+        var lastCol = getCol(lastCell) - countTH(tableRows[lastRow].cells);
+
+        var onlyOneCellSelected = row == lastRow && col == lastCol;
+
+        // Point focus to hidden text area so that it will receive the pasted content
+        _focusedElement = $(':focus');
+        _clipboard.focusin();
+        _clipboard.select();
+
+        var content = _clipboard.val();
+        if (!content || content == "")
+        {
+            return;
+        }
+
+        // Parse the clipboard content and build-up coordinates where this content will be pasted.
+        var values = [];
+        var coords = [];
+        var firstRow = row;
+        var lines = content.split('\n');
+
+        for (var i = 0; i < lines.length; i++)
+        {
+            if (lines[i] && lines[i] != "")
+            {
+                var strValues = lines[i].split('\t');
+                values.push(strValues);
+                var rowCoords = [];
+                for (var j = 0; j < strValues.length; j++)
+                {
+                    var numTH = countTH(tableRows[row].cells);
+                    var colIdx = col + j + numTH;
+                    if (colIdx < tableRows[row].cells.length)
+                    {   // Do attempt to read past edge of 2D grid
+                        var domCell = tableRows[row].cells[colIdx]; // This is a DOM "TD" element
+                        var jqCell = $(domCell);                    // Now it's a jQuery object.
+                        rowCoords[j] = getCellId(jqCell);
+                    }
+                }
+                coords.push(rowCoords);
+                row++;
+
+                if (row >= tableRows.length)
+                {   // Do not go past bottom of grid
+                    break;
+                }
+            }
+        }
+
+        // If more than one cell is selected, create coords for all selected cells.
+        // Server will repeat values, properly throughout the selected 'clip' region.
+        if (!onlyOneCellSelected)
+        {
+            coords = [];
+            row = firstRow;
+            for (var r = firstRow; r <= lastRow; r++)
+            {
+                rowCoords = [];
+                for (var c = col; c <= lastCol; c++)
+                {
+                    numTH = countTH(tableRows[row].cells);
+                    domCell = tableRows[row].cells[c + numTH]; // This is a DOM "TD" element
+                    jqCell = $(domCell);                    // Now it's a jQuery object.
+                    rowCoords[c - col] = getCellId(jqCell);
+                }
+                coords.push(rowCoords);
+                row++;
+            }
+        }
+
+        // Paste cells from database
+        var result = nce.call("ncubeController.pasteCells", [nce.getAppId(), nce.getSelectedCubeName(), values, coords]);
+
+        if (result.status)
+        {
+            nce.reloadCube();
+        }
+        else
+        {
+            nce.clearError();
+            nce.showNote('Error pasting cells:<hr class="hr-small"/>' + result.data);
         }
     };
 

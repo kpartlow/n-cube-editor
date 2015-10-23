@@ -94,7 +94,7 @@ class NCubeService
         return NCubeManager.rollbackBranch(appId, infoDtos)
     }
 
-    List<NCubeInfoDto> updateBranch(ApplicationID appId, String username)
+    Map<String, Object> updateBranch(ApplicationID appId, String username)
     {
         return NCubeManager.updateBranch(appId, username)
     }
@@ -106,12 +106,12 @@ class NCubeService
 
     void acceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
     {
-        NCubeManager.mergeOverwriteBranchCube(appId, cubeName, branchSha1, username)
+        NCubeManager.mergeAcceptTheirs(appId, cubeName, branchSha1, username)
     }
 
-    void acceptMine(ApplicationID appId, String cubeName, String headSha1, String username)
+    void acceptMine(ApplicationID appId, String cubeName, String username)
     {
-        NCubeManager.mergeOverwriteHeadCube(appId, cubeName, headSha1, username)
+        NCubeManager.mergeAcceptMine(appId, cubeName, username)
     }
 
     void createCube(ApplicationID appId, NCube ncube, String username)

@@ -81,30 +81,10 @@ div#east div.panel-body {
     height: 100%;
 }
 
-div#editColumnsModal div.panel-group
-{
-    margin-bottom: 0;
-}
-
 div#restoreCubeModal ul.list-group
 {
     padding-left: 20px;
     padding-right: 20px;
-}
-
-div#editColumnsModal ul.list-group
-{
-    padding-left: 20px;
-    padding-right: 20px;
-}
-
-.modal-header {
-    padding:9px 15px;
-    border-bottom:1px solid #eee;
-    background-color: #0480be;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    color: white;
 }
 
 .hr-small
@@ -119,41 +99,8 @@ div#editColumnsModal ul.list-group
     font-weight: bold;
 }
 
-.cube-modified {
-    color: blue !important;
-}
-
-.cube-added {
-    color: green !important;
-}
-
-.cube-deleted {
-    text-decoration: line-through;
-}
-
-.cube-restored {
-    color: darkgoldenrod !important;
-}
-
 .skinny-lr {
     padding: 5px 15px;
-}
-
-#nce-clipboard-container {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 0;
-    height: 0;
-    z-index: 100;
-    display: block;
-    opacity: 0;
-}
-
-#cell-clipboard {
-    width: 1px;
-    height: 1px;
-    padding: 0;
 }
 
 #west {
@@ -191,34 +138,46 @@ div#editColumnsModal ul.list-group
     margin-bottom: 0;
 }
 
-#ncube > .well {
-    margin-bottom: 0;
-    height: 100%;
-    width: 100%;
-    overflow: auto;
-    padding: 0;
-    border: none white;
-    border-radius: 0;
-    background: #4D4D4D;
+.cube-modified {
+    color: blue !important;
 }
 
-#ncube {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    position: relative;
+.cube-added {
+    color: green !important;
+}
+
+.cube-deleted {
+    text-decoration: line-through;
+}
+
+.cube-restored {
+    color: darkgoldenrod !important;
 }
 
 .top-buffer { margin-top:20px; }
 
-#selectedTestName {
-    color: white;
-    margin-top: 5px;
-    margin-bottom: 15px;
-    font-weight: bold;
-    font-family: 'Open Sans', sans-serif;
+#fadeMe1 {
+    opacity: 1.0;
+    background: #D1C5B7;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    padding:0;
+    margin:0;
+    top: 0;
+    left: 0;
+    position: fixed;
+}
+.fadeMe2 {
+    z-index: 2015;
+    color:black;
+    background: #D1C5B7;
+    position: relative;
+    text-align: center;
+    border-radius: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto
 }
 
 .navbar-custom {

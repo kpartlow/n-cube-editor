@@ -8,3 +8,35 @@
     color: lightgrey;
     background-color: white;
 }
+
+#cell-clipboard {
+    width: 1px;
+    height: 1px;
+    padding: 0;
+}
+
+#nce-clipboard-container {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    z-index: 100;
+    display: block;
+    opacity: 0;
+}
+
+div#editColumnsModal ul.list-group
+{
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+div#editColumnsModal div.panel-group
+{
+    margin-bottom: 0;
+}
+
+.nc-anc {
+    cursor: pointer;
+}

@@ -42,7 +42,7 @@ var TestEditor = (function ($)
     {
         if (!nce)
         {   // One-time initialization code.
-            nce = info.fn;
+            nce = info;
 
             var secondaryLayout = $('#testBody').layout({
                 name: "secondaryLayout"

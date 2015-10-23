@@ -195,7 +195,7 @@ class NCubeController extends BaseController
             NCube ncube = nCubeService.getCube(appId, cubeName)
             // The Strings below are hints to n-cube to tell it which axis to place on top
             String html = ncube.toHtml('trait', 'traits', 'businessDivisionCode', 'bu', 'month', 'months', 'col', 'column', 'cols', 'columns')
-            return html;
+            return html
         }
         catch (Exception e)
         {
@@ -622,6 +622,19 @@ class NCubeController extends BaseController
             if (!isAllowed(appId, cubeName, Delta.Type.UPDATE))
             {
                 return
+            }
+
+            List<Column> cols = updatedAxis.getColumns()
+            if (cols != null)
+            {
+                cols.each {
+                    Column column ->
+                        Object value = column.value
+                        if (value == null || "".equals(value))
+                        {
+                            throw new IllegalArgumentException('Column cannot have empty value, n-cube: ' + cubeName + ', axis: ' + updatedAxis.name)
+                        }
+                }
             }
 
             NCube ncube = nCubeService.getCube(appId, cubeName)
@@ -1153,13 +1166,8 @@ class NCubeController extends BaseController
             {
                 return null
             }
-            List<NCubeInfoDto> updatedCubes = nCubeService.updateBranch(appId, getUserForDatabase())
-            return updatedCubes.toArray()
-        }
-        catch (BranchMergeException e)
-        {
-            markRequestFailed(e.getMessage())
-            return e.getErrors()
+            Map<String, Object> result = nCubeService.updateBranch(appId, getUserForDatabase())
+            return result
         }
         catch (Exception e)
         {
@@ -1211,7 +1219,7 @@ class NCubeController extends BaseController
             {
                 return
             }
-            nCubeService.acceptMine(appId, cubeName, headSha1, getUserForDatabase())
+            nCubeService.acceptMine(appId, cubeName, getUserForDatabase())
         }
         catch (Exception e)
         {
@@ -1390,6 +1398,12 @@ class NCubeController extends BaseController
         }
     }
 
+    // TODO: Remove this - it is no longer used.
+    boolean canSkipLinks(ApplicationID appId, String cubeName)
+    {
+        return false
+    }
+
     // ============================================= End API ===========================================================
 
     // ===================================== utility (non-API) methods =================================================
@@ -1520,21 +1534,21 @@ class NCubeController extends BaseController
         Map axisConverted = JsonReader.jsonToMaps(json)
         Map cols = (Map) axisConverted.columns
         Object[] items = (Object[]) cols["@items"]
-        if (items != null)
+        for (Object item : items)
         {
-            for (Object item : items)
+            Map col = (Map) item
+            Column actualCol = axis.getColumnById((Long)col.id)
+            col.id = String.valueOf(col.id) // Stringify Long ID (Javascript safe if quoted)
+            CellInfo cellInfo = new CellInfo(actualCol.getValue())
+            String value = cellInfo.value
+            if (axis.valueType == AxisValueType.DATE)
             {
-                Map col = (Map) item
-                Column actualCol= axis.getColumnById((Long)col.id)
-                col.id = String.valueOf(col.id)
-                String value = new CellInfo(actualCol.getValue()).value
-
-                if (axis.valueType == AxisValueType.DATE)
-                {
-                    value = NO_QUOTES_REGEX.matcher(value).replaceAll("")
-                }
-                col.value = value
+                value = NO_QUOTES_REGEX.matcher(value).replaceAll("")
             }
+            col.value = value   // String version for Discrete, Range, or Set support
+            col.isUrl = cellInfo.isUrl
+            col.dataType = cellInfo.dataType
+            col.isCached = cellInfo.isCached
         }
         return axisConverted
     }

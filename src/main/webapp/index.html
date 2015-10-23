@@ -16,29 +16,20 @@
     <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
     <link href="css/common.css" rel="stylesheet"/>
     <link href="css/index.css" rel="stylesheet"/>
-
-    <!-- jsoneditor -->
-    <link rel="stylesheet" type="text/css" href="jsoneditor/jsoneditor.min.css">
-    <script type="text/javascript" src="jsoneditor/jsoneditor.min.js"></script>
-
-    <!-- ace code editor -->
-    <script type="text/javascript" src="jsoneditor/asset/ace/ace.js"></script>
-    <script type="text/javascript" src="jsoneditor/asset/ace/mode-json.js"></script>
-    <script type="text/javascript" src="jsoneditor/asset/ace/theme-textmate.js"></script>
-    <script type="text/javascript" src="jsoneditor/asset/ace/theme-jsoneditor.js"></script>
-
-    <!-- json lint -->
-    <script type="text/javascript" src="jsoneditor/asset/jsonlint/jsonlint.js"></script>
+    <link rel="shortcut icon" href="favicon.ico">
 </head>
 
 <body>
+    <div id="fadeMe1"></div>
+    <img height="270" class="fadeMe2" src="img/splash.jpg"/>
+    <h3 class="fadeMe2">N-Cube Editor Loading...</h3>
 
 <header class="navbar navbar-custom navbar-fixed-top noselect" role="banner">
     <div class="navbar-header">
         <button class="navbar-toggle collapsed" type="button" data-toggle="collapse">
         </button>
         <!--suppress CheckImageSize -->
-        <img height="40" src="img/cube-logo-2.jpeg"/><a id="appTitle" class="navbar-brand" href="#"></a>
+        <img height="40" src="img/splash.jpg" style="border-radius:8px;padding:2px"/><a id="appTitle" class="navbar-brand" href="#"></a>
         <span>&nbsp;&nbsp;</span>
     </div>
     <nav class="navbar-collapse collapse" role="navigation" style="height: 1px;">
@@ -70,14 +61,13 @@
     <div id="app-list-div" class="panel">
         <div class="panel-heading">
             <div class="btn-group">
-                <a class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown" role="button" href="#">App</a>
+                <a class="btn-sm btn-primary" href="#">Application</a>
             </div>
             <span id="appCount" class="badge pull-right"></span>
         </div>
-        <div class="panel-body">
-            <ul class="nav nav-list" id="app-list">
-            </ul>
-        </div>
+        <select id="app-list" class="form-control">
+            <option>Loading applications...</option>
+        </select>
     </div>
 
     <div id="version-list-div" class="panel">
@@ -93,20 +83,22 @@
             </div>
             <span id="verCount" class="badge pull-right"></span>
         </div>
-        <div class="panel-body">
-            <ul class="nav nav-list" id="version-list">
-            </ul>
-        </div>
+        <select id="version-list" class="form-control">
+            <option>Loading versions...</option>
+        </select>
     </div>
 
     <div id="status-list-div" class="panel">
         <div class="main-list">
             <ul class="nav nav-list" id="status-list">
+                <li>
+                    <a>Loading status...</a>
+                </li>
             </ul>
         </div>
     </div>
 
-    <div id="ncube-list-div" class="panel" style="height:calc(100% - 284px)">
+    <div id="ncube-list-div" class="panel" style="height:calc(100% - 210px)">
         <div class="panel-heading">
             <div class="btn-group">
                 <a href="#" class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown"
@@ -139,6 +131,7 @@
         <input id="cube-search-content" style="font-size:12px" type="text" class="form-control" placeholder="Cubes containing...">
         <div class="panel-body">
             <ul class="nav nav-list" id="ncube-list">
+                <a>Loading n-cubes...</a>
             </ul>
         </div>
     </div>
@@ -415,7 +408,7 @@
 
                 <form role="form">
                     <div class="well well-sm">
-                        <span class="help-block">One or more cubes has been changed since your created / updated the cubes in your branch.  Each conflict needs to be resolved in order to commit or update branch.</span>
+                        <span class="help-block">One or more cubes that you have worked on has changed in HEAD since your created / updated the cubes in your branch.  A cube in conflict cannot be committed to HEAD.</span>
                     </div>
                 </form>
 
@@ -619,21 +612,18 @@
     </div>
 </div>
 
-<div id="nce-clipboard-container">
-    <textarea id="cell-clipboard"></textarea>
-</div>
-
-<script type="text/javascript" src="js/jquery-2.1.3.min.js"></script>
-<script type="text/javascript" src="js/jquery-ui-1.11.0.min.js"></script>
-<script type="text/javascript" src="js/bootstrap.min.js"></script>
-<script type="text/javascript" src="js/bootstrap-select.min.js"></script>
-<script type="text/javascript" src="js/jquery.layout-1.4.4.js"></script>
-<script type="text/javascript" src="js/jquery.gritter.min.js"></script>
-<script type="text/javascript" src="js/jquery-scroll-into-view.js"></script>
-<script type="text/javascript" src="js/mitDate.js"></script>
-<script type="text/javascript" src="js/jsonUtil.js"></script>
-<script type="text/javascript" src="js/constants.js"></script>
-<script type="text/javascript" src="js/index.js"></script>
+<script src="js/jquery-2.1.4.min.js"></script>
+<script src="js/jquery-ui-1.11.0.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/bootstrap-select.min.js"></script>
+<script src="js/jquery.layout-1.4.4.js"></script>
+<script src="js/jquery.gritter.min.js"></script>
+<script src="js/jquery-scroll-into-view.js"></script>
+<script src="js/mitDate.js"></script>
+<script src="js/jsonUtil.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/common.js"></script>
+<script src="js/index.js"></script>
 
 </body>
 </html>

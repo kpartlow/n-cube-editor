@@ -15,7 +15,7 @@ var NCubeJsonEditor = (function ($)
         // Create JSON Editor (http://jsoneditoronline.org/downloads/)
         if (!nce)
         {
-            nce = info.fn;
+            nce = info;
             var container = document.getElementById('jsoneditor');
             var options =
             {
@@ -109,11 +109,18 @@ var NCubeJsonEditor = (function ($)
             updateDirtyStatus();
             return;
         }
-        var result = nce.call("ncubeController.getJson", [nce.getAppId(), nce.getSelectedCubeName()]);
+        var result = nce.call("ncubeController.getJson", [nce.getAppId(), nce.getSelectedCubeName()], {noResolveRefs:true});
         if (result.status === true)
         {
-            _editor.setText(result.data);
-            _editor.format();
+            try {
+                _editor.setText(result.data);
+                _editor.format();
+            }
+            catch (e)
+            {
+                nce.showNote('JSON content too large for the JSON Text Editor.  Capture the JSON from the "Revision History" option.');
+                console.log(e);
+            }
         }
         else
         {

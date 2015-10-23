@@ -21,17 +21,23 @@
 var DetailEditor = (function ($)
 {
     var nce = null;
-    var _urlDropdown = $('#datatypes-url');
-    var _valueDropdown = $('#datatypes-value');
-    var _isUrl = $('#isURL');
-    var _isCached = $('#isCached');
-    var _defCellValue = $('#cube_defValue');
+    var _urlDropdown = null;
+    var _valueDropdown = null;
+    var _isUrl = null;
+    var _isCached = null;
+    var _defCellValue = null;
 
     var init = function(info)
     {
         if (!nce)
         {
-            nce = info.fn;
+            nce = info;
+
+            _urlDropdown = $('#datatypes-url');
+            _valueDropdown = $('#datatypes-value');
+            _isUrl = $('#isURL');
+            _isCached = $('#isCached');
+            _defCellValue = $('#cube_defValue');
 
             _isUrl.change(function()
             {
@@ -52,6 +58,11 @@ var DetailEditor = (function ($)
 
             $('#defaultCellClear').click(function()
             {
+                if (!nce.ensureModifiable('Default cell cannot be cleared.'))
+                {
+                    return;
+                }
+
                 var result = nce.call("ncubeController.clearDefaultCell", [nce.getAppId(), nce.getSelectedCubeName()]);
                 if (result.status === true)
                 {
@@ -70,6 +81,11 @@ var DetailEditor = (function ($)
 
             $('#defaultCellUpdate').click(function()
             {
+                if (!nce.ensureModifiable('Default cell cannot be updated.'))
+                {
+                    return;
+                }
+
                 var cellInfo = {'@type':'com.cedarsoftware.ncube.CellInfo'};
                 cellInfo.isUrl = _isUrl.find('input').is(':checked');
                 cellInfo.value = _defCellValue.val();
@@ -130,12 +146,14 @@ var DetailEditor = (function ($)
     {
         if (!nce.getCubeMap() || !nce.doesCubeExist())
         {
+            clearFields();
             return;
         }
 
         var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
         if (!info)
         {
+            clearFields();
             return;
         }
 
@@ -163,7 +181,7 @@ var DetailEditor = (function ($)
 
         var cellInfo = result.data;
 
-        _defCellValue.val(cellInfo.value ? cellInfo.value : "");
+        _defCellValue.val(cellInfo.value || "");
         if (cellInfo.dataType == "null" || !cellInfo.dataType)
         {
             cellInfo.dataType = "string";
@@ -188,6 +206,18 @@ var DetailEditor = (function ($)
 
         // Set the Cache check box state
         _isCached.find('input').prop('checked', cellInfo.isCached);
+    };
+
+    var clearFields = function()
+    {
+        $('#cube_name').val('');
+        $('#cube_revision').val('');
+        $('#cube_createDate').val('');
+        $('#cube_createHid').val('');
+        $('#cube_notes').val('');
+        $('#cube_id').val('');
+        $('#cube_sha1').val('');
+        $('#cube_headSha1').val('');
     };
 
     var handleCubeSelected = function()

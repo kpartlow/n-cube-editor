@@ -30,7 +30,7 @@ var RpmEditor = (function($)
     {
         if (!nce)
         {
-            nce = info.fn;
+            nce = info;
 
             $(window).resize(function ()
             {
@@ -226,7 +226,7 @@ var RpmEditor = (function($)
         var result = nce.exec('RpmController.getFields', [nce.getAppId(), {'cube':nce.getSelectedCubeName()}]);
         if (result.status === false || !result.data.return || !result.data.return['@items'])
         {
-            showRpmError('<b>' + info.name + '</b> is not an RPM Class:<hr class="hr-small"/>' + result.data);
+            showRpmError('<b>' + info.name + '</b> is not an RPM Class:<hr class="hr-small"/>It has no fields');
             return;
         }
 
