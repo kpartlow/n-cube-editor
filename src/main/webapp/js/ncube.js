@@ -85,6 +85,10 @@ var NCubeEditor = (function ($)
             {
                 updateAxisOk()
             });
+            _editCellModal.on('shown.bs.modal', function ()
+            {
+                $('#editCellValue').focus();
+            });
 
             $(document).keydown(function(e)
             {
@@ -131,7 +135,7 @@ var NCubeEditor = (function ($)
     {
         if (!nce.getSelectedCubeName() || !nce.getSelectedApp() || !nce.getSelectedVersion() || !nce.getSelectedStatus())
         {
-            $('#ncube-content').html('No n-cubes to load');
+            $('#ncube-content')[0].innerHTML = 'No n-cubes to load';
             return;
         }
 
@@ -151,7 +155,7 @@ var NCubeEditor = (function ($)
                 var ul = $('<ul/>').prop({'class': 'dropdown-menu', 'role': 'menu'});
                 var li = $('<li/>');
                 var an = $('<a href="#">');
-                an.html("Update Axis...");
+                an[0].innerHTML = "Update Axis...";
                 an.click(function (e)
                 {
                     e.preventDefault();
@@ -161,7 +165,7 @@ var NCubeEditor = (function ($)
                 ul.append(li);
                 li = $('<li/>');
                 an = $('<a href="#">');
-                an.html("Add Axis...");
+                an[0].innerHTML = "Add Axis...";
                 an.click(function (e)
                 {
                     e.preventDefault();
@@ -171,7 +175,7 @@ var NCubeEditor = (function ($)
                 ul.append(li);
                 li = $('<li/>');
                 an = $('<a href="#">');
-                an.html("Delete Axis...");
+                an[0].innerHTML = "Delete Axis...";
                 an.click(function (e)
                 {
                     e.preventDefault();
@@ -183,7 +187,7 @@ var NCubeEditor = (function ($)
                 ul.append(li);
                 li = $('<li/>');
                 an = $('<a href="#">');
-                an.html("Edit " + axisName + " columns...");
+                an[0].innerHTML = "Edit " + axisName + " columns...";
                 an.click(function (e)
                 {
                     e.preventDefault();
@@ -206,7 +210,7 @@ var NCubeEditor = (function ($)
             anchor.click(function(event)
             {
                 nce.clearError();
-                var link = anchor.html();
+                var link = anchor[0].innerHTML;
                 if (link.indexOf('http:') == 0 || link.indexOf('https:') == 0 || link.indexOf('file:') == 0)
                 {
                     window.open(link);
@@ -265,11 +269,23 @@ var NCubeEditor = (function ($)
         ncubeTable.on('click', 'td', function (e)
         {
             var cell = $(e.target);
-            if (!cell.hasClass('cell')) {
+            if (!cell.hasClass('cell'))
+            {
                 return;
             }
 
-            if (event.shiftKey || event.ctrlKey)
+            if (event.altKey)
+            {
+                _uiCellId = $(e.target);
+                _cellId = _uiCellId.attr('data-id').split("_");
+                var result = nce.call("ncubeController.getCellCoordinate", [nce.getAppId(), nce.getSelectedCubeName(), _cellId]);
+                if (result.status === true)
+                {
+                    nce.clearError();
+                    nce.displayMap(result.data, 'Coordinate');
+                }
+            }
+            else if (event.shiftKey || event.ctrlKey)
             {
                 var selectedCell = $('td.cell-selected');
                 if (!selectedCell || selectedCell.length == 0)
@@ -548,7 +564,7 @@ var NCubeEditor = (function ($)
         }
         var isRule = axis.type.name == 'RULE';
         var isNearest = axis.type.name == 'NEAREST';
-        $('#updateAxisLabel').html('Update Axis');
+        $('#updateAxisLabel')[0].textContent = 'Update Axis';
         $('#updateAxisName').val(axisName);
         $('#updateAxisTypeName').val(axis.type.name);
         $('#updateAxisValueTypeName').val(axis.valueType.name);
@@ -634,8 +650,8 @@ var NCubeEditor = (function ($)
         var inst = $('#editColInstructions');
         if ('DISCRETE' == axis.type.name)
         {
-            insTitle.html('Instructions - Discrete Column');
-            inst.html("<i>Discrete</i> column has a single value per column. Values are matched with '='. \
+            insTitle[0].textContent = 'Instructions - Discrete Column';
+            inst[0].innerHTML = "<i>Discrete</i> column has a single value per column. Values are matched with '='. \
             Strings are matched case-sensitively.  Look ups are indexed and run \
             in <a href=\"http://en.wikipedia.org/wiki/Time_complexity\" target=\"_blank\">O(log n)</a>. \
         <ul><li>Examples: \
@@ -644,12 +660,12 @@ var NCubeEditor = (function ($)
         <li>Valid number: <code>42</code></li> \
         <li>Valid date: <code>2015/02/14</code> (or <code>14 Feb 2015</code>, <code>Feb 14, 2015</code>, <code>February 14th, 2015</code>, <code>2015-02-14</code>)</li> \
         <li>Do not use mm/dd/yyyy or dd/mm/yyyy. \
-        </li></ul></li></ul>");
+        </li></ul></li></ul>";
         }
         else if ('RANGE' == axis.type.name)
         {
-            insTitle.html('Instructions - Range Column');
-            inst.html("A <i>Range</i> column contains a <i>low</i> and <i>high</i> value.  It matches when \
+            insTitle[0].textContent = 'Instructions - Range Column';
+            inst[0].innerHTML = "A <i>Range</i> column contains a <i>low</i> and <i>high</i> value.  It matches when \
             <i>value</i> is within the range: value >= <i>low</i> and value < <i>high</i>. Look ups are indexed \
             and run in <a href=\"http://en.wikipedia.org/wiki/Time_complexity\" target=\"_blank\">O(log n)</a>.\
         <ul><li>Enter low value, high value. Treated [inclusive, exclusive).</li> \
@@ -658,12 +674,12 @@ var NCubeEditor = (function ($)
         <li><i>Number range</i>: <code>25, 75</code> (meaning x >= 25 AND x < 75)</li> \
         <li><i>Number range</i>: <code>[100, 1000]</code> (brackets optional)</li> \
         <li><i>Date range</i>: <code>2015/01/01, 2017-01-01</code> (date >= 2015-01-01 AND date < 2017-01-01) \
-        </li></ul></li></ul>");
+        </li></ul></li></ul>";
         }
         else if ('SET' == axis.type.name)
         {
-            insTitle.html('Instructions - Set Column');
-            inst.html("A <i>Set</i> column can contain unlimited discrete values and ranges. Discrete values \
+            insTitle[0].textContent = 'Instructions - Set Column';
+            inst[0].innerHTML = "A <i>Set</i> column can contain unlimited discrete values and ranges. Discrete values \
             match with '=' and ranges match when value is within the range [inclusive, exclusive).  Overlapping\
             ranges and values are <b>not</b> allowed.  If you need that capability, use a <i>Rule</i> axis.\
             Look ups are indexed and run in <a href=\"http://en.wikipedia.org/wiki/Time_complexity\" target=\"_blank\">O(log n)</a>.\
@@ -674,12 +690,12 @@ var NCubeEditor = (function ($)
         <li><i>Strings (3) with spaces</i>: <code>brown fox, jumps honey badger, is eaten</code></li> \
         <li><i>Date range</i>: <code>[2010/01/01, 2012/12/31]</code></li> \
         <li><i>Date ranges</i>: <code>[2015-01-01, 2016-12-31], [2019/01/01, 2020/12/31]</code> \
-        </li></ul></li></ul>");
+        </li></ul></li></ul>";
         }
         else if ('NEAREST' == axis.type.name)
         {
-            insTitle.html('Instructions - Nearest Column');
-            inst.html("A <i>Nearest</i> column has a single value per column.  The <i>closest</i> column on the \
+            insTitle[0].textContent = 'Instructions - Nearest Column';
+            inst[0].innerHTML = "A <i>Nearest</i> column has a single value per column.  The <i>closest</i> column on the \
             axis to the passed in value is matched.  Strings are compared similar to spell-check \
             (See <a href=\"http://en.wikipedia.org/wiki/Levenshtein_distance\" target=\"_blank\">Levenshtein</a> algorithm). \
             Lat/Lon's column values are compared using earth curvature in distance calculation \
@@ -691,12 +707,12 @@ var NCubeEditor = (function ($)
         <li>With columns <code>Alpha, Bravo, Charlie</code>, <i>value</i> <code>alfa</code> will match column <code>Alpha</code>.  It has the closest 'edit' distance.</li> \
         <li>With columns <code>1, 10, 100, 1000</code>, <i>value</i> <code>400</code> will match column <code>100</code>. (Distance of 300 is smallest).</li> \
         <li>Dates are entered in the same formats in Discrete column instructions (many formats supported).</li> \
-        <li>Do not use mm/dd/yyyy or dd/mm/yyyy for dates.</li></ul></li></ul>");
+        <li>Do not use mm/dd/yyyy or dd/mm/yyyy for dates.</li></ul></li></ul>";
         }
         else if ('RULE' == axis.type.name)
         {
-            insTitle.html('Instructions - Rule Column');
-            inst.html("A <i>Rule condition</i> column is entered as a rule name and condition.  All rule conditions \
+            insTitle[0].textContent = 'Instructions - Rule Column';
+            inst[0].innerHTML = "A <i>Rule condition</i> column is entered as a rule name and condition.  All rule conditions \
             that evaluate to <i>true</i> have their associated statement cells executed.  By default all <i>true</i> \
             conditions will fire. (See our definition of <a href=\"http://groovy.codehaus.org/Groovy+Truth\" target=\"_blank\">true</a>). \
             The Rule axis can be set so that only the first <i>true</i> condition fires.  When running a rule-cube, \
@@ -710,12 +726,12 @@ var NCubeEditor = (function ($)
         <li>Enter <i>condition</i> in <a href=\"http://groovy.codehaus.org/\" target=\"_blank\">Groovy</a> on the second line.</li> \
         <li>The <i>input</i> and <i>output</i> Maps and <i>ncube</i> are available in the condition and statements (cells).</li> \
         <li><i>Example condition</i>: <code>input.state == 'OH'</code></li> \
-        </ul></li></ul>");
+        </ul></li></ul>";
         }
         else
         {
-            insTitle.html('Instructions');
-            inst.html('Unknown axis type');
+            insTitle[0].textContent = 'Instructions';
+            inst[0].innerHTML = 'Unknown axis type';
         }
 
         var axisList = axis.columns['@items'];
@@ -859,7 +875,7 @@ var NCubeEditor = (function ($)
             $('#editColUp').hide();
             $('#editColDown').hide();
         }
-        $('#editColumnsLabel').html('Edit ' + axisName);
+        $('#editColumnsLabel')[0].textContent = 'Edit ' + axisName;
         $('#editColumnsModal').modal();
     };
 
@@ -1120,7 +1136,7 @@ var NCubeEditor = (function ($)
             return;
         }
 
-        _uiCellId.html('');
+        _uiCellId[0].textContent = '';
         _uiCellId.attr({'class':'cell'});
         _cellId = null;
     };
@@ -1149,7 +1165,7 @@ var NCubeEditor = (function ($)
             return;
         }
 
-        _uiCellId.text(cellInfo.value);
+        _uiCellId[0].textContent = cellInfo.value;
         if (cellInfo.isUrl)
         {
             _uiCellId.attr({'class':'cell cell-url'});

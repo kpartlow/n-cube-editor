@@ -260,7 +260,7 @@ var TestEditor = (function ($)
     {
         if (!nce.getSelectedCubeName())
         {
-            $('#selectedTestName').html('No n-cube selected.');
+            $('#selectedTestName')[0].innerHTML = 'No n-cube selected.';
             return false;
         }
 
@@ -302,11 +302,11 @@ var TestEditor = (function ($)
 
         if (hasTests)
         {
-            $("#testCount").html(_testData.length);
+            $("#testCount")[0].textContent = _testData.length;
             $.each(_testData, function (index, value)
             {
                 var anchor = $('<a/>');
-                anchor.html(value['name']);
+                anchor[0].textContent = value['name'];
 
                 if (index == _testSelectionAnchor)
                 {
@@ -372,7 +372,7 @@ var TestEditor = (function ($)
 
         try
         {
-            $('#selectedTestName').html(testData['name']);
+            $('#selectedTestName')[0].textContent = testData['name'];
             var coordinate = testData['coord'];
 
             if (coordinate)
@@ -419,7 +419,7 @@ var TestEditor = (function ($)
         var ident = generateRandomId();
         var labelGroup = $("<div/>").attr({'class': 'form-group', 'parameter-id':labelText, 'id':ident});
         var cat = ident + "-value";
-        var label = $("<label/>").attr({'for': cat, 'class': 'control-label'}).html(labelText);
+        var label = $("<label/>").attr({'for': cat, 'class': 'control-label'})[0].innerHTML = (labelText);
         var deleteParamButton = $("<a/>").attr({'class':'red-item pull-right', 'font-size':'9px', 'style':'padding: 1px 3px; font-size: 12px; line-height: 1.5; border-radius: 3px;'});
         var glyph = $("<span/>").attr({'class':'glyphicon glyphicon-remove', 'style':'vertical-align: -1px;' });
 
@@ -436,11 +436,11 @@ var TestEditor = (function ($)
 
         if (isUrl)
         {
-            urlButton.html("&nbsp;URL&nbsp;");
+            urlButton[0].innerHTML = '&nbsp;URL&nbsp;';
         }
         else
         {
-            urlButton.html("Value");
+            urlButton[0].textContent = 'Value';
         }
 
         urlButton.click(function ()
@@ -449,7 +449,7 @@ var TestEditor = (function ($)
             var txt = urlButton.text();
             if (txt == "Value")
             {
-                urlButton.html("&nbsp;URL&nbsp;");
+                urlButton[0].innerHTML = '&nbsp;URL&nbsp;';
                 isValue = false;
             }
             else
@@ -1214,7 +1214,7 @@ var TestEditor = (function ($)
         {
             var item = $(value);
             var opt = $("<option/>").attr({'value': item.val()});
-            opt.text(item.text());
+            opt[0].textContent = item[0].textContent;
 
             if (typeStr != null && typeStr == item.val())
             {

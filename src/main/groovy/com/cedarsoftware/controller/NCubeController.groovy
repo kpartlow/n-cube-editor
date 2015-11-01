@@ -1,20 +1,46 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.ncube.*
+import com.cedarsoftware.ncube.ApplicationID
+import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.AxisType
+import com.cedarsoftware.ncube.AxisValueType
+import com.cedarsoftware.ncube.CellInfo
+import com.cedarsoftware.ncube.Column
+import com.cedarsoftware.ncube.CommandCell
+import com.cedarsoftware.ncube.Delta
+import com.cedarsoftware.ncube.GroovyExpression
+import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.NCubeInfoDto
+import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.NCubeTest
+import com.cedarsoftware.ncube.RuleInfo
+import com.cedarsoftware.ncube.StringValuePair
 import com.cedarsoftware.ncube.exception.BranchMergeException
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.formatters.TestResultsFormatter
 import com.cedarsoftware.service.ncube.NCubeService
 import com.cedarsoftware.servlet.JsonCommandServlet
-import com.cedarsoftware.util.*
+import com.cedarsoftware.util.ArrayUtilities
+import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.DateUtilities
+import com.cedarsoftware.util.InetAddressUtilities
+import com.cedarsoftware.util.StringUtilities
+import com.cedarsoftware.util.ThreadAwarePrintStream
+import com.cedarsoftware.util.ThreadAwarePrintStreamErr
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
+import javax.management.MBeanServer
+import javax.management.ObjectName
 import javax.servlet.http.HttpServletRequest
+import java.lang.management.ManagementFactory
+import java.lang.reflect.Method
+import java.util.concurrent.ConcurrentMap
 import java.util.regex.Pattern
 
 /**
@@ -39,11 +65,18 @@ import java.util.regex.Pattern
 @CompileStatic
 class NCubeController extends BaseController
 {
+    private static final Logger LOG = LogManager.getLogger(NCubeController.class)
     private static final Pattern VERSION_REGEX = ~/[.]/
     private static final Pattern IS_NUMBER_REGEX = ~/^[\d,.e+-]+$/
     private static final Pattern NO_QUOTES_REGEX = ~/"/
     private NCubeService nCubeService;
-    private static final Logger LOG = LogManager.getLogger(NCubeController.class)
+    private static String servletHostname = null
+    private static String inetHostname = null
+
+    // Bind to ConcurrentLinkedHashMap because some plugins will need it.
+    private ConcurrentMap<String, Object> futureCache = new ConcurrentLinkedHashMap.Builder<String, Object>()
+            .maximumWeightedCapacity(100)
+            .build();
 
     NCubeController(NCubeService service)
     {
@@ -194,7 +227,7 @@ class NCubeController extends BaseController
             }
             NCube ncube = nCubeService.getCube(appId, cubeName)
             // The Strings below are hints to n-cube to tell it which axis to place on top
-            String html = ncube.toHtml('trait', 'traits', 'businessDivisionCode', 'bu', 'month', 'months', 'col', 'column', 'cols', 'columns')
+            String html = toHtmlWithColumnHints(ncube)
             return html
         }
         catch (Exception e)
@@ -202,6 +235,11 @@ class NCubeController extends BaseController
             fail(e)
             return null
         }
+    }
+
+    private String toHtmlWithColumnHints(NCube ncube)
+    {
+        ncube.toHtml('trait', 'traits', 'businessDivisionCode', 'bu', 'month', 'months', 'col', 'column', 'cols', 'columns')
     }
 
     String getJson(ApplicationID appId, String cubeName)
@@ -915,9 +953,41 @@ class NCubeController extends BaseController
             NCube ncube = nCubeService.getCube(appId, cubeName)
             Set<Long> colIds = getCoordinate(ids)
             Object cell = ncube.getCellByIdNoExecute(colIds)
+
             CellInfo cellInfo = new CellInfo(cell)
             cellInfo.collapseToUiSupportedTypes()
             return cellInfo
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
+    Map getCellCoordinate(ApplicationID appId, String cubeName, Object[] ids)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            if (!isAllowed(appId, cubeName, null))
+            {
+                return null
+            }
+            NCube ncube = nCubeService.getCube(appId, cubeName)
+            Set<Long> colIds = getCoordinate(ids)
+
+            // TODO: Call method directly once ncube 3.3.12 is released.
+            Method method = NCube.class.getDeclaredMethod('getCoordinateFromColumnIds', Collection.class)
+            method.setAccessible(true)
+            Map<String, Comparable> coord = (Map<String, Comparable>) method.invoke(ncube, colIds);
+
+            Map<String, Comparable> niceCoord = [:]
+            coord.each {
+                k, v ->
+                    niceCoord[k] = CellInfo.formatForDisplay(v)
+            }
+            return niceCoord
         }
         catch (Exception e)
         {
@@ -1398,20 +1468,183 @@ class NCubeController extends BaseController
         }
     }
 
-    // TODO: Remove this - it is no longer used.
-    boolean canSkipLinks(ApplicationID appId, String cubeName)
+    Map<String, Object> fetchDiffs(NCubeInfoDto leftInfoDto, NCubeInfoDto rightInfoDto)
     {
-        return false
+        try
+        {
+            ApplicationID leftAppId = addTenant(leftInfoDto.applicationID)
+
+            if (!isAllowed(leftAppId, leftInfoDto.name, null))
+            {
+                return [:]
+            }
+
+            ApplicationID rightAppId = addTenant(rightInfoDto.applicationID)
+            if (!isAllowed(rightAppId, rightInfoDto.name, null))
+            {
+                return [:]
+            }
+
+            Map<String, Object> ret = [left:[''], right:[''], leftHtml: '', rightHtml: '', delta:'']
+            NCube leftCube = null
+            try
+            {
+                leftCube = nCubeService.getCube(leftAppId, leftInfoDto.name)
+                ret.left = jsonToLines(leftCube.toFormattedJson())
+                ret.leftHtml = toHtmlWithColumnHints(leftCube)
+            }
+            catch (Exception ignored) { }
+
+            NCube rightCube = null
+            try
+            {
+                rightCube = nCubeService.getCube(rightAppId, rightInfoDto.name)
+                ret.right = jsonToLines(rightCube.toFormattedJson())
+                ret.rightHtml = toHtmlWithColumnHints(rightCube)
+            }
+            catch (Exception ignored) { }
+
+
+            if (leftCube && rightCube)
+            {
+                List<Delta> delta = rightCube.getDeltaDescription(leftCube)
+                StringBuilder s = new StringBuilder()
+                delta.each {
+                    Delta d ->
+                        s.append(d.description)
+                        s.append('\n')
+                }
+                ret.delta = s.toString()
+            }
+            return ret
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return [:]
+        }
+    }
+
+    List<String> jsonToLines(String json)
+    {
+        JsonWriter.formatJson(json).readLines()
+    }
+
+    Map heartBeat()
+    {
+        // If remotely accessing server, use the following to get the MBeanServerConnection...
+//        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://localhost:/jmxrmi")
+//        JMXConnector jmxc = JMXConnectorFactory.connect(url, null)
+//
+//        MBeanServerConnection conn = jmxc.getMBeanServerConnection()
+//        String[] domains = conn.getDomains()
+//        Set result = conn.queryMBeans(null, "Catalina:type=DataSource,path=/appdb,host=localhost,class=javax.sql.DataSource");
+//        jmxc.close();
+
+        // Force session creation / update
+        JsonCommandServlet.servletRequest.get().getSession()
+
+        // Snag the platform mbean server (singleton)
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+
+        // App server name and version
+        Map results = [:]
+        putIfNotNull(results, 'Server Info', getAttribute(mbs, 'Catalina:type=Server', 'serverInfo'))
+        putIfNotNull(results, 'JVM Route', getAttribute(mbs, 'Catalina:type=Engine', 'jvmRoute'))
+
+        putIfNotNull(results, 'hostname, servlet', getServletHostname())
+        putIfNotNull(results, 'hostname, OS', getInetHostname())
+        putIfNotNull(results, 'Context', JsonCommandServlet.servletRequest.get().getContextPath())
+        putIfNotNull(results, 'Sessions, active', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + results.Context, 'activeSessions'))
+        putIfNotNull(results, 'Sessions, peak', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + results.Context, 'maxActive'))
+
+        Set<ObjectName> set = mbs.queryNames(new ObjectName('Catalina:type=ThreadPool,name=*'), null)
+        Set<String> connectors = [] as LinkedHashSet
+        set.each {
+            ObjectName objName ->
+                connectors << objName.getKeyProperty('name')
+        }
+
+        // TODO: Remove cleanKey once n-cube 3.3.12 is consumed
+        for (String conn : connectors)
+        {
+            String cleanKey = cleanKey(conn)
+            putIfNotNull(results, cleanKey + ' t-pool max', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxThreads'))
+            putIfNotNull(results, cleanKey + ' t-pool cur', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadCount'))
+            putIfNotNull(results, cleanKey + ' busy thread', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadsBusy'))
+            putIfNotNull(results, cleanKey + ' max conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxConnections'))
+            putIfNotNull(results, cleanKey + ' curr conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'connectionCount'))
+        }
+
+        // OS
+        putIfNotNull(results, 'OS', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Name'))
+        putIfNotNull(results, 'OS version', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Version'))
+        putIfNotNull(results, 'CPU', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Arch'))
+        putIfNotNull(results, 'CPU Process Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'ProcessCpuLoad'))
+        putIfNotNull(results, 'CPU System Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'SystemCpuLoad'))
+        putIfNotNull(results, 'CPU Cores', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'AvailableProcessors'))
+        double machMem = (long) getAttribute(mbs, 'java.lang:type=OperatingSystem', 'TotalPhysicalMemorySize')
+        long K = 1024L
+        long MB = K * 1024L
+        long GB = MB * 1024L
+        machMem = machMem / GB
+        putIfNotNull(results, 'Physical Memory', (machMem.round(2)) + ' GB')
+
+        // JVM
+        putIfNotNull(results, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
+        putIfNotNull(results, 'Loaded class count', getAttribute(mbs, 'java.lang:type=ClassLoading', 'LoadedClassCount'))
+
+        // JVM Memory
+        Runtime rt = Runtime.getRuntime()
+        double maxMem = rt.maxMemory() / MB
+        double freeMem = rt.freeMemory() / MB
+        double usedMem = maxMem - freeMem
+        putIfNotNull(results, 'Heap size (-Xmx)', (maxMem.round(1)) + ' MB')
+        putIfNotNull(results, 'Used memory', (usedMem.round(1)) + ' MB')
+        putIfNotNull(results, 'Free memory', (freeMem.round(1)) + ' MB')
+
+        return results
     }
 
     // ============================================= End API ===========================================================
 
     // ===================================== utility (non-API) methods =================================================
 
+    private String cleanKey(String key)
+    {
+        return key.replace('"','')
+    }
+
     private static void markRequestFailed(Object data)
     {
         JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_STATUS, false)
         JsonCommandServlet.servletRequest.get().setAttribute(JsonCommandServlet.ATTRIBUTE_FAIL_MESSAGE, data)
+    }
+
+    private static Object getAttribute(MBeanServer mbs, String beanName, String attribute)
+    {
+        try
+        {
+            ObjectName objectName = new ObjectName(beanName)
+            mbs.getAttribute(objectName, attribute)
+        }
+        catch (Exception ignored)
+        {
+            LOG.info('Unable to fetch attribute: ' + attribute + ' from mbean: ' + beanName)
+            null
+        }
+    }
+
+    private static void putIfNotNull(Map map, String key, Object value)
+    {
+        if (value != null)
+        {
+            if (value instanceof Number)
+            {
+                value = value.longValue()
+            }
+            map[key] = value
+        }
     }
 
     /**
@@ -1575,7 +1808,7 @@ class NCubeController extends BaseController
 
     private static Set<Long> getCoordinate(Object[] ids)
     {
-        // 3. Locate columns on each axis
+        // Convert String column IDs to Longs
         Set<Long> colIds = new HashSet<>()
         for (Object id : ids)
         {
@@ -1604,5 +1837,23 @@ class NCubeController extends BaseController
             }
         })
         return items
+    }
+
+    private static String getInetHostname()
+    {
+        if (inetHostname == null)
+        {
+            inetHostname = InetAddressUtilities.getHostName()
+        }
+        return inetHostname
+    }
+
+    private static String getServletHostname()
+    {
+        if (servletHostname == null)
+        {
+            servletHostname = JsonCommandServlet.servletRequest.get().getServerName()
+        }
+        return servletHostname
     }
 }

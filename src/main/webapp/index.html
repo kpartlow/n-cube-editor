@@ -14,15 +14,35 @@
     <link href="css/bootstrap.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
+    <link href="css/diffview.css" rel="stylesheet"/>
     <link href="css/common.css" rel="stylesheet"/>
     <link href="css/index.css" rel="stylesheet"/>
-    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="shortcut icon" href="favicon.ico?v2">
 </head>
 
 <body>
     <div id="fadeMe1"></div>
     <img height="270" class="fadeMe2" src="img/splash.jpg"/>
     <h3 class="fadeMe2">N-Cube Editor Loading...</h3>
+    <div id="diffOutputModal" style="box-shadow:0 5px 15px rgba(0,0,0,.5)">
+        <div class="modal-header noselect">
+            <h3 id="diffTitle" class="modal-title">Compare N-Cubes</h3>
+        </div>
+        <div class="modal-body">
+            <form role="form" style="height:100%">
+                <div class="form-group" style="height:100%">
+                    <div id="diffOutput" style="height:100%"></div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer noselect">
+            <button id="diffDesc" type="button" class="btn btn-info btn-sm pull-left">Descriptive</button>
+            <button id="diffVisual" type="button" class="btn btn-info btn-sm pull-left">Visual</button>
+            <button id="diffSide" type="button" class="btn btn-info btn-sm pull-left">Side-by-side</button>
+            <button id="diffInline" type="button" class="btn btn-info btn-sm pull-left">Inline</button>
+            <button id="diffModalClose" class="btn btn-primary">Close</button>
+        </div>
+    </div>
 
 <header class="navbar navbar-custom navbar-fixed-top noselect" role="banner">
     <div class="navbar-header">
@@ -40,6 +60,8 @@
                 <a id="DataMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Data <b class="caret"></b></a>
                 <ul class="dropdown-menu">
                     <li><a id="clearCache" href="#">Clear Cache</a></li>
+                    <li><a id="serverStats" href="#">Server Stats</a></li>
+                    <li><a id="httpHeaders" href="#">View HTTP Headers</a></li>
                 </ul>
             </li>
             <li class="dropdown">
@@ -617,11 +639,13 @@
 <script src="js/bootstrap.min.js"></script>
 <script src="js/bootstrap-select.min.js"></script>
 <script src="js/jquery.layout-1.4.4.js"></script>
-<script src="js/jquery.gritter.min.js"></script>
+<script src="js/jquery.gritter.js"></script>
 <script src="js/jquery-scroll-into-view.js"></script>
 <script src="js/mitDate.js"></script>
 <script src="js/jsonUtil.js"></script>
 <script src="js/constants.js"></script>
+<script src="js/jsdifflib.js"></script>
+<script src="js/jsdiffview.js"></script>
 <script src="js/common.js"></script>
 <script src="js/index.js"></script>
 

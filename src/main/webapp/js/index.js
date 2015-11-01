@@ -47,16 +47,21 @@ var NCE = (function ($)
     var _searchContent = $('#cube-search-content');
     var _cubeCount = $('#ncubeCount');
     var _listOfCubes= $('#ncube-list');
+    var _mainTabPanel = $('#ncubeTabContent');
+    var _diffOutput = $('#diffOutput');
     var _mergeCubeName = null;
     var _mergeSha1 = null;
     var _mergeHeadSha1 = null;
     var _searchLastKeyTime = Date.now();
     var _searchKeyPressed = false;
-    var _mainTabPanel = $('#ncubeTabContent');
+    var _diffLastResult = null;
+    var _diffLeftName = '';
+    var _diffRightName = '';
 
     //  modal dialogs
     var _selectBranchModal = $('#selectBranchModal');
     var _commitModal = $('#commitRollbackModal');
+    var _diffModal = $('#diffOutputModal')
 
     initialize();
 
@@ -76,11 +81,7 @@ var NCE = (function ($)
             buildMenu();
             clearSearch();
             loop();
-
-            var statListDiv = $('#status-list-div');
-            var statListPanel = statListDiv.find('> .panel-body');
-            statListPanel.height(36);
-
+            heartBeat();
             addListeners();
         }
         catch (e)
@@ -148,7 +149,7 @@ var NCE = (function ($)
             return;
         }
         var menu = result.data;
-        $('#appTitle').html(menu['~Title']);
+        $('#appTitle')[0].innerHTML = menu['~Title'];
         var ul = $('#menuList');
         ul.empty();
         $.each(menu, function (key, value)
@@ -160,7 +161,7 @@ var NCE = (function ($)
                 var li = $('<li/>');
                 var a = $('<a/>').prop({'id': menuId, 'href': '#' + pageId});
                 a.attr({'data-toggle':'tab', 'style':"border-radius:8px"});
-                a.html(key);
+                a[0].innerHTML = key;
                 li.append(a);
                 ul.append(li);
 
@@ -207,6 +208,7 @@ var NCE = (function ($)
         return {
             call: call,
             clearError: clearError,
+            displayMap: displayMap,
             doesCubeExist: doesCubeExist,
             ensureModifiable: ensureModifiable,
             exec: exec,
@@ -244,7 +246,7 @@ var NCE = (function ($)
         loadCube(); // load spreadsheet side
         _searchNames.val('');
         _searchContent.val('');
-        _cubeCount.html(Object.keys(_cubeList).length);
+        _cubeCount[0].textContent = Object.keys(_cubeList).length;
     }
 
     function selectCubeByName(cubeName)
@@ -317,7 +319,7 @@ var NCE = (function ($)
     {
         _listOfCubes.empty();
         var anchor = $('<a/>');
-        anchor.html('Loading n-cubes...');
+        anchor[0].textContent = 'Loading n-cubes...';
         _listOfCubes.append(anchor);
     }
 
@@ -327,12 +329,30 @@ var NCE = (function ($)
         var select = $('#version-list');
         select.empty();
         var option = $('<option/>');
-        option.html('Loading versions...');
+        option[0].textContent = 'Loading versions...';
         select.append(option);
     }
 
     function addListeners()
     {
+        // 'Close' for the Diff Modal
+        $('#diffModalClose').click(function() {
+            _diffModal.css('display', 'none');
+        });
+
+        $('#diffDesc').click(function() {
+            diffLoad(DIFF_DESCRIPTIVE)
+        });
+        $('#diffVisual').click(function() {
+            diffLoad(DIFF_VISUAL)
+        });
+        $('#diffSide').click(function() {
+            diffLoad(DIFF_SIDE_BY_SIDE)
+        });
+        $('#diffInline').click(function() {
+            diffLoad(DIFF_INLINE)
+        });
+
         // Send to background Web Worker thread
         _searchNames.on('input', function (event)
         {
@@ -526,7 +546,7 @@ var NCE = (function ($)
         $('#showRefsToMenu').click(function ()
         {
             setTimeout(function() { showRefsToCube(); }, PROGRESS_DELAY);
-            showNote('Calculating inbound references from other n-cubes to this n-cube.');
+            showNote('Calculating inbound references from other n-cubes to this n-cube...', 'Please wait...');
         });
         $('#showRefsToClose').click(function ()
         {
@@ -568,20 +588,28 @@ var NCE = (function ($)
         {
             clearCache();
         });
+        $('#serverStats').click(function()
+        {
+            serverStats();
+        });
+        $('#httpHeaders').click(function()
+        {
+            httpHeaders();
+        });
 
         addBranchListeners();
     }
 
     function loadAppListView()
     {
-        $('#appCount').html(_apps.length);  // update no. applications badge
+        $('#appCount')[0].textContent = _apps.length;  // update no. applications badge
         var select = $('#app-list');
         select.empty();
 
         $.each(_apps, function (index, value)
         {
             var option = $("<option/>");
-            option.html(value);
+            option[0].textContent = value;
             select.append(option);
         });
 
@@ -621,7 +649,7 @@ var NCE = (function ($)
             var anchor = $('<a href="#"/>');
             anchor.click(function ()
             {
-                var status = anchor.text();
+                var status = anchor[0].textContent;
                 setListSelectedStatus(status, '#status-list');
                 _selectedStatus = status;
                 loadVersions();
@@ -632,7 +660,7 @@ var NCE = (function ($)
                 runSearch();
                 buildMenu();
             });
-            anchor.html(value);
+            anchor[0].textContent = value;
             li.append(anchor);
             list.append(li);
         });
@@ -641,14 +669,14 @@ var NCE = (function ($)
 
     function loadVersionListView()
     {
-        $('#verCount').html(_versions.length);  // update number of versions for the selected app
+        $('#verCount')[0].textContent = _versions.length;  // update number of versions for the selected app
         var select = $('#version-list');
         select.empty();
 
         $.each(_versions, function (index, value)
         {
             var option = $("<option/>");
-            option.html(value);
+            option[0].textContent = value;
             select.append(option);
         });
 
@@ -705,11 +733,11 @@ var NCE = (function ($)
                 nameHtml += cubeName.substring(infoDto.pos, infoDto.endPos);
                 nameHtml += '</span>';
                 nameHtml += cubeName.substring(infoDto.endPos);
-                a.html(nameHtml);
+                a[0].innerHTML = nameHtml;
             }
             else
             {
-                a.html(cubeName);
+                a[0].textContent = cubeName;
             }
 
             if (!isHeadSelected())
@@ -747,7 +775,7 @@ var NCE = (function ($)
                 activeTab[0].contentWindow.cubeSelected();
             }
         }
-        _cubeCount.html(count);
+        _cubeCount[0].textContent = count;
     }
 
     function getProperCubeName(cubeName)
@@ -793,7 +821,7 @@ var NCE = (function ($)
         $.each(items, function (index, value)
         {
             var anchor = $(value);
-            var text = anchor.html();
+            var text = anchor[0].textContent;
             var elemName = anchor.attr('itemName');
             if (loItemName == elemName || itemName == text)
             {
@@ -1025,7 +1053,7 @@ var NCE = (function ($)
             return;
         }
 
-        $('#deleteCubeLabel').html("Delete '" + _selectedCubeName + "' ?");
+        $('#deleteCubeLabel')[0].textContent = "Delete '" + _selectedCubeName + "' ?";
         $('#deleteCubeModal').modal();
     }
 
@@ -1066,7 +1094,7 @@ var NCE = (function ($)
 
         var ul = $('#deletedCubeList');
         ul.empty();
-        $('#restoreCubeLabel').html('Restore Cubes in ' + _selectedVersion + ', ' + _selectedStatus);
+        $('#restoreCubeLabel')[0].textContent = 'Restore Cubes in ' + _selectedVersion + ', ' + _selectedStatus;
         var result = call("ncubeController.search", [getAppId(), "*", null, false]);
         if (result.status === true)
         {
@@ -1075,7 +1103,8 @@ var NCE = (function ($)
                 var li = $('<li/>').prop({class: 'list-group-item skinny-lr'});
                 var div = $('<div/>').prop({class:'container-fluid'});
                 var checkbox = $('<input>').prop({class:'restoreCheck', type:'checkbox'});
-                var label = $('<label/>').prop({class: 'checkbox no-margins'}).text(value.name);
+                var label = $('<label/>').prop({class: 'checkbox no-margins'});
+                label[0].textContent = value.name;
                 checkbox.prependTo(label); // <=== create input without the closing tag
                 div.append(label);
                 li.append(div);
@@ -1099,7 +1128,7 @@ var NCE = (function ($)
         {
             if ($(this).is(':checked'))
             {
-                cubesToRestore.push($(this).parent().text());
+                cubesToRestore.push($(this).parent()[0].textContent);
             }
         });
 
@@ -1132,7 +1161,7 @@ var NCE = (function ($)
         }
         var ul = $('#revisionHistoryList');
         ul.empty();
-        $('#revisionHistoryLabel').html('Revision History for ' + _selectedCubeName);
+        $('#revisionHistoryLabel')[0].textContent = 'Revision History for ' + _selectedCubeName;
         $('#revisionHistoryModal').modal();
         var result = call("ncubeController.getRevisionHistory", [getAppId(), _selectedCubeName]);
         if (result.status === true)
@@ -1145,15 +1174,15 @@ var NCE = (function ($)
                 var anchorDiff = $('<a href="#"/>');
 
                 var kbd1 = $('<kbd/>');
-                kbd1.html('HTML');
+                kbd1[0].textContent = 'HTML';
                 anchorHtml.append(kbd1);
 
                 var kbd2 = $('<kbd/>');
-                kbd2.html('JSON');
+                kbd2[0].textContent = 'JSON';
                 anchorJson.append(kbd2);
 
                 var kbd3 = $('<kbd/>');
-                kbd3.html('Compare');
+                kbd3[0].textContent = 'Compare';
                 anchorDiff.append(kbd3);
 
                 var date = '';
@@ -1224,7 +1253,7 @@ var NCE = (function ($)
         $('#renameCubeVersion').val(_selectedVersion);
         $('#renameCubeName').val(_selectedCubeName);
         $('#renameNewCubeName').val('');
-        $('#renameCubeLabel').html('Rename');
+        $('#renameCubeLabel')[0].textContent = 'Rename';
         $('#renameCubeModal').modal();
     }
 
@@ -1265,7 +1294,7 @@ var NCE = (function ($)
         $('#dupeCubeAppName').val(_selectedApp);
         $('#dupeCubeVersion').val(_selectedVersion);
         $('#dupeCubeName').val(_selectedCubeName);
-        $('#dupeCubeLabel').html('Duplicate: ' + _selectedCubeName + ' ?');
+        $('#dupeCubeLabel')[0].textContent = 'Duplicate: ' + _selectedCubeName + ' ?';
         buildDropDown('#dupeCubeAppList', '#dupeCubeAppName', _apps, function (app)
         {
             var appId = {
@@ -1332,7 +1361,7 @@ var NCE = (function ($)
             showNote('No n-cube selected. No (inbound) references to show.');
             return;
         }
-        $('#showRefsToLabel').html('Inbound refs to: ' + _selectedCubeName);
+        $('#showRefsToLabel')[0].textContent = 'Inbound refs to: ' + _selectedCubeName;
         var ul = $('#refsToCubeList');
         ul.empty();
         $('#showRefsToCubeModal').modal();
@@ -1343,7 +1372,7 @@ var NCE = (function ($)
             {
                 var li = $("<li/>").attr({'class': 'list-group-item skinny-lr'});
                 var anchor = $('<a href="#"/>');
-                anchor.html(value);
+                anchor[0].innerHTML = value;
                 anchor.click(function ()
                 {
                     showRefsToCubeClose();
@@ -1373,7 +1402,7 @@ var NCE = (function ($)
             showNote('No n-cube selected. No (outbound) references to show.');
             return;
         }
-        $('#showRefsFromLabel').html('Outbound refs of: ' + _selectedCubeName);
+        $('#showRefsFromLabel')[0].textContent = 'Outbound refs of: ' + _selectedCubeName;
         var ul = $('#refsFromCubeList');
         ul.empty();
         $('#showRefsFromCubeModal').modal();
@@ -1384,7 +1413,7 @@ var NCE = (function ($)
             {
                 var li = $("<li/>").attr({'class': 'list-group-item skinny-lr'});
                 var anchor = $('<a href="#"/>');
-                anchor.html(value);
+                anchor[0].innerHTML = value;
                 anchor.click(function ()
                 {
                     showRefsFromCubeClose();
@@ -1414,7 +1443,7 @@ var NCE = (function ($)
             showNote('No n-cube selected. No required scope to show.');
             return;
         }
-        $('#showReqScopeLabel').html("Scope for '" + _selectedCubeName + "'");
+        $('#showReqScopeLabel')[0].textContent = "Scope for '" + _selectedCubeName + "'";
         var ul = $('#reqScopeList');
         ul.empty();
         $('#showReqScopeModal').modal();
@@ -1424,7 +1453,7 @@ var NCE = (function ($)
             $.each(result.data, function (index, value)
             {
                 var li = $("<li/>").attr({'class': 'list-group-item skinny-lr'});
-                li.html(value);
+                li[0].innerHTML = value;
                 ul.append(li);
             });
         }
@@ -1447,7 +1476,7 @@ var NCE = (function ($)
             return;
         }
 
-        $('#releaseCubesLabel').html('Release ' + _selectedApp + ' ' + _selectedVersion + ' SNAPSHOT ?');
+        $('#releaseCubesLabel')[0].textContent = 'Release ' + _selectedApp + ' ' + _selectedVersion + ' SNAPSHOT ?';
         $('#releaseCubesAppName').val(_selectedApp);
         $('#releaseCubesModal').modal();
     }
@@ -1482,7 +1511,7 @@ var NCE = (function ($)
             return;
         }
 
-        $('#changeVerLabel').html('Change ' + _selectedApp + ' ' + _selectedVersion + ' ?');
+        $('#changeVerLabel')[0].textContent = 'Change ' + _selectedApp + ' ' + _selectedVersion + ' ?';
         $('#changeVerModal').modal();
     }
 
@@ -1535,8 +1564,74 @@ var NCE = (function ($)
 
         if (result.status === false)
         {
-            showNote('Unable to fetch the cell contents: ' + result.data);
+            showNote('Unable to clear cache:<hr class="hr-small"/>' + result.data);
         }
+    }
+
+    function serverStats()
+    {
+        var result = call("ncubeController.heartBeat", []);
+
+        if (result.status === false)
+        {
+            showNote('Unable to fetch server statistics:<hr class="hr-small"/>' + result.data);
+            return;
+        }
+        clearError();
+        displayMap(result.data, 'Server Statistics');
+    }
+
+    function httpHeaders()
+    {
+        var result = call("ncubeController.getHeaders", []);
+
+        if (result.status === false)
+        {
+            showNote('Unable to fetch HTTP headers:<hr class="hr-small"/>' + result.data);
+            return;
+        }
+        clearError();
+        displayMap(result.data, 'HTTP Headers');
+    }
+
+    function displayMap(map, title)
+    {
+        delete map['@type'];
+        var msg = '';
+        var maxValLen = 0;
+        var rows = 0;
+
+        for (var key in map)
+        {
+            if (map.hasOwnProperty(key))
+            {
+                rows++;
+                var val = '' + map[key];
+                if (val.length > 50)
+                {   // Hard-coded to size of current (330px) gritter text area (reduced by gritter-image size)
+                    val = val.substring(0, 5) + '...' + val.substr(-54);
+                }
+                msg += '<dt>' + key + '</dt>';
+                msg += '<dd>' + val + '</dd>';
+
+                if (val.length > maxValLen)
+                {
+                    maxValLen = val.length;
+                }
+            }
+        }
+
+        if (maxValLen > 32 || rows == 1)
+        {
+            msg = '<dl>' + msg;
+        }
+        else
+        {
+            msg = '<dl class="dl-horizontal">' + msg;
+        }
+        msg += '</dl>';
+
+        showNote(msg, title);
     }
 
     // ======================================== Everything to do with Branching ========================================
@@ -1611,7 +1706,7 @@ var NCE = (function ($)
 
     function showActiveBranch()
     {
-        $('#BranchMenu').html('Branch:&nbsp;<button class="btn-sm btn-primary">&nbsp;' + (_selectedBranch || head) + '&nbsp;<b class="caret"></b></button>');
+        $('#BranchMenu')[0].innerHTML = 'Branch:&nbsp;<button class="btn-sm btn-primary">&nbsp;' + (_selectedBranch || head) + '&nbsp;<b class="caret"></b></button>';
     }
 
     function selectBranch()
@@ -1640,7 +1735,7 @@ var NCE = (function ($)
             }
             var li = $('<li/>').attr({'class': 'list-group-item skinny-lr'});
             var anchor = $('<a href="#"/>');
-            anchor.html('<kbd> ' + name + ' </kbd>');
+            anchor[0].innerHTML = '<kbd> ' + name + ' </kbd>';
             anchor.click(function ()
             {
                 changeBranch(name);
@@ -1673,14 +1768,18 @@ var NCE = (function ($)
             return;
         }
 
-        var result = call("ncubeController.createBranch", [appId]);
-        if (!result.status)
-        {
-            showNote('Unable to create branch:<hr class="hr-small"/>' + result.data);
-            return;
-        }
-
-        changeBranch(branchName);
+        setTimeout(function() {
+            var result = call("ncubeController.createBranch", [appId]);
+            if (!result.status)
+            {
+                clearError();
+                showNote('Unable to create branch:<hr class="hr-small"/>' + result.data);
+                return;
+            }
+            changeBranch(branchName);
+        }, PROGRESS_DELAY);
+        _selectBranchModal.modal('hide');
+        showNote('Creating branch: ' + branchName, 'Creating...');
     }
 
     function changeBranch(branchName)
@@ -1693,18 +1792,23 @@ var NCE = (function ($)
         localStorage[SELECTED_BRANCH] = branchName;
         _selectBranchModal.modal('hide');
 
-        showActiveBranch();
-        loadAppNames();
-        loadVersions();
-        loadNCubes();
-        loadAppListView();
-        loadStatusListView();
-        loadVersionListView();
-        loadNCubeListView();
-        loadCube();
-        runSearch();
-        buildMenu();
-        showNote('<kbd>' + (branchName || head) + '</kbd>', 'Active Branch', 2000);
+        setTimeout(function() {
+            showActiveBranch();
+            loadAppNames();
+            loadVersions();
+            loadNCubes();
+            loadAppListView();
+            loadStatusListView();
+            loadVersionListView();
+            loadNCubeListView();
+            loadCube();
+            runSearch();
+            buildMenu();
+            clearError();
+            showNote('<kbd>' + (branchName || head) + '</kbd>', 'Active Branch', 3000);
+        }, PROGRESS_DELAY);
+        clearError();
+        showNote('Changing branch to: ' + branchName, 'Please wait...');
     }
 
     function commitBranch(state)
@@ -1745,8 +1849,7 @@ var NCE = (function ($)
             return;
         }
 
-        $('#commitRollbackLabel').html(title);
-        $('#commitRollbackOk').text(btnLabel);
+        $('#commitRollbackLabel')[0].textContent = title;
 
         var branchChanges = result.data;
 
@@ -1756,12 +1859,35 @@ var NCE = (function ($)
 
         $.each(branchChanges, function (index, infoDto)
         {
-            var li = $('<li/>').prop({class: 'list-group-item skinny-lr'});
+            var li = $('<li/>').prop({class: 'list-group-item skinny-lr no-margins'});
+            li.css('padding-left', 0);
+
+            var anchorDiff = $('<a href="#"/>');
+            anchorDiff.click(function(e)
+            {
+                var leftInfoDto = $.extend(true, {}, infoDto);
+                leftInfoDto.branch = 'HEAD';
+                diffCubeWithHead(leftInfoDto, infoDto);
+            });
+            var kbd = $('<kbd/>');
+            kbd[0].textContent = 'Compare';
+            anchorDiff.append(kbd);
+            var labelB = $('<label/>').prop({class: 'col-xs-1', style:'margin:0;margin-right:20px'});
+            labelB.css('padding', 0);
+            labelB.css('margin', 0);
+            labelB.css('margin-right', '10px');
+            labelB.append(anchorDiff);
+
             var div = $('<div/>').prop({class:'container-fluid'});
             var checkbox = $('<input>').prop({class:'commitCheck', type:'checkbox'});
-            var label = $('<label/>').prop({class: 'checkbox no-margins'}).text(infoDto.name);
+            var label = $('<label/>').prop({class: 'checkbox no-margins col-xs-10'});
+            label[0].textContent = infoDto.name;
 
-            if (!infoDto.headSha1)
+            if (infoDto.revision < 0)
+            {
+                label.addClass('cube-deleted');
+            }
+            else if (!infoDto.headSha1)
             {
                 if (infoDto.sha1)
                 {
@@ -1795,6 +1921,7 @@ var NCE = (function ($)
                 }
             }
             checkbox.prependTo(label); // <=== create input without the closing tag
+            div.append(labelB);
             div.append(label);
             li.append(div);
             ul.append(li);
@@ -1818,22 +1945,26 @@ var NCE = (function ($)
         });
 
         _commitModal.modal('hide');
-        var result = call("ncubeController.commitBranch", [getAppId(), changes]);
 
-        if (result.status === false)
-        {
-            showNote('You have conflicts with the HEAD branch.  Update Branch first, then re-attempt branch commit.');
-            return;
-        }
+        setTimeout(function() {
+            var result = call("ncubeController.commitBranch", [getAppId(), changes]);
+            clearError();
+            if (result.status === false)
+            {
+                showNote('You have conflicts with the HEAD branch.  Update Branch first, then re-attempt branch commit.');
+                return;
+            }
 
-        //TODO: After Axis, column, or cell modifications, mark _selectedCubeName as modified (blue)
-        //TODO: Eliminate scan through cubes 2nd time to set selected / not-selected (remember selected?)
+            //TODO: After Axis, column, or cell modifications, mark _selectedCubeName as modified (blue)
+            //TODO: Eliminate scan through cubes 2nd time to set selected / not-selected (remember selected?)
 
-        showNote('Successfully committed ' + changes.length + ' cube(s).');
-        loadNCubes();
-        loadNCubeListView();
-        reloadCube();
-        runSearch();
+            loadNCubes();
+            loadNCubeListView();
+            reloadCube();
+            runSearch();
+            showNote('Successfully committed ' + changes.length + ' cube(s).');
+        }, PROGRESS_DELAY);
+        showNote('Committing changes on selected cubes...', 'Please wait...');
     }
 
     function rollbackOk()
@@ -1850,19 +1981,23 @@ var NCE = (function ($)
         });
 
         _commitModal.modal('hide');
-        var result = call("ncubeController.rollbackBranch", [getAppId(), changes]);
+        setTimeout(function(){
+            var result = call("ncubeController.rollbackBranch", [getAppId(), changes]);
+            clearError();
 
-        if (result.status === false)
-        {
-            showNote('Unable to rollback cubes:<hr class="hr-small"/>' + result.data);
-            return;
-        }
+            if (result.status === false)
+            {
+                showNote('Unable to rollback cubes:<hr class="hr-small"/>' + result.data);
+                return;
+            }
 
-        showNote('Successfully rolled back ' + changes.length + ' cube(s).');
-        loadNCubes();
-        loadNCubeListView();
-        reloadCube();
-        runSearch();
+            loadNCubes();
+            loadNCubeListView();
+            reloadCube();
+            runSearch();
+            showNote('Successfully rolled back ' + changes.length + ' cube(s).');
+        }, PROGRESS_DELAY);
+        showNote('Rolling back changes on selected cubes...', 'Please wait...');
     }
 
     function updateBranch()
@@ -1920,7 +2055,7 @@ var NCE = (function ($)
             return;
         }
 
-        $('#deleteBranchLabel').html("Delete '" + _selectedBranch + "' ?");
+        $('#deleteBranchLabel')[0].textContent = "Delete '" + _selectedBranch + "' ?";
         $('#deleteBranchModal').modal();
     }
 
@@ -1971,7 +2106,8 @@ var NCE = (function ($)
                     }
                     $('#deltaDesc').val(msg);
                 });
-                var label = $('<label/>').prop({class: 'radio no-margins'}).text(key);
+                var label = $('<label/>').prop({class: 'radio no-margins'});
+                label[0].textContent = key;
                 checkbox.prependTo(label); // <=== create input without the closing tag
                 div.append(label);
                 li.append(div);
@@ -2048,6 +2184,83 @@ var NCE = (function ($)
 
     // =============================================== End Branching ===================================================
 
+    // ============================================== Cube Comparison ==================================================
+    function diffCubeWithHead(leftCubeInfo, rightCubeInfo)
+    {
+        clearError();
+
+        var result = call('ncubeController.fetchDiffs', [leftCubeInfo, rightCubeInfo]);
+        if (result.status !== true)
+        {
+            showNote('Unable to fetch comparison of cube:<hr class="hr-small"/>' + result.data);
+            return;
+        }
+
+        var titleElem = $('#diffTitle');
+        titleElem[0].textContent = rightCubeInfo.name + ' changes';
+        _diffLastResult = result.data;
+        _diffLeftName = 'HEAD';
+        _diffRightName = _selectedBranch;
+        diffLoad(DIFF_DESCRIPTIVE);
+
+        // Display Diff Modal
+        _diffModal.css('display', 'block');
+    }
+
+    function diffLoad(viewType)
+    {
+        _diffOutput.empty();
+        var leftJson = _diffLastResult.left['@items'];
+        var rightJson = _diffLastResult.right['@items'];
+
+        if (viewType == DIFF_INLINE || viewType == DIFF_SIDE_BY_SIDE)
+        {
+            // create a SequenceMatcher instance that diffs the two sets of lines
+            var sm = new difflib.SequenceMatcher(leftJson, rightJson);
+
+            // get the opcodes from the SequenceMatcher instance
+            // opcodes is a list of 3-tuples describing what changes should be made to the base text
+            // in order to yield the new text
+            var opcodes = sm.get_opcodes();
+
+            // build the diff view and add it to the current DOM
+            _diffOutput[0].appendChild(diffview.buildView({
+                baseTextLines: leftJson,
+                newTextLines: rightJson,
+                opcodes: opcodes,
+                // set the display titles for each resource
+                baseTextName: _diffLeftName,
+                newTextName: _diffRightName,
+                contextSize: 3,
+                viewType: viewType
+            }));
+            _diffOutput.find('.author').remove();
+        }
+        else if (viewType == DIFF_DESCRIPTIVE)
+        {
+            var textArea = $('<textarea style="width:100%;height:100%;box-sizing:border-box;" />');
+            textArea[0].innerHTML = _diffLastResult.delta;
+            _diffOutput.append(textArea);
+        }
+        else if (viewType == DIFF_VISUAL)
+        {
+            var div = $('<div style="width:100%;height:100%;box-sizing:border-box;" />');
+            var divLeft = $('<div class="innerL"/>');
+            var divRight = $('<div class="innerR"/>');
+            divLeft[0].innerHTML = _diffLastResult.leftHtml;
+            divRight[0].innerHTML = _diffLastResult.rightHtml;
+            div.append(divLeft);
+            div.append(divRight);
+            _diffOutput.append(div);
+        }
+        else
+        {
+            console.log('Error -> Unknown DIFF type');
+        }
+    }
+
+    // ============================================ End Cube Comparison ================================================
+
     // ============================================= General Utilities =================================================
     function loop()
     {
@@ -2060,6 +2273,14 @@ var NCE = (function ($)
                 runSearch();
             }
         }, 500);
+    }
+
+    function heartBeat()
+    {
+        setInterval(function()
+        {
+            call("ncubeController.heartBeat", []);
+        }, 60000);
     }
 
     function doesItemExist(item, list)
@@ -2149,10 +2370,12 @@ var NCE = (function ($)
 function frameLoaded()
 {
     $('#menuList').find(':first-child').find('a').click();
-    $('.fadeMe2').fadeOut(800); // Time in milliseconds.
+    $('.fadeMe2').fadeOut(800, function()
+    {
+        $('.fadeMe2').remove();
+    });
     $('#fadeMe1').fadeOut(500, function()
     {
         $('#fadeMe1').remove();
     });
-
 }
