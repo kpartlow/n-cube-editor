@@ -49,9 +49,9 @@ class NCubeService
         return NCubeManager.search(appId, cubeNamePattern, contentMatching, options)
     }
 
-    void restoreCube(ApplicationID appId, Object[] cubeNames, String username)
+    void restoreCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
-        NCubeManager.restoreCube(appId, cubeNames, username)
+        NCubeManager.restoreCubes(appId, cubeNames, username)
     }
 
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName)
@@ -89,12 +89,12 @@ class NCubeService
         return NCubeManager.commitBranch(appId, infoDtos, username)
     }
 
-    int rollbackBranch(ApplicationID appId, Object[] infoDtos)
+    int rollbackCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
-        return NCubeManager.rollbackBranch(appId, infoDtos)
+        NCubeManager.rollbackCubes(appId, cubeNames, username)
     }
 
-    List<NCubeInfoDto> updateBranch(ApplicationID appId, String username)
+    Map<String, Object> updateBranch(ApplicationID appId, String username)
     {
         return NCubeManager.updateBranch(appId, username)
     }
@@ -106,12 +106,12 @@ class NCubeService
 
     void acceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
     {
-        NCubeManager.mergeOverwriteBranchCube(appId, cubeName, branchSha1, username)
+        NCubeManager.mergeAcceptTheirs(appId, cubeName, branchSha1, username)
     }
 
-    void acceptMine(ApplicationID appId, String cubeName, String headSha1, String username)
+    void acceptMine(ApplicationID appId, String cubeName, String username)
     {
-        NCubeManager.mergeOverwriteHeadCube(appId, cubeName, headSha1, username)
+        NCubeManager.mergeAcceptMine(appId, cubeName, username)
     }
 
     void createCube(ApplicationID appId, NCube ncube, String username)
@@ -119,9 +119,9 @@ class NCubeService
         NCubeManager.updateCube(appId, ncube, username)
     }
 
-    boolean deleteCube(ApplicationID appId, String cubeName, String username)
+    boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
-        return NCubeManager.deleteCube(appId, cubeName, username)
+        return NCubeManager.deleteCubes(appId, cubeNames, username)
     }
 
     void duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName, String username)
@@ -304,30 +304,16 @@ class NCubeService
 
         for (Object object : cubes)
         {
-            if (object instanceof NCube)
+            NCube ncube = (NCube) object
+            if (checkName)
             {
-                NCube ncube = (NCube) object
-                if (checkName)
+                if (!StringUtilities.equalsIgnoreCase(name, ncube.name))
                 {
-                    if (!StringUtilities.equalsIgnoreCase(name, ncube.name))
-                    {
-                        throw new IllegalArgumentException("The n-cube name cannot be different than selected n-cube.  Use Rename n-cube option from n-cube menu to rename the cube.")
-                    }
-                }
-
-                NCubeManager.updateCube(appId, ncube, username)
-            }
-            else
-            {
-                JsonObject map = (JsonObject) object
-                String cubeName = (String) map.ncube
-                String cmd = (String) map.action
-
-                if ("delete".equalsIgnoreCase(cmd))
-                {
-                    NCubeManager.deleteCube(appId, cubeName, username)
+                    throw new IllegalArgumentException("The n-cube name cannot be different than selected n-cube.  Use Rename n-cube option from n-cube menu to rename the cube.")
                 }
             }
+
+            NCubeManager.updateCube(appId, ncube, username)
         }
     }
 
@@ -359,12 +345,22 @@ class NCubeService
         return cube
     }
 
-    NCube getCubeRevision(ApplicationID appId, String name, long revision)
+    NCube loadCube(ApplicationID appId, String name)
     {
-        NCube cube = NCubeManager.getCubeRevision(appId, name, revision)
+        NCube cube = NCubeManager.loadCube(appId, name)
         if (cube == null)
         {
-            throw new IllegalArgumentException("Unable to load cube: " + name + ", app: " + appId + ", revision: " + revision)
+            throw new IllegalArgumentException("Unable to load cube: " + name + " for app: " + appId)
+        }
+        return cube
+    }
+
+    NCube loadCubeById(long id)
+    {
+        NCube cube = NCubeManager.loadCubeById(id)
+        if (cube == null)
+        {
+            throw new IllegalArgumentException('Unable to load cube by id: ' + id)
         }
         return cube
     }

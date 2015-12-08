@@ -8,8 +8,18 @@
             Redirect inbound requests using n-cube's sys.classpath
         </note>
         <from>^/sys/[^/]+/.*$</from>
-        <set name="ctx">sys</set>
+        <set name="sys.classpath.prefix">sys</set>
         <run class="com.cedarsoftware.util.ProxyRouter" method="route" />
+        <to>null</to>
+    </rule>
+
+    <!-- Route all HTTP GET/PUT JSON commands to the JsonCommandServlet -->
+    <rule match-type="regex">
+        <note>
+            Redirect inbound requests using n-cube's sys.classpath
+        </note>
+        <from>^/cmd/[^/]+/.*$</from>
+        <run class="com.cedarsoftware.servlet.JsonCommandServlet" method="route"/>
         <to>null</to>
     </rule>
 

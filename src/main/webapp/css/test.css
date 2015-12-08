@@ -1,0 +1,106 @@
+.center-bkgnd {
+    background:#D1C5B7;
+    border:0;
+}
+
+#testBody {
+    color:black;
+    background:#D1C5B7;
+    padding:0
+}
+
+#testLayoutEast {
+    height:100%;
+    width: 100%;
+    text-align: left;
+    font-family: arial,helvetica,sans-serif;
+    font-size: small;
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+    background: #4D4D4D;
+    border: none;
+    border-radius: 0;
+    overflow: hidden;
+}
+
+#testLayoutEast div#testList {
+    margin: 5px;
+    border-radius: 5px;
+    border: 0;
+}
+
+#testLayoutCenter {
+    padding: 10px !important;
+    overflow: auto !important;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    /*background:transparent;*/
+    border: none #dcdcdc;
+    border-radius: 0;
+}
+
+.hide {
+    display: none;
+}
+
+#testParameters > .panel-body {
+    padding: 15px;
+}
+
+#testParameters div.form-group, #testAssertions div.form-group {
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+#testParameters div.form-group:last-child, #testAssertions div.form-group:last-child {
+    margin-bottom: 10px;
+}
+
+#testParametersDiv {
+    overflow: visible;
+}
+
+#testListWarning {
+    margin: 5px 5px 0 5px;
+}
+
+#testListItems {
+    margin-bottom: 0;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+}
+
+#testListItems a.selected {
+    color: #444;
+    background: rgb(217, 237, 247); /* fallback */
+    background: rgba(61, 139, 202, .25);
+    padding: 0 5px 0 5px !important;
+    text-shadow: none !important;
+}
+
+#testListItems a {
+    color: #444;
+    padding: 0 5px 0 5px !important;
+}
+
+#testList div.panel-body {
+    padding: 5px;
+    margin: 0;
+    overflow: auto;
+}
+
+#testList div.panel-heading {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+#testResult {
+    margin-top: 20px;
+}
+
+#testAssertionsDiv, #testResultsDiv {
+    margin-top: 10px;
+}

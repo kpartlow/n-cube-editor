@@ -1,0 +1,30 @@
+.noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.no-margins {
+    margin: 0;
+}
+
+.no-padding {
+    padding: 0 !important;
+}
+
+.panel-heading {
+    padding: 5px;
+    background-color: #D1C5B7;
+}
+
+.modal-header {
+    padding:9px 15px;
+    border-bottom:1px solid #eee;
+    background-color: #0480be;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    color: white;
+}
