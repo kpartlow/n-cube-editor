@@ -16,7 +16,6 @@
         </constructor-arg>
     </bean>
 
-
     <bean id="ncubeTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
         <property name="dataSource" ref="ncubeDataSource" />
     </bean>

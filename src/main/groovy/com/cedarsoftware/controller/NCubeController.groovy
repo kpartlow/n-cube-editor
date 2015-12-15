@@ -243,12 +243,32 @@ class NCubeController extends BaseController
 
     String getJson(ApplicationID appId, String cubeName)
     {
+        return getJson(appId, cubeName, [mode:"json-index"])
+    }
+
+    String getJson(ApplicationID appId, String cubeName, Map options)
+    {
         try
         {
             appId = addTenant(appId)
             isAllowed(appId, cubeName, null)
             NCube ncube = nCubeService.loadCube(appId, cubeName)
-            return ncube.toFormattedJson()
+            String mode = options.mode
+            switch(mode)
+            {
+                case "json":
+                    return ncube.toFormattedJson()
+                case "json-pretty":
+                    return JsonWriter.formatJson(ncube.toFormattedJson())
+                case "json-index":
+                    return ncube.toFormattedJson([indexFormat:true] as Map)
+                case "json-index-pretty":
+                    return JsonWriter.formatJson(ncube.toFormattedJson([indexFormat:true] as Map))
+                case "html":
+                    return ncube.toHtml()
+                default:
+                    throw new IllegalArgumentException("getJson() - unknown mode: " + mode)
+            }
         }
         catch (Exception e)
         {
@@ -1263,10 +1283,14 @@ class NCubeController extends BaseController
                     return ncube.toFormattedJson()
                 case "json-pretty":
                     return JsonWriter.formatJson(ncube.toFormattedJson())
+                case "json-index":
+                    return ncube.toFormattedJson([indexFormat:true] as Map)
+                case "json-index-pretty":
+                    return JsonWriter.formatJson(ncube.toFormattedJson([indexFormat:true] as Map))
                 case "html":
                     return ncube.toHtml()
                 default:
-                    throw new IllegalArgumentException("getCubeRevisionAs() - unknown mode: " + mode)
+                    throw new IllegalArgumentException("loadCubeById() - unknown mode: " + mode)
             }
         }
         catch (Exception e)
@@ -1336,6 +1360,7 @@ class NCubeController extends BaseController
             LOG.info("Unable to load sys.menu (sys.menu cube likely not in appId: " + appId.toString() + ", exception: " + e.getMessage())
             return ['~Title':'Title Goes Here',
                     'n-cube':[html:'html/ncube.html'],
+                    'n-cube2':[html:'html/ntwobe.html'],
                     JSON:[html:'html/jsonEditor.html'],
                     Details:[html:'html/details.html'],
                     Test:[html:'html/test.html']
@@ -1758,18 +1783,20 @@ class NCubeController extends BaseController
      */
     static Map convertAxis(Axis axis) throws IOException
     {
-        String json = JsonWriter.objectToJson(axis)
+        String json = JsonWriter.objectToJson(axis, [(JsonWriter.TYPE): false] as Map)
         Map axisConverted = JsonReader.jsonToMaps(json)
-        Map cols = (Map) axisConverted.columns
-        Object[] items = (Object[]) cols["@items"]
-        for (Object item : items)
+        axisConverted.'@type' = axis.getClass().getName()
+        Object[] cols = (Object[]) axisConverted.columns
+
+        for (Object item : cols)
         {
             Map col = (Map) item
+            col.'@type' = Column.class.getName()
             Column actualCol = axis.getColumnById((Long)col.id)
             col.id = String.valueOf(col.id) // Stringify Long ID (Javascript safe if quoted)
             CellInfo cellInfo = new CellInfo(actualCol.getValue())
             String value = cellInfo.value
-            if (axis.valueType == AxisValueType.DATE)
+            if (axis.valueType == AxisValueType.DATE && axis.type != AxisType.SET)
             {
                 value = NO_QUOTES_REGEX.matcher(value).replaceAll("")
             }

@@ -711,10 +711,10 @@ var NCubeEditor = (function ($)
         <ul><li>Examples: \
         <ul> \
         <li><i>Numbers</i>: <code>6, 10, [20, 30], 45</code></li> \
-        <li><i>Strings</i>: <code>TX, OH, GA</code></li> \
-        <li><i>Strings (3) with spaces</i>: <code>brown fox, jumps honey badger, is eaten</code></li> \
-        <li><i>Date range</i>: <code>[2010/01/01, 2012/12/31]</code></li> \
-        <li><i>Date ranges</i>: <code>[2015-01-01, 2016-12-31], [2019/01/01, 2020/12/31]</code> \
+        <li><i>Strings</i>: <code>\"TX\", \"OH\", \"GA\"</code></li> \
+        <li><i>Dates</i>: <code>\"2016-01-01\"</code></li> \
+        <li><i>Date range</i>: <code>[\"2010/01/01\", \"2012/12/31\"]</code></li> \
+        <li><i>Date ranges</i>: <code>[\"2015-01-01\", \"2016-12-31\"], [\"2019/01/01\", \"2020/12/31\"]</code> \
         </li></ul></li></ul>";
         }
         else if ('NEAREST' == axis.type.name)
@@ -759,7 +759,7 @@ var NCubeEditor = (function ($)
             inst[0].innerHTML = 'Unknown axis type';
         }
 
-        var axisList = axis.columns['@items'];
+        var axisList = axis.columns;
         _columnList.empty();
         _columnList.prop('model', axis);
         var displayOrder = 0;
@@ -873,13 +873,13 @@ var NCubeEditor = (function ($)
         if (result.status === true)
         {
             axis = result.data;
-            if (!axis.columns['@items'])
+            if (!axis.columns)
             {
-                axis.columns['@items'] = [];
+                axis.columns = [];
             }
             if (axis.defaultCol)
             {   // Remove actual Default Column object (not needed, we can infer it from Axis.defaultCol field being not null)
-                axis.columns["@items"].splice(axis.columns["@items"].length - 1, 1);
+                axis.columns.splice(axis.columns.length - 1, 1);
             }
         }
         else
@@ -908,7 +908,7 @@ var NCubeEditor = (function ($)
     {
         if (axis.preferredOrder == 1)
         {
-            axis.columns['@items'].sort(function(a, b)
+            axis.columns.sort(function(a, b)
             {
                 return a.displayOrder - b.displayOrder;
             });
@@ -940,12 +940,12 @@ var NCubeEditor = (function ($)
 
         if (loc == -1 || axis.preferredOrder == 0)
         {
-            axis.columns['@items'].push(newCol);
+            axis.columns.push(newCol);
             loc = input.length - 1;
         }
         else
         {
-            axis.columns['@items'].splice(loc + 1, 0, newCol);
+            axis.columns.splice(loc + 1, 0, newCol);
         }
         loadColumns(axis);
 
@@ -958,7 +958,7 @@ var NCubeEditor = (function ($)
     {
         var axis = _columnList.prop('model');
         var input = $('.editColCheckBox');
-        var cols = axis.columns['@items'];
+        var cols = axis.columns;
         var colsToDelete = [];
         $.each(input, function (index, btn)
         {
@@ -980,7 +980,7 @@ var NCubeEditor = (function ($)
     var editColUp = function()
     {
         var axis = _columnList.prop('model');
-        var cols = axis.columns['@items'];
+        var cols = axis.columns;
         var input = $('.editColCheckBox');
 
         if (cols && cols.length > 0 && input[0].checked)
@@ -1017,7 +1017,7 @@ var NCubeEditor = (function ($)
     var editColDown = function()
     {
         var axis = _columnList.prop('model');
-        var cols = axis.columns['@items'];
+        var cols = axis.columns;
         var input = $('.editColCheckBox');
 
         if (cols && cols.length > 0 && input[cols.length - 1].checked)
@@ -1061,24 +1061,25 @@ var NCubeEditor = (function ($)
         var axis = _columnList.prop('model');
         _columnList.find('input[data-type=cond]').each(function(index, elem)
         {
-            axis.columns['@items'][index].value = elem.value;
+            axis.columns[index].value = elem.value;
         });
         _columnList.find('input[data-type=name]').each(function(index, elem)
         {
-            var col = axis.columns['@items'][index];
+            var col = axis.columns[index];
             if (col.metaProp)
             {
                 col.metaProp.name = elem.value;
             }
         });
-        $('#editColumnsModal').modal('hide');
         axis.defaultCol = null;
         var result = nce.call("ncubeController.updateAxisColumns", [nce.getAppId(), nce.getSelectedCubeName(), axis]);
 
         if (result.status !== true)
         {
             nce.showNote("Unable to update columns for axis '" + axis.name + "':<hr class=\"hr-small\"/>" + result.data);
+            return;
         }
+        $('#editColumnsModal').modal('hide');
         nce.reloadCube();
     };
 

@@ -228,6 +228,7 @@ class NCubeService
             axis.setColumnOrder(isSorted ? Axis.SORTED : Axis.DISPLAY)
         }
 
+        ncube.clearSha1();
         NCubeManager.updateCube(appId, ncube, username)
     }
 

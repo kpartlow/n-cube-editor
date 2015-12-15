@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="../"/>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>N-Cube</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="n-cube editor">
+    <meta name="author" content="John DeRegnaucourt">
+
+    <link href="css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
+    <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
+    <link href="css/common.css" rel="stylesheet"/>
+    <link href="css/ncube.css" rel="stylesheet"/>
+
+    <script src="handsontable/handsontable.full.js"></script>
+    <link rel="stylesheet" media="screen" href="handsontable/handsontable.full.css">
+</head>
+<body class="noselect" id="mainBody">
+
+<div id="ncube" class="tab-pane in active">
+    <div id="ncube-content" style="overflow:visible">
+        <div id="hot-container">
+        </div>
+    </div>
+</div>
+
+<!-- Add Axis Modal -->
+<div id="addAxisModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="addAxisLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="addAxisLabel" class="modal-title">Add Axis</h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group alert alert-warning">
+                        <span class="help-block">Note: All cells will be cleared when an axis is added.</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="addAxisName">Axis name</label>
+                        <input class="form-control" type="text" placeholder="Axis name" id="addAxisName"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="addAxisTypeList">Axis type (Discrete, Range, Set, Nearest, Rule)</label>
+
+                        <div class="input-group">
+                            <div class="input-group-btn">
+                                <button type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown">Choose<span class="caret"></span></button>
+                                <ul id="addAxisTypeList" class="dropdown-menu">
+                                </ul>
+                            </div>
+                            <input id="addAxisTypeName" type="text" class="form-control" value="DISCRETE" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="addAxisValueTypeList">Column data type (String, Date, Integer, ...)</label>
+
+                        <div class="input-group">
+                            <div class="input-group-btn">
+                                <button type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown">Choose<span class="caret"></span></button>
+                                <ul id="addAxisValueTypeList" class="dropdown-menu">
+                                </ul>
+                            </div>
+                            <input id="addAxisValueTypeName" type="text" class="form-control" value="STRING" readonly>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't add</button>
+                <button id="addAxisOk" class="btn btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Axis Modal -->
+<div id="deleteAxisModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteAxisLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="deleteAxisLabel" class="modal-title">Delete Axis</h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group alert alert-warning">
+                        <span class="help-block">Note: All cells will be cleared when an axis is deleted.</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="deleteAxisName">Axis to delete</label>
+                        <input id="deleteAxisName" type="text" class="form-control" readonly>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteAxisOk" class="btn btn-primary">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Axis Modal -->
+<div id="updateAxisModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateAxisLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="updateAxisLabel" class="modal-title">Update Axis</h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="updateAxisName">Axis name</label>
+                        <input id="updateAxisName" type="text" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="updateAxisTypeName">Axis type (Discrete, Range, Set, Nearest, Rule)</label>
+                        <input id="updateAxisTypeName" type="text" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateAxisValueTypeName">Column data type (String, Date, Integer, ...)</label>
+                        <input id="updateAxisValueTypeName" type="text" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox" id="updateAxisDefaultColRow">
+                            <label>
+                                <input id="updateAxisDefaultCol" type="checkbox">Has Default Column
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox" id="updateAxisSortOrderRow">
+                            <label>
+                                <input id="updateAxisSortOrder" type="checkbox">Sorted
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox" id="updateAxisFireAllRow">
+                            <label>
+                                <input id="updateAxisFireAll" type="checkbox">Fire all matching (versus first matching)
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't update</button>
+                <button id="updateAxisOk" class="btn btn-primary">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 'Update Columns' Modal -->
+<div id="editColumnsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="editColumnsLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="editColumnsLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;height:500px">
+                <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="headingOne">
+                            <h4 class="panel-title">
+                                <a id="editColInstTitle" data-toggle="collapse" data-parent="#accordion" href="#collapseOne"
+                                   aria-expanded="true" aria-controls="collapseOne">Instructions</a>
+                            </h4>
+                        </div>
+                        <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+                            <div id="editColInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
+                <ul id="editColumnsList" class="list-group">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button id="editColSelectAll" type="button" class="btn btn-info btn-sm pull-left">Select All</button>
+                <button id="editColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
+                <button id="editColUp" type="button" class="btn btn-info btn-sm pull-left">Up</button>
+                <button id="editColDown" type="button" class="btn btn-info btn-sm pull-left">Down</button>
+                <button id="editColAdd" type="button" class="btn btn-success btn-sm">Add</button>
+                <button id="editColDelete" type="button" class="btn btn-danger btn-sm">Delete</button>
+                <button id="editColumnsCancel" class="btn btn-default btn-sm">Don't save</button>
+                <button id="editColumnsSave" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Cell Modal -->
+<div id="editCellModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="editCellLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="editCellLabel" class="modal-title">Edit cell</h3>
+            </div>
+
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="editCellValue">Change to</label>
+                        <textarea class="form-control" placeholder="Enter cell value here" id="editCellValue" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data type</label>
+                        <select id="datatypes-value" class="form-control">
+                            <option id="dt-string" value="string">String</option>
+                            <option id="dt-integer" value="long">Integer (64-bit)</option>
+                            <option id="dt-date" value="date">Date</option>
+                            <option id="dt-boolean" value="boolean">Boolean (true / false)</option>
+                            <option id="dt-bigdecimal" value="bigdec">Decimal Financial (unlimited size)</option>
+                            <option id="dt-double" value="double">Decimal Engineering (64-bit double precision)</option>
+                            <option id="dt-exp" value="exp">Expression (Groovy language)</option>
+                            <option id="dt-template" value="template">Template (text with tags ${ })</option>
+                            <option id="dt-binary" value="binary">Binary (byte[])</option>
+                            <option id="dt-latlon" value="latlon">Lat / Lon (lat, lon)</option>
+                            <option id="dt-point2d" value="point2d">2D point (x, y)</option>
+                            <option id="dt-point3d" value="point3d">3D point (x, y, z)</option>
+                        </select>
+                        <select id="datatypes-url" class="form-control" style="display:none">
+                            <option id="dt-url-exp" value="exp">Expression (Groovy language)</option>
+                            <option id="dt-url-method" value="method">Method (Groovy language)</option>
+                            <option id="dt-url-string" value="string">String</option>
+                            <option id="dt-url-binary" value="binary">Binary (byte[])</option>
+                            <option id="dt-url-template" value="template">Template (text with tags ${ })</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label id="editCellRadioURL"><input type="checkbox">URL</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label id="editCellCache"><input type="checkbox">Cache result</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button id="editCellClear" class="btn">Clear</button>
+                <button id="editCellCancel" class="btn" aria-hidden="true">Cancel</button>
+                <button id="editCellOk" class="btn btn-primary">OK</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div id="nce-clipboard-container">
+    <textarea id="cell-clipboard"></textarea>
+</div>
+
+<script src="js/jquery-2.1.4.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/bootstrap-select.min.js"></script>
+<script src="js/mitDate.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/common.js"></script>
+<script src="js/ntwobe.js"></script>
+
+</body>
+</html>

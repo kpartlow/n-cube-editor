@@ -109,7 +109,7 @@ var NCubeJsonEditor = (function ($)
             updateDirtyStatus();
             return;
         }
-        var result = nce.call("ncubeController.getJson", [nce.getAppId(), nce.getSelectedCubeName()], {noResolveRefs:true});
+        var result = nce.call("ncubeController.getJson", [nce.getAppId(), nce.getSelectedCubeName(), {mode:"json"}], {noResolveRefs:true});
         if (result.status === true)
         {
             try {

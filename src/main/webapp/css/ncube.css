@@ -40,3 +40,15 @@ div#editColumnsModal div.panel-group
 .nc-anc {
     cursor: pointer;
 }
+
+.handsonCurrentRow, .handsonCurrentCol {
+    opacity: .75;
+}
+.handsontable table.htCore {
+    background-color: #BEEEEF;
+}
+
+.handsontable th {
+    background-color: #929292 !important;
+    color: white !important;
+}
