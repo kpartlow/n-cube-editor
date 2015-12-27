@@ -679,6 +679,23 @@ class NCubeController extends BaseController
         }
     }
 
+    void promoteRevision(ApplicationID appId, long cubeId)
+    {
+        try
+        {
+            appId = addTenant(appId)
+
+            NCube ncube = nCubeService.loadCubeById(cubeId)
+
+            isAllowed(appId, ncube.getName(), Delta.Type.UPDATE)
+            saveJson(appId, ncube.getName(), ncube.toFormattedJson())
+        }
+        catch (Exception e)
+        {
+            fail(e);
+        }
+    }
+
     void saveJson(ApplicationID appId, String cubeName, String json)
     {
         try

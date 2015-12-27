@@ -41,9 +41,43 @@ div#editColumnsModal div.panel-group
     cursor: pointer;
 }
 
-.handsonCurrentRow, .handsonCurrentCol {
-    opacity: .75;
+#hot-container {
+    top: 20px;
+    position: fixed;
 }
+
+/* begin coord bar and HOT */
+
+#coordinate-bar {
+    position: fixed;
+}
+
+#coordinate-bar-text {
+    white-space: nowrap;
+    overflow-x: scroll;
+    cursor: ew-resize;
+    position: absolute;
+    left: 20px;
+}
+#coordinate-bar-text::-webkit-scrollbar {
+    display:none;
+}
+
+#coordinate-bar-move-left {
+    cursor: pointer;
+    width: 20px;
+    position: absolute;
+    left: 0px;
+    display: none;
+}
+
+#coordinate-bar-move-right {
+    cursor: pointer;
+    width: 20px;
+    position: absolute;
+    display: none;
+}
+
 .handsontable table.htCore {
     background-color: #BEEEEF;
 }
@@ -52,3 +86,48 @@ div#editColumnsModal div.panel-group
     background-color: #929292 !important;
     color: white !important;
 }
+
+.handsontable th.handsonCurrentRow, .handsonTableHeader.handsonCurrentRow {
+    opacity: .75;
+}
+
+.handsontable th, .handsontable td {
+    border-top: 1px solid #CCC;
+    border-bottom: none !important;
+    white-space: nowrap !important;
+}
+
+.handsontable .tableDefault {
+    color: #CCC;
+}
+
+.dropdown-menu {
+    position: fixed;
+}
+
+/* end coord bar and HOT */
+
+/* begin cell display */
+
+.rule-name  {
+    background:#555;
+    color:#e8e8e8;
+    border-radius:3px;
+    font-family: "arial","helvetica", sans-serif;
+    padding-left:5px;
+    padding-right:5px;
+    padding-top:1px;
+    padding-bottom:1px
+}
+
+.hr-rule {
+    margin:1px;
+    border-style:dashed;
+    border-color:darkgray;
+}
+
+.code {
+    font-family: menlo,"Lucida Console",monaco,monospace,courier;
+}
+
+/* end cell display */

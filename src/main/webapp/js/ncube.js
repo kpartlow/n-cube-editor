@@ -154,6 +154,22 @@ var NCubeEditor = (function ($)
         }
 
         loadCubeHtml();
+
+        $('.dropdown-toggle').click(function () {
+            var button = $(this);
+            var offset = button.offset();
+            var dropDownTop = offset.top + button.outerHeight();
+            var dropDownLeft = offset.left;
+
+            var modal = button.closest('.modal-content');
+            if (modal[0]) {
+                var modalOffset = modal.offset();
+                dropDownTop -= modalOffset.top;
+                dropDownLeft -= modalOffset.left;
+            }
+
+            button.parent().find('ul').css({top: dropDownTop + 'px', left: dropDownLeft + 'px'});
+        });
     };
 
     var loadCubeHtml = function()
