@@ -15,17 +15,40 @@
     <link href="css/common.css" rel="stylesheet"/>
     <link href="css/ncube.css" rel="stylesheet"/>
 
-    <script src="handsontable/handsontable.full.js"></script>
-    <link rel="stylesheet" media="screen" href="handsontable/handsontable.full.css">
+    <link rel="stylesheet" href="highlightjs/idea.css"/>
+    <script src="highlightjs/highlight.pack.js"></script>
+
+    <script src="handsontable/handsontable.full.min.js"></script>
+    <link rel="stylesheet" media="screen" href="handsontable/handsontable.full.min.css">
 </head>
 <body class="noselect" id="mainBody">
 
 <div id="ncube" class="tab-pane in active">
+    <div id="ncube-error" style="display:none;"></div>
     <div id="ncube-content" style="overflow:visible">
-        <div id="coordinate-bar">
-            <div id="coordinate-bar-move-left">&lt;--</div>
+        <div id="util-container-bar" class="bg-off-white">
+            <button type="button" id="coordinate-bar-move-left" class="btn btn-default btn-xs">
+                <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+            </button>
             <div id="coordinate-bar-text"></div>
-            <div id="coordinate-bar-move-right">--&gt;</div>
+            <button type="button" id="coordinate-bar-move-right" class="btn btn-default btn-xs">
+                <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+            </button>
+            <div id="search-container" class="bg-off-white">
+                <input id="search-field" type="search" placeholder="Search" />
+                <div id="search-info">&nbsp;</div>
+                <div class="btn-group btn-group-xs" role="group">
+                    <button type="button" id="search-btn-up" class="btn btn-default">
+                        <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
+                    </button>
+                    <button type="button" id="search-btn-down" class="btn btn-default">
+                        <span class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span>
+                    </button>
+                    <button type="button" id="search-btn-remove" class="btn btn-default">
+                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
         </div>
         <div id="hot-container"></div>
     </div>
@@ -202,6 +225,42 @@
                 <button id="editColDelete" type="button" class="btn btn-danger btn-sm">Delete</button>
                 <button id="editColumnsCancel" class="btn btn-default btn-sm">Don't save</button>
                 <button id="editColumnsSave" class="btn btn-primary btn-sm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 'Hide Columns' Modal -->
+<div id="hideColumnsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="hideColumnsLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="hideColumnsLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;height:500px">
+                <div class="panel-group" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="isoHeadingOne">
+                            <h4 class="panel-title">
+                                <a id="hideColInstTitle" data-toggle="collapse" data-parent="#accordion" href="#hideCollapseOne"
+                                   aria-expanded="true" aria-controls="hideCollapseOne">Instructions</a>
+                            </h4>
+                        </div>
+                        <div id="hideCollapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="isoHeadingOne">
+                            <div id="hideColInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
+                <ul id="hideColumnsList" class="list-group">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button id="hideColSelectAll" type="button" class="btn btn-info btn-sm pull-left">Select All</button>
+                <button id="hideColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
+                <button id="hideColumnsCancel" class="btn btn-default btn-sm">Cancel</button>
+                <button id="hideColumnsSave" class="btn btn-primary btn-sm">Apply</button>
             </div>
         </div>
     </div>

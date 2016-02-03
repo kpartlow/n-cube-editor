@@ -104,6 +104,23 @@ var DetailEditor = (function ($)
                 }
             });
         }
+
+        $(window).scroll(function() {
+            clearTimeout($.data(this, 'scrollTimer'));
+            $.data(this, 'scrollTimer', setTimeout(function() {
+                var scrollTop = $(this).scrollTop();
+                var scrollLeft = $(this).scrollLeft();
+                nce.saveViewPosition({scrollTop:scrollTop, scrollLeft:scrollLeft});
+            }, 250));
+        });
+    };
+
+    var scrollToSavedPosition = function() {
+        var pos = nce.getViewPosition();
+        if (typeof pos === 'object') {
+            $(window).scrollTop(pos.scrollTop);
+            $(window).scrollLeft(pos.scrollLeft);
+        }
     };
 
     var isUrlChecked = function()
@@ -206,6 +223,8 @@ var DetailEditor = (function ($)
 
         // Set the Cache check box state
         _isCached.find('input').prop('checked', cellInfo.isCached);
+
+        scrollToSavedPosition();
     };
 
     var clearFields = function()

@@ -1,14 +1,29 @@
 /*!
- * Handsontable 0.18.0
- * Handsontable is a JavaScript library for editable tables with basic copy-paste compatibility with Excel and Google Docs
- *
- * Copyright 2015 Handsoncode sp. z o.o. <hello@handsontable.com>
- * Licensed under the MIT license.
- * http://handsontable.com/
- *
- * Date: Thu Sep 10 2015 14:56:37 GMT+0200 (CEST)
- */
+(The MIT License)
 
+Copyright (c) 2012-2014 Marcin Warpechowski
+Copyright (c) 2015 Handsoncode sp. z o.o. <hello@handsoncode.net>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/
 .handsontable {
   position: relative;
 }
@@ -297,6 +312,39 @@
   right: -15px;
 }
 
+.handsontable th.beforeHiddenColumn {
+  position: relative;
+}
+
+.handsontable th.beforeHiddenColumn::after,
+.handsontable th.afterHiddenColumn::before {
+  content: '\25C0';
+  color: #bbb;
+  position: absolute;
+  right: 1px;
+  top: 2px;
+  font-size: 5pt;
+}
+
+.handsontable th.afterHiddenColumn {
+  position: relative;
+}
+
+.handsontable th.afterHiddenColumn::before {
+  left: 1px;
+  top: 2px;
+  right: auto;
+  content: '\25B6';
+}
+
+.handsontable td.afterHiddenColumn.firstVisible {
+  border-left: 1px solid #CCC;
+}
+
+.handsontable thead th.hiddenHeader {
+  display: none;
+}
+
 /* border line */
 
 .handsontable .wtBorder {
@@ -446,6 +494,11 @@ CheckboxRenderer
 .handsontable .htCheckboxRendererInput.noValue {
   opacity: 0.5;
 }
+.handsontable .htCheckboxRendererLabel {
+  cursor: pointer;
+  display: inline-block;
+  width: 100%;
+}
 
 /*
 NumericRenderer
@@ -521,8 +574,8 @@ Comment For Cell
 
 /* removing shadows, TODO: remove the commented code and this comment  */
 /*.handsontable .handsontable:not(.ht_master) table {*/
-  /*-webkit-box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.4);*/
-  /*box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.4);*/
+/*-webkit-box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.4);*/
+/*box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.4);*/
 /*}*/
 
 /**
@@ -587,7 +640,8 @@ Comment For Cell
   z-index: 102;
 }
 
-.ht_clone_corner {
+.ht_clone_top_left_corner,
+.ht_clone_bottom_left_corner {
   z-index: 103;
 }
 
@@ -633,67 +687,18 @@ Cell borders
   font-family: 'Arial';
 }
 
-
-/* Grouping indicators */
-.handsontable colgroup col.rowHeader.htGroupCol {
-  width: 25px !important;
-}
-.handsontable colgroup col.rowHeader.htGroupColClosest {
-  width: 30px !important;
-}
-
-.handsontable .htGroupIndicatorContainer {
-  background: #fff;
-  border: 0;
-  padding-bottom: 0;
-  vertical-align: bottom;
-  position: relative;
-}
-
-.handsontable thead .htGroupIndicatorContainer {
-  vertical-align: top;
-  border-bottom: 0;
-}
-
 .handsontable tbody tr th:nth-last-child(2) {
   border-right: 1px solid #CCC;
 }
 
-.handsontable thead tr:nth-last-child(2) th {
+.handsontable thead tr:nth-last-child(2) th.htGroupIndicatorContainer {
   border-bottom: 1px solid #CCC;
   padding-bottom: 5px;
 }
 
 
-.ht_clone_corner thead tr th:nth-last-child(2) {
+.ht_clone_top_left_corner thead tr th:nth-last-child(2) {
   border-right: 1px solid #CCC;
-}
-
-.htVerticalGroup {
-  height: 100%;
-}
-
-.htHorizontalGroup {
-  width: 100%;
-  height: 100%;
-}
-
-.htVerticalGroup:not(.htCollapseButton):after {
-  content: "";
-  height: 100%;
-  width: 1px;
-  display: block;
-  background: #ccc;
-  margin-left: 5px;
-}
-
-.htHorizontalGroup:not(.htCollapseButton):after {
-  content: "";
-  width: 100%;
-  height: 1px;
-  display: block;
-  background: #ccc;
-  margin-top: 20%;
 }
 
 .htCollapseButton {
@@ -737,37 +742,6 @@ thead .htCollapseButton:after {
   top: 4px;
 }
 
-.handsontable tr th .htGroupStart:after {
-  background: transparent;
-  border-left: 1px solid #ccc;
-  border-top: 1px solid #ccc;
-  width: 5px;
-  position: relative;
-  top: 50%;
-}
-
-.handsontable thead tr th .htGroupStart:after {
-  background: transparent;
-  border-left: 1px solid #ccc;
-  border-top: 1px solid #ccc;
-  height: 5px;
-  width: 50%;
-  position: relative;
-  top: 0;
-  left: 50%;
-}
-
-.handsontable .htGroupLevelTrigger {
-  -webkit-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-  width: 15px;
-  height: 15px;
-  margin: 4px auto;
-  padding: 0;
-  line-height: 15px;
-  cursor: pointer;
-}
-
 .handsontable tr th .htExpandButton {
   position: absolute;
   width: 10px;
@@ -792,8 +766,31 @@ thead .htCollapseButton:after {
   display: block;
 }
 
+.collapsibleIndicator {
+  position: absolute;
+  top: 50%;
+  transform: translate(0% ,-50%);
+  right: 5px;
+  border: 1px solid #A6A6A6;
+  line-height: 10px;
+  color: #222;
+  border-radius: 10px;
+  font-size: 10px;
+  width: 10px;
+  height: 10px;
+  cursor: pointer;
+  -webkit-box-shadow: 0px 0px 0px 6px rgba(238,238,238,1);
+  -moz-box-shadow: 0px 0px 0px 6px rgba(238,238,238,1);
+  box-shadow: 0px 0px 0px 6px rgba(238,238,238,1);
+  background: #eee;
+}
+
 .handsontable col.hidden {
   width: 0 !important;
+}
+
+.handsontable table tr th.lightRightBorder {
+  border-right: 1px solid #E6E6E6;
 }
 
 .handsontable tr.hidden,
@@ -804,7 +801,8 @@ thead .htCollapseButton:after {
 
 .ht_master,
 .ht_clone_left,
-.ht_clone_top {
+.ht_clone_top,
+.ht_clone_bottom {
   overflow: hidden;
 }
 
@@ -817,7 +815,8 @@ thead .htCollapseButton:after {
   overflow-y: auto;
 }
 
-.ht_clone_top .wtHolder {
+.ht_clone_top .wtHolder,
+.ht_clone_bottom .wtHolder {
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -1152,8 +1151,13 @@ thead .htCollapseButton:after {
   cursor: default;
 }
 
-.htContextMenu table tbody tr td div {
-  padding-left: 10px;
+.htContextMenu table tbody tr.htHidden {
+  display: none;
+}
+
+.htContextMenu table tbody tr td .htItemWrapper {
+  margin-left: 10px;
+  margin-right: 6px;
 }
 
 .htContextMenu table tbody tr td div span.selected {
@@ -1173,14 +1177,14 @@ thead .htCollapseButton:after {
  */
 
 .pika-single {
-    z-index: 9999;
-    display: block;
-    position: relative;
-    color: #333;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-bottom-color: #bbb;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  z-index: 9999;
+  display: block;
+  position: relative;
+  color: #333;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-bottom-color: #bbb;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 /*
@@ -1189,200 +1193,200 @@ http://nicolasgallagher.com/micro-clearfix-hack/
 */
 .pika-single:before,
 .pika-single:after {
-    content: " ";
-    display: table;
+  content: " ";
+  display: table;
 }
 .pika-single:after { clear: both }
 .pika-single { *zoom: 1 }
 
 .pika-single.is-hidden {
-    display: none;
+  display: none;
 }
 
 .pika-single.is-bound {
-    position: absolute;
-    box-shadow: 0 5px 15px -5px rgba(0,0,0,.5);
+  position: absolute;
+  box-shadow: 0 5px 15px -5px rgba(0,0,0,.5);
 }
 
 .pika-lendar {
-    float: left;
-    width: 240px;
-    margin: 8px;
+  float: left;
+  width: 240px;
+  margin: 8px;
 }
 
 .pika-title {
-    position: relative;
-    text-align: center;
+  position: relative;
+  text-align: center;
 }
 
 .pika-label {
-    display: inline-block;
-    *display: inline;
-    position: relative;
-    z-index: 9999;
-    overflow: hidden;
-    margin: 0;
-    padding: 5px 3px;
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: bold;
-    background-color: #fff;
+  display: inline-block;
+  *display: inline;
+  position: relative;
+  z-index: 9999;
+  overflow: hidden;
+  margin: 0;
+  padding: 5px 3px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: bold;
+  background-color: #fff;
 }
 .pika-title select {
-    cursor: pointer;
-    position: absolute;
-    z-index: 9998;
-    margin: 0;
-    left: 0;
-    top: 5px;
-    filter: alpha(opacity=0);
-    opacity: 0;
+  cursor: pointer;
+  position: absolute;
+  z-index: 9998;
+  margin: 0;
+  left: 0;
+  top: 5px;
+  filter: alpha(opacity=0);
+  opacity: 0;
 }
 
 .pika-prev,
 .pika-next {
-    display: block;
-    cursor: pointer;
-    position: relative;
-    outline: none;
-    border: 0;
-    padding: 0;
-    width: 20px;
-    height: 30px;
-    /* hide text using text-indent trick, using width value (it's enough) */
-    text-indent: 20px;
-    white-space: nowrap;
-    overflow: hidden;
-    background-color: transparent;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: 75% 75%;
-    opacity: .5;
-    *position: absolute;
-    *top: 0;
+  display: block;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+  border: 0;
+  padding: 0;
+  width: 20px;
+  height: 30px;
+  /* hide text using text-indent trick, using width value (it's enough) */
+  text-indent: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  background-color: transparent;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: 75% 75%;
+  opacity: .5;
+  *position: absolute;
+  *top: 0;
 }
 
 .pika-prev:hover,
 .pika-next:hover {
-    opacity: 1;
+  opacity: 1;
 }
 
 .pika-prev,
 .is-rtl .pika-next {
-    float: left;
-    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAeCAYAAAAsEj5rAAAAUklEQVR42u3VMQoAIBADQf8Pgj+OD9hG2CtONJB2ymQkKe0HbwAP0xucDiQWARITIDEBEnMgMQ8S8+AqBIl6kKgHiXqQqAeJepBo/z38J/U0uAHlaBkBl9I4GwAAAABJRU5ErkJggg==');
-    *left: 0;
+  float: left;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAeCAYAAAAsEj5rAAAAUklEQVR42u3VMQoAIBADQf8Pgj+OD9hG2CtONJB2ymQkKe0HbwAP0xucDiQWARITIDEBEnMgMQ8S8+AqBIl6kKgHiXqQqAeJepBo/z38J/U0uAHlaBkBl9I4GwAAAABJRU5ErkJggg==');
+  *left: 0;
 }
 
 .pika-next,
 .is-rtl .pika-prev {
-    float: right;
-    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAeCAYAAAAsEj5rAAAAU0lEQVR42u3VOwoAMAgE0dwfAnNjU26bYkBCFGwfiL9VVWoO+BJ4Gf3gtsEKKoFBNTCoCAYVwaAiGNQGMUHMkjGbgjk2mIONuXo0nC8XnCf1JXgArVIZAQh5TKYAAAAASUVORK5CYII=');
-    *right: 0;
+  float: right;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAeCAYAAAAsEj5rAAAAU0lEQVR42u3VOwoAMAgE0dwfAnNjU26bYkBCFGwfiL9VVWoO+BJ4Gf3gtsEKKoFBNTCoCAYVwaAiGNQGMUHMkjGbgjk2mIONuXo0nC8XnCf1JXgArVIZAQh5TKYAAAAASUVORK5CYII=');
+  *right: 0;
 }
 
 .pika-prev.is-disabled,
 .pika-next.is-disabled {
-    cursor: default;
-    opacity: .2;
+  cursor: default;
+  opacity: .2;
 }
 
 .pika-select {
-    display: inline-block;
-    *display: inline;
+  display: inline-block;
+  *display: inline;
 }
 
 .pika-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    border: 0;
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 0;
 }
 
 .pika-table th,
 .pika-table td {
-    width: 14.285714285714286%;
-    padding: 0;
+  width: 14.285714285714286%;
+  padding: 0;
 }
 
 .pika-table th {
-    color: #999;
-    font-size: 12px;
-    line-height: 25px;
-    font-weight: bold;
-    text-align: center;
+  color: #999;
+  font-size: 12px;
+  line-height: 25px;
+  font-weight: bold;
+  text-align: center;
 }
 
 .pika-button {
-    cursor: pointer;
-    display: block;
-    box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    outline: none;
-    border: 0;
-    margin: 0;
-    width: 100%;
-    padding: 5px;
-    color: #666;
-    font-size: 12px;
-    line-height: 15px;
-    text-align: right;
-    background: #f5f5f5;
+  cursor: pointer;
+  display: block;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  outline: none;
+  border: 0;
+  margin: 0;
+  width: 100%;
+  padding: 5px;
+  color: #666;
+  font-size: 12px;
+  line-height: 15px;
+  text-align: right;
+  background: #f5f5f5;
 }
 
 .pika-week {
-    font-size: 11px;
-    color: #999;
+  font-size: 11px;
+  color: #999;
 }
 
 .is-today .pika-button {
-    color: #33aaff;
-    font-weight: bold;
+  color: #33aaff;
+  font-weight: bold;
 }
 
 .is-selected .pika-button {
-    color: #fff;
-    font-weight: bold;
-    background: #33aaff;
-    box-shadow: inset 0 1px 3px #178fe5;
-    border-radius: 3px;
+  color: #fff;
+  font-weight: bold;
+  background: #33aaff;
+  box-shadow: inset 0 1px 3px #178fe5;
+  border-radius: 3px;
 }
 
 .is-inrange .pika-button {
-    background: #D5E9F7;
+  background: #D5E9F7;
 }
 
 .is-startrange .pika-button {
-    color: #fff;
-    background: #6CB31D;
-    box-shadow: none;
-    border-radius: 3px;
+  color: #fff;
+  background: #6CB31D;
+  box-shadow: none;
+  border-radius: 3px;
 }
 
 .is-endrange .pika-button {
-    color: #fff;
-    background: #33aaff;
-    box-shadow: none;
-    border-radius: 3px;
+  color: #fff;
+  background: #33aaff;
+  box-shadow: none;
+  border-radius: 3px;
 }
 
 .is-disabled .pika-button {
-    pointer-events: none;
-    cursor: default;
-    color: #999;
-    opacity: .3;
+  pointer-events: none;
+  cursor: default;
+  color: #999;
+  opacity: .3;
 }
 
 .pika-button:hover {
-    color: #fff;
-    background: #ff8000;
-    box-shadow: none;
-    border-radius: 3px;
+  color: #fff;
+  background: #ff8000;
+  box-shadow: none;
+  border-radius: 3px;
 }
 
 /* styling for abbr */
 .pika-table abbr {
-    border-bottom: none;
-    cursor: help;
+  border-bottom: none;
+  cursor: help;
 }
 

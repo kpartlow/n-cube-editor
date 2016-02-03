@@ -1,4 +1,5 @@
 package com.cedarsoftware.controller
+
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.AxisType
@@ -7,6 +8,7 @@ import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.CommandCell
 import com.cedarsoftware.ncube.Delta
+import com.cedarsoftware.ncube.DeltaProcessor
 import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
@@ -74,9 +76,6 @@ class NCubeController extends BaseController
     private NCubeService nCubeService;
     private static String servletHostname = null
     private static String inetHostname = null
-    private static final char SEP_FIELD = '\u2618'
-    private static final char SEP_COL = '\u261E'
-    private static final char SEP_ROW = '\u261F'
 
     // Bind to ConcurrentLinkedHashMap because some plugins will need it.
     private ConcurrentMap<String, Object> futureCache = new ConcurrentLinkedHashMap.Builder<String, Object>()
@@ -416,41 +415,6 @@ class NCubeController extends BaseController
     }
 
     /**
-     * Find all references to an n-cube.  This is an expensive method, as all cubes within the
-     * app (version and status) must be checked.
-     * @return Object[] of String cube names that reference the named cube, otherwise a String
-     * error message.
-     */
-    Object[] getReferencesTo(ApplicationID appId, String cubeName)
-    {
-        try
-        {
-            appId = addTenant(appId)
-            isAllowed(appId, cubeName, null)
-            Set<String> references = new CaseInsensitiveSet<>()
-            List<NCubeInfoDto> ncubes = nCubeService.search(appId, "*", null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
-
-            for (NCubeInfoDto info : ncubes)
-            {
-                NCube loadedCube = nCubeService.getCube(appId, info.name)
-                if (loadedCube.getReferencedCubeNames().contains(cubeName))
-                {
-                    references.add(info.name)
-                }
-            }
-            references.remove(cubeName)    // do not include reference to self.
-            Object[] refs = references.toArray()
-            caseInsensitiveSort(references.toArray())
-            return refs
-        }
-        catch (Exception e)
-        {
-            fail(e)
-            return null
-        }
-    }
-
-    /**
      * Find all references from (out going) an n-cube.
      * @return Object[] of String cube names that the passed in (named) cube references,
      * otherwise a String error message.
@@ -487,7 +451,7 @@ class NCubeController extends BaseController
             isAllowed(appId, cubeName, null)
 
             NCube ncube = nCubeService.getCube(appId, cubeName)
-            Set<String> refs = ncube.getRequiredScope()
+            Set<String> refs = ncube.getRequiredScope([:], [:])
             Object[] scopeKeys = refs.toArray()
             caseInsensitiveSort(scopeKeys)
             return scopeKeys
@@ -635,14 +599,14 @@ class NCubeController extends BaseController
      * Update an entire set of columns on an axis at one time.  The updatedAxis is not a real axis,
      * but treated like an Axis-DTO where the list of columns within the axis are in display order.
      */
-    void updateAxisColumns(ApplicationID appId, String cubeName, Axis updatedAxis)
+    void updateAxisColumns(ApplicationID appId, String cubeName, String axisName, Object[] cols)
     {
         try
         {
             appId = addTenant(appId)
             isAllowed(appId, cubeName, Delta.Type.UPDATE)
+            Set<Column> columns = new LinkedHashSet<>()
 
-            List<Column> cols = updatedAxis.getColumns()
             if (cols != null)
             {
                 cols.each {
@@ -650,13 +614,14 @@ class NCubeController extends BaseController
                         Object value = column.value
                         if (value == null || "".equals(value))
                         {
-                            throw new IllegalArgumentException('Column cannot have empty value, n-cube: ' + cubeName + ', axis: ' + updatedAxis.name)
+                            throw new IllegalArgumentException('Column cannot have empty value, n-cube: ' + cubeName + ', axis: ' + axisName)
                         }
+                        columns.add(column)
                 }
             }
 
             NCube ncube = nCubeService.loadCube(appId, cubeName)
-            ncube.updateColumns(updatedAxis)
+            ncube.updateColumns(axisName, columns)
             nCubeService.updateNCube(ncube, getUserForDatabase())
         }
         catch (Exception e)
@@ -763,7 +728,7 @@ class NCubeController extends BaseController
                 {
                     errors.add('[exception]')
                     errors.add('\n')
-                    errors.add(getCauses(e))
+                    errors.add(getTestCauses(e))
                     success = false
                 }
             }
@@ -773,7 +738,7 @@ class NCubeController extends BaseController
         }
         catch(Exception e)
         {
-            fail(e)
+            markRequestFailed(getTestCauses(e))
             ThreadAwarePrintStream.getContent()
             ThreadAwarePrintStreamErr.getContent()
             return null
@@ -855,7 +820,7 @@ class NCubeController extends BaseController
                 throw new IllegalArgumentException("Test name cannot be empty, cube: " + cubeName + ", app: " + appId)
             }
 
-            Set<String> items = ncube.getRequiredScope()
+            Set<String> items = ncube.getRequiredScope([:], [:])
             int size = items == null ? 0 : items.size()
 
             StringValuePair<CellInfo>[] coords = new StringValuePair[size]
@@ -939,7 +904,7 @@ class NCubeController extends BaseController
             isAllowed(appId, cubeName, null)
             NCube ncube = nCubeService.getCube(appId, cubeName)
             Set<Long> colIds = getCoordinate(ids)
-            Map<String, Comparable> coord = ncube.getCoordinateFromColumnIds(colIds)
+            Map<String, Comparable> coord = ncube.getDisplayCoordinateFromIds(colIds)
             Map<String, Comparable> niceCoord = [:]
             coord.each {
                 k, v ->
@@ -1191,6 +1156,28 @@ class NCubeController extends BaseController
         }
     }
 
+    Object commitCube(ApplicationID appId, String cubeName)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, Delta.Type.UPDATE)
+            Object[] infoDtos = search(appId, cubeName, null, true);
+            List<NCubeInfoDto> committedCubes = nCubeService.commitBranch(appId, infoDtos, getUserForDatabase())
+            return committedCubes.toArray()
+        }
+        catch (BranchMergeException e)
+        {
+            markRequestFailed(e.getMessage())
+            return e.getErrors()
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return [:]
+        }
+    }
+
     Object commitBranch(ApplicationID appId, Object[] infoDtos)
     {
         try
@@ -1232,8 +1219,24 @@ class NCubeController extends BaseController
         try
         {
             appId = addTenant(appId)
-            isAllowed(appId, null, null)
+            isAllowed(appId, null, Delta.Type.UPDATE)
             Map<String, Object> result = nCubeService.updateBranch(appId, getUserForDatabase())
+            return result
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
+    Object updateBranchCube(ApplicationID appId, String cubeName, String sourceBranch)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, Delta.Type.UPDATE)
+            Map<String, Object> result = nCubeService.updateBranchCube(appId, cubeName, sourceBranch, getUserForDatabase())
             return result
         }
         catch (Exception e)
@@ -1374,13 +1377,13 @@ class NCubeController extends BaseController
         }
         catch (Exception e)
         {
-            LOG.info("Unable to load sys.menu (sys.menu cube likely not in appId: " + appId.toString() + ", exception: " + e.getMessage())
-            return ['~Title':'Title Goes Here',
-                    'n-cube':[html:'html/ncube.html'],
-                    'n-cube2':[html:'html/ntwobe.html'],
-                    JSON:[html:'html/jsonEditor.html'],
-                    Details:[html:'html/details.html'],
-                    Test:[html:'html/test.html']
+            LOG.info("Unable to load sys.menu (sys.menu cube likely not in appId: " + appId.toString() + ", exception: " + e.getMessage(), e)
+            return ['~Title':'Configuration Editor',
+                    'n-cube':[html:'html/ntwobe.html',img:'img/letter-n.png'],
+                    'n-cube-old':[html:'html/ncube.html',img:'img/letter-o.png'],
+                    'JSON':[html:'html/jsonEditor.html',img:'img/letter-j.png'],
+                    'Details':[html:'html/details.html',img:'img/letter-d.png'],
+                    'Test':[html:'html/test.html',img:'img/letter-t.png']
             ]
         }
     }
@@ -1529,7 +1532,7 @@ class NCubeController extends BaseController
     {
         if (leftCube && rightCube)
         {
-            List<Delta> delta = rightCube.getDeltaDescription(leftCube)
+            List<Delta> delta = DeltaProcessor.getDeltaDescription(rightCube, leftCube)
             StringBuilder s = new StringBuilder()
             delta.each {
                 Delta d ->
@@ -1546,7 +1549,7 @@ class NCubeController extends BaseController
         JsonWriter.formatJson(json).readLines()
     }
 
-    Map heartBeat()
+    Map heartBeat(Map openCubes)
     {
         // If remotely accessing server, use the following to get the MBeanServerConnection...
 //        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://localhost:/jmxrmi")
@@ -1557,6 +1560,8 @@ class NCubeController extends BaseController
 //        Set result = conn.queryMBeans(null, "Catalina:type=DataSource,path=/appdb,host=localhost,class=javax.sql.DataSource")
 //        jmxc.close()
 
+        Map results = [:]
+
         // Force session creation / update (only for statistics - we do NOT want to use a session - must...remain...stateless)
         JsonCommandServlet.servletRequest.get().getSession()
 
@@ -1564,15 +1569,15 @@ class NCubeController extends BaseController
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer()
 
         // App server name and version
-        Map results = [:]
-        putIfNotNull(results, 'Server Info', getAttribute(mbs, 'Catalina:type=Server', 'serverInfo'))
-        putIfNotNull(results, 'JVM Route', getAttribute(mbs, 'Catalina:type=Engine', 'jvmRoute'))
+        Map serverStats = [:]
+        putIfNotNull(serverStats, 'Server Info', getAttribute(mbs, 'Catalina:type=Server', 'serverInfo'))
+        putIfNotNull(serverStats, 'JVM Route', getAttribute(mbs, 'Catalina:type=Engine', 'jvmRoute'))
 
-        putIfNotNull(results, 'hostname, servlet', getServletHostname())
-        putIfNotNull(results, 'hostname, OS', getInetHostname())
-        putIfNotNull(results, 'Context', JsonCommandServlet.servletRequest.get().getContextPath())
-        putIfNotNull(results, 'Sessions, active', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + results.Context, 'activeSessions'))
-        putIfNotNull(results, 'Sessions, peak', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + results.Context, 'maxActive'))
+        putIfNotNull(serverStats, 'hostname, servlet', getServletHostname())
+        putIfNotNull(serverStats, 'hostname, OS', getInetHostname())
+        putIfNotNull(serverStats, 'Context', JsonCommandServlet.servletRequest.get().getContextPath())
+        putIfNotNull(serverStats, 'Sessions, active', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + serverStats.Context, 'activeSessions'))
+        putIfNotNull(serverStats, 'Sessions, peak', getAttribute(mbs, 'Catalina:type=Manager,host=localhost,context=' + serverStats.Context, 'maxActive'))
 
         Set<ObjectName> set = mbs.queryNames(new ObjectName('Catalina:type=ThreadPool,name=*'), null)
         Set<String> connectors = [] as LinkedHashSet
@@ -1584,39 +1589,59 @@ class NCubeController extends BaseController
         for (String conn : connectors)
         {
             String cleanKey = cleanKey(conn)
-            putIfNotNull(results, cleanKey + ' t-pool max', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxThreads'))
-            putIfNotNull(results, cleanKey + ' t-pool cur', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadCount'))
-            putIfNotNull(results, cleanKey + ' busy thread', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadsBusy'))
-            putIfNotNull(results, cleanKey + ' max conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxConnections'))
-            putIfNotNull(results, cleanKey + ' curr conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'connectionCount'))
+            putIfNotNull(serverStats, cleanKey + ' t-pool max', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxThreads'))
+            putIfNotNull(serverStats, cleanKey + ' t-pool cur', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadCount'))
+            putIfNotNull(serverStats, cleanKey + ' busy thread', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'currentThreadsBusy'))
+            putIfNotNull(serverStats, cleanKey + ' max conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'maxConnections'))
+            putIfNotNull(serverStats, cleanKey + ' curr conn', getAttribute(mbs, 'Catalina:type=ThreadPool,name=' + conn, 'connectionCount'))
         }
 
         // OS
-        putIfNotNull(results, 'OS', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Name'))
-        putIfNotNull(results, 'OS version', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Version'))
-        putIfNotNull(results, 'CPU', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Arch'))
-        putIfNotNull(results, 'CPU Process Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'ProcessCpuLoad'))
-        putIfNotNull(results, 'CPU System Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'SystemCpuLoad'))
-        putIfNotNull(results, 'CPU Cores', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'AvailableProcessors'))
+        putIfNotNull(serverStats, 'OS', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Name'))
+        putIfNotNull(serverStats, 'OS version', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Version'))
+        putIfNotNull(serverStats, 'CPU', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Arch'))
+        putIfNotNull(serverStats, 'CPU Process Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'ProcessCpuLoad'))
+        putIfNotNull(serverStats, 'CPU System Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'SystemCpuLoad'))
+        putIfNotNull(serverStats, 'CPU Cores', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'AvailableProcessors'))
         double machMem = (long) getAttribute(mbs, 'java.lang:type=OperatingSystem', 'TotalPhysicalMemorySize')
         long K = 1024L
         long MB = K * 1024L
         long GB = MB * 1024L
         machMem = machMem / GB
-        putIfNotNull(results, 'Physical Memory', (machMem.round(2)) + ' GB')
+        putIfNotNull(serverStats, 'Physical Memory', (machMem.round(2)) + ' GB')
 
         // JVM
-        putIfNotNull(results, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
-        putIfNotNull(results, 'Loaded class count', getAttribute(mbs, 'java.lang:type=ClassLoading', 'LoadedClassCount'))
+        putIfNotNull(serverStats, 'Java version', getAttribute(mbs, 'JMImplementation:type=MBeanServerDelegate', 'ImplementationVersion'))
+        putIfNotNull(serverStats, 'Loaded class count', getAttribute(mbs, 'java.lang:type=ClassLoading', 'LoadedClassCount'))
 
         // JVM Memory
         Runtime rt = Runtime.getRuntime()
         double maxMem = rt.maxMemory() / MB
         double freeMem = rt.freeMemory() / MB
         double usedMem = maxMem - freeMem
-        putIfNotNull(results, 'Heap size (-Xmx)', (maxMem.round(1)) + ' MB')
-        putIfNotNull(results, 'Used memory', (usedMem.round(1)) + ' MB')
-        putIfNotNull(results, 'Free memory', (freeMem.round(1)) + ' MB')
+        putIfNotNull(serverStats, 'Heap size (-Xmx)', (maxMem.round(1)) + ' MB')
+        putIfNotNull(serverStats, 'Used memory', (usedMem.round(1)) + ' MB')
+        putIfNotNull(serverStats, 'Free memory', (freeMem.round(1)) + ' MB')
+
+        putIfNotNull(results, 'serverStats', serverStats)
+
+        Map compareResults = [:]
+        openCubes.each { key, nothing ->
+            if (key != null)
+            {
+                String cubeId = key.toString()
+                String[] pieces = cubeId.split('~')
+                if (pieces != null && pieces.length > 4)
+                {
+                    ApplicationID appId = new ApplicationID("x", pieces[0], pieces[1], pieces[2], pieces[3])
+                    appId = addTenant(appId)
+                    String cubeName = pieces[4]
+                    Object status = nCubeService.getUpToDateStatus(appId, cubeName)
+                    putIfNotNull(compareResults, cubeId, status)
+                }
+            }
+        }
+        putIfNotNull(results, 'compareResults', compareResults)
 
         return results
     }
@@ -1695,6 +1720,174 @@ class NCubeController extends BaseController
             LOG.warn("error occurred", e)
         }
     }
+
+    private static String getTestCauses(Throwable t)
+    {
+        LinkedList<Map<String, Object>> stackTraces = new LinkedList<>()
+
+        while (true)
+        {
+            stackTraces.push([msg: t.getLocalizedMessage(), trace: t.getStackTrace()])
+            t = t.getCause()
+            if (t == null)
+            {
+                break
+            }
+        }
+
+        // Convert from LinkedList to direct access list
+        List<Map<String, Object>> stacks = new ArrayList<>(stackTraces)
+        StringBuilder s = new StringBuilder()
+        int len = stacks.size()
+
+        for (int i=0; i < len; i++)
+        {
+            Map<String, Object> map = stacks[i]
+            s.append('<b style="color:darkred">')
+            s.append(map.msg)
+            s.append('</b><br>')
+
+            if (i != len - 1)
+            {
+                Map nextStack = stacks[i + 1]
+                StackTraceElement[] nextStackElementArray = (StackTraceElement[]) nextStack.trace
+                s.append(trace(map.trace as StackTraceElement[], nextStackElementArray))
+                s.append('<hr style="border-top: 1px solid #aaa;margin:8px"><b>Called by:</b><br>')
+            }
+            else
+            {
+                s.append(trace(map.trace as StackTraceElement[], null))
+            }
+        }
+
+        return '<pre>' + s + '</pre>'
+    }
+
+    private static String trace(StackTraceElement[] stackTrace, StackTraceElement[] nextStrackTrace)
+    {
+        StringBuilder s = new StringBuilder()
+        int len = stackTrace.length
+        for (int i=0; i < len; i++)
+        {
+            s.append('&nbsp;&nbsp;')
+            StackTraceElement element = stackTrace[i]
+            if (alreadyExists(element, nextStrackTrace))
+            {
+                s.append('...continues below<br>')
+                return s.toString()
+            }
+            else
+            {
+                s.append(element.className)
+                s.append('.')
+                s.append(element.methodName)
+                s.append('()&nbsp;<small><b class="pull-right">')
+                if (element.nativeMethod)
+                {
+                    s.append('Native Method')
+                }
+                else
+                {
+                    if (element.fileName)
+                    {
+                        s.append(element.fileName)
+                        s.append(':')
+                        s.append(element.lineNumber)
+                    }
+                    else
+                    {
+                        s.append('source n/a')
+                    }
+                }
+                s.append('</b></small><br>')
+            }
+        }
+
+        return s.toString()
+    }
+
+    private static boolean alreadyExists(StackTraceElement element, StackTraceElement[] stackTrace)
+    {
+        if (ArrayUtilities.isEmpty(stackTrace))
+        {
+            return false
+        }
+
+        for (StackTraceElement traceElement : stackTrace)
+        {
+            if (element.equals(traceElement))
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+//    private void printStackTrace(Throwable t, StringBuilder s) {
+//        // Guard against malicious overrides of Throwable.equals by
+//        // using a Set with identity equality semantics.
+//        Set<Throwable> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>())
+//        dejaVu.add(t)
+//
+//        synchronized (s) {
+//            // Print our stack trace
+//            s.println(this);
+//            StackTraceElement[] trace = getOurStackTrace();
+//            for (StackTraceElement traceElement : trace)
+//                s.println("\tat " + traceElement);
+//
+//            // Print suppressed exceptions, if any
+//            for (Throwable se : getSuppressed())
+//                se.printEnclosedStackTrace(s, trace, SUPPRESSED_CAPTION, "\t", dejaVu);
+//
+//            // Print cause, if any
+//            Throwable ourCause = getCause();
+//            if (ourCause != null)
+//                ourCause.printEnclosedStackTrace(s, trace, CAUSE_CAPTION, "", dejaVu);
+//        }
+//    }
+//
+//    /**
+//     * Print our stack trace as an enclosed exception for the specified
+//     * stack trace.
+//     */
+//    private void printEnclosedStackTrace(PrintStreamOrWriter s,
+//                                         StackTraceElement[] enclosingTrace,
+//                                         String caption,
+//                                         String prefix,
+//                                         Set<Throwable> dejaVu) {
+//        assert Thread.holdsLock(s.lock());
+//        if (dejaVu.contains(this)) {
+//            s.println("\t[CIRCULAR REFERENCE:" + this + "]");
+//        } else {
+//            dejaVu.add(this);
+//            // Compute number of frames in common between this and enclosing trace
+//            StackTraceElement[] trace = getOurStackTrace();
+//            int m = trace.length - 1;
+//            int n = enclosingTrace.length - 1;
+//            while (m >= 0 && n >=0 && trace[m].equals(enclosingTrace[n])) {
+//                m--; n--;
+//            }
+//            int framesInCommon = trace.length - 1 - m;
+//
+//            // Print our stack trace
+//            s.println(prefix + caption + this);
+//            for (int i = 0; i <= m; i++)
+//                s.println(prefix + "\tat " + trace[i]);
+//            if (framesInCommon != 0)
+//                s.println(prefix + "\t... " + framesInCommon + " more");
+//
+//            // Print suppressed exceptions, if any
+//            for (Throwable se : getSuppressed())
+//                se.printEnclosedStackTrace(s, trace, SUPPRESSED_CAPTION,
+//                        prefix +"\t", dejaVu);
+//
+//            // Print cause, if any
+//            Throwable ourCause = getCause();
+//            if (ourCause != null)
+//                ourCause.printEnclosedStackTrace(s, trace, CAUSE_CAPTION, prefix, dejaVu);
+//        }
+//    }
 
     private static String getCauses(Throwable t)
     {

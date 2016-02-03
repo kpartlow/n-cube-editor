@@ -19,15 +19,43 @@
  *         limitations under the License.
  */
 
-// TODO: After cube is changed (Edit Columns, Update Axis, Edit Cell) - need to fetch latest n-cubeInfo DTO and update client-side cache.
+(function($) {
+    $.fn.canvasMeasureWidth = function (font) {
+        if (!jQuery._cachedCanvas) {
+            var canvas = document.createElement('canvas');
+            jQuery._cachedCanvas = canvas.getContext('2d');
+        }
+        jQuery._cachedCanvas.font = font;
+        return jQuery._cachedCanvas.measureText(this[0].innerText).width;
+    };
+})(jQuery);
+
 var NCE = (function ($)
 {
     var head = 'HEAD';
     var _searchThread;
+    var _heartBeatThread;
     var _cubeList = {};
     var _apps = [];
-    var _statuses = ['RELEASE', 'SNAPSHOT'];
     var _versions = [];
+    var _openCubes = localStorage[OPEN_CUBES];
+    try
+    {
+        _openCubes = JSON.parse(_openCubes);
+
+        if (Object.prototype.toString.call(_openCubes) !== '[object Array]'
+            || (_openCubes.length > 0 && typeof _openCubes[0] !== 'object')) {
+            _openCubes = [];
+        }
+        else if (!_openCubes[0].hasOwnProperty('cubeKey'))
+        {
+            _openCubes = [];
+        }
+    }
+    catch (e)
+    {
+        _openCubes = []
+    }
     var _selectedCubeName = localStorage[SELECTED_CUBE];
     var _selectedApp = localStorage[SELECTED_APP];
     var _selectedVersion = localStorage[SELECTED_VERSION];
@@ -41,14 +69,21 @@ var NCE = (function ($)
     {
         _selectedBranch = localStorage[SELECTED_BRANCH];
     }
-    var _selectedStatus = "SNAPSHOT";
+    var _selectedStatus = localStorage[SELECTED_STATUS] || 'SNAPSHOT';
     var _errorId = null;
-    var _activeTab = 'n-cubeTab';
+    var _activeTabViewType = localStorage[ACTIVE_TAB_VIEW_TYPE];
+    if (!_activeTabViewType)
+    {
+        _activeTabViewType = 'n-cube' + PAGE_ID;
+    }
+    var _defaultTab = null;
     var _searchNames = $('#cube-search');
     var _searchContent = $('#cube-search-content');
     var _cubeCount = $('#ncubeCount');
     var _listOfCubes= $('#ncube-list');
     var _mainTabPanel = $('#ncubeTabContent');
+    var _openTabsPanel = $('#ncube-tabs');
+    var _openTabList = _openTabsPanel.find('ul');
     var _diffOutput = $('#diffOutput');
     var _mergeCubeName = null;
     var _mergeSha1 = null;
@@ -58,11 +93,18 @@ var NCE = (function ($)
     var _diffLastResult = null;
     var _diffLeftName = '';
     var _diffRightName = '';
+    var _menuOptions = [];
+    var _tabOverflow = $('#tab-overflow');
+    var _branchNames = [];
+    var _draggingTabCubeInfo = null;
+    var _tabDragIndicator = $('#tab-drag-indicator');
+    var _appMenu = $('#AppMenu');
+    var _versionMenu = $('#VersionMenu');
 
     //  modal dialogs
     var _selectBranchModal = $('#selectBranchModal');
     var _commitModal = $('#commitRollbackModal');
-    var _diffModal = $('#diffOutputModal')
+    var _diffModal = $('#diffOutputModal');
 
     initialize();
 
@@ -71,7 +113,7 @@ var NCE = (function ($)
         try
         {
             setupMainSplitter();
-            startWorker();
+            startWorkers();
             showActiveBranch();
             loadAppNames();
             loadVersions();
@@ -117,28 +159,773 @@ var NCE = (function ($)
             //	enable state management
             , stateManagement__enabled: false // automatic cookie load & save enabled by default
             , showDebugMessages: false // log and/or display messages from debugging & testing code
+            , onresize_end: function() {
+                buildTabs();
+            }
         });
     }
 
-    /**
-     * Background worker thread that will send search filter text asynchronously to server,
-     * fetch the results, and ship to main thread (which will be updated to the filtered list).
-     */
-    function startWorker()
+    function addCurrentCubeTab(insertIdx) {
+        var cubeInfo = getSelectedCubeInfo();
+        var newOpenCube = {cubeKey:getCubeInfoKey(cubeInfo),status:null,position:{},numFrozenCols:null};
+        if (insertIdx > -1) {
+            _openCubes.splice(insertIdx, 0, newOpenCube);
+        } else {
+            _openCubes.unshift(newOpenCube);
+        }
+        localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+        buildTabs();
+    }
+
+    function getOpenCubeIndex(cubeInfo) {
+        var cubeInfoKey = getCubeInfoKey(cubeInfo);
+        for (var i = 0, len = _openCubes.length; i < len; i++) {
+            if (cubeInfoKey === _openCubes[i].cubeKey) {
+                return i;
+            }
+        }
+    }
+
+    function saveOpenCubeInfoValue(property, value) {
+        _openCubes[getOpenCubeIndex(getSelectedCubeInfo())][property] = value;
+        localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+    }
+
+    function getOpenCubeInfoValue(property) {
+        return _openCubes[getOpenCubeIndex(getSelectedCubeInfo())][property];
+    }
+
+    function saveViewPosition(position) {
+        var savedPos = getOpenCubeInfoValue('position');
+        savedPos[getActiveTabViewType()] = position;
+        saveOpenCubeInfoValue('position', savedPos);
+    }
+
+    function getViewPosition() {
+        return getOpenCubeInfoValue('position')[getActiveTabViewType()];
+    }
+
+    function saveNumFrozenCols(num) {
+        saveOpenCubeInfoValue('numFrozenCols', num);
+    }
+
+    function getNumFrozenCols() {
+        return getOpenCubeInfoValue('numFrozenCols');
+    }
+
+    function getCubeInfoKey(cubeInfo)
     {
-        if (typeof(Worker) !== "undefined")
+        return cubeInfo.join(TAB_SEPARATOR);
+    }
+
+    function getCubeInfo(cubeKey)
+    {
+        return cubeKey.split(TAB_SEPARATOR);
+    }
+
+    function getSelectedCubeInfo()
+    {
+        return [_selectedApp, _selectedVersion, _selectedStatus, _selectedBranch, _selectedCubeName, getActiveTabViewType()];
+    }
+
+    function getSelectedCubeInfoKey()
+    {
+        return getCubeInfoKey(getSelectedCubeInfo());
+    }
+
+    function removeTab(cubeInfo) {
+        _openCubes.splice(getOpenCubeIndex(cubeInfo), 1);
+        localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+
+        if (_selectedApp === cubeInfo[CUBE_INFO.APP]
+            && _selectedVersion === cubeInfo[CUBE_INFO.VERSION]
+            && _selectedStatus === cubeInfo[CUBE_INFO.STATUS]
+            && _selectedBranch === cubeInfo[CUBE_INFO.BRANCH]
+            && _selectedCubeName === cubeInfo[CUBE_INFO.NAME]
+            && getActiveTabViewType() === cubeInfo[CUBE_INFO.TAB_VIEW]) {
+            if (_openCubes.length > 0) {
+                var newCubeInfo = getCubeInfo(_openCubes[0].cubeKey);
+                var appChanged = _selectedApp !== newCubeInfo[CUBE_INFO.APP];
+                var verChanged = _selectedVersion !== newCubeInfo[CUBE_INFO.VERSION];
+                var staChanged = _selectedStatus !== newCubeInfo[CUBE_INFO.STATUS];
+                var braChanged = _selectedBranch !== newCubeInfo[CUBE_INFO.BRANCH];
+                makeCubeInfoActive(newCubeInfo);
+
+                if (appChanged || verChanged || staChanged || braChanged) {
+                    if (appChanged || verChanged || staChanged) {
+                        if (appChanged) {
+                            loadAppNames();
+                            loadAppListView();
+                        }
+                        loadVersions();
+                        loadStatusListView();
+                        loadVersionListView();
+                    }
+                    showActiveBranch();
+                    loadNCubes();
+                    loadNCubeListView();
+                }
+            } else {
+                switchTabPane(null);
+            }
+        }
+
+        buildTabs();
+    }
+
+    function removeAllTabs() {
+        _openCubes = [];
+        delete localStorage[OPEN_CUBES];
+        buildTabs();
+    }
+
+    function startWorkers()
+    {
+        if (typeof(Worker) !== 'undefined')
         {
-            _searchThread = new Worker("js/loadCubeList.js");
+            /**
+             * Background worker thread that will send search filter text asynchronously to server,
+             * fetch the results, and ship to main thread (which will be updated to the filtered list).
+             */
+            _searchThread = new Worker('js/loadCubeList.js');
             _searchThread.onmessage = function(event)
             {
                 var list = event.data;
                 loadFilteredNCubeListView(list);
+            };
+
+            // background thread for heartbeat
+            _heartBeatThread = new Worker('js/heartBeat.js');
+            _heartBeatThread.onmessage = function(event) {
+                var result = event.data.obj;
+                for (var i = 0, len = result.length; i < len; i++) {
+                    for (var x = 0, xLen = _openCubes.length; x < xLen; x++) {
+                        var curCube = _openCubes[x];
+                        var curRes = result[i];
+                        if (curCube.cubeKey.indexOf(curRes.key) > -1) {
+                            curCube.status = curRes.status;
+                        }
+                    }
+                }
+                localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+                updateTabStatus();
             };
         }
         else
         {
             alert('Sorry! No Web Worker support. Try using the Chrome browser.');
         }
+    }
+
+    function makeCubeInfoActive(cubeInfo) {
+        _selectedApp = cubeInfo[CUBE_INFO.APP];
+        _selectedVersion = cubeInfo[CUBE_INFO.VERSION];
+        _selectedStatus = cubeInfo[CUBE_INFO.STATUS];
+        _selectedBranch = cubeInfo[CUBE_INFO.BRANCH];
+        _selectedCubeName = cubeInfo[CUBE_INFO.NAME];
+        setActiveTabViewType(cubeInfo[CUBE_INFO.TAB_VIEW]);
+    }
+
+    function selectTab(cubeInfo) {
+        deselectTab();
+        var tab = $('#' + getCubeInfoKey(cubeInfo).replace(/\./g,'_').replace(/~/g,'\\~'));
+        if (tab.length < 1) {
+            tab = _openTabList.children().first();
+            var id = tab.prop('id');
+            cubeInfo[CUBE_INFO.TAB_VIEW] = id.substring(id.lastIndexOf('~') + 1);
+            id = id.substring(0, id.lastIndexOf('~'));
+            cubeInfo[CUBE_INFO.NAME] = id.substring(id.lastIndexOf('~') + 1);
+        }
+        tab.addClass('active');
+
+        makeCubeInfoActive(cubeInfo);
+        localStorage[SELECTED_APP] = _selectedApp;
+        localStorage[SELECTED_VERSION] = _selectedVersion;
+        localStorage[SELECTED_STATUS] = _selectedStatus;
+        localStorage[SELECTED_BRANCH] = _selectedBranch;
+        localStorage[SELECTED_CUBE] = _selectedCubeName;
+        localStorage[ACTIVE_TAB_VIEW_TYPE] = getActiveTabViewType();
+        tab.find('a.' + CLASS_ACTIVE_VIEW).removeClass(CLASS_ACTIVE_VIEW);
+        tab.find('a').filter(function()
+        {
+            return $(this)[0].textContent.trim() === getActiveTabViewType().replace(PAGE_ID,'');
+        }).addClass(CLASS_ACTIVE_VIEW);
+
+        switchTabPane(getActiveTabViewType());
+    }
+
+    function deselectTab() {
+        _openTabList.find('li.dropdown.active').removeClass('active');
+    }
+
+    function getTabImage(imgSrc) {
+        return imgSrc ? '<img src="' + imgSrc + '" height="16px" width="16px" draggable="false"/>' : '';
+    }
+
+    function addTab(cubeInfo, status) {
+        deselectTab();
+        var imgSrc;
+        for (var x = 0, xLen = _menuOptions.length; x < xLen; x++) {
+            var opt = _menuOptions[x];
+            if (opt.pageId === cubeInfo[CUBE_INFO.TAB_VIEW]) {
+                imgSrc = opt.imgSrc;
+                break;
+            }
+        }
+        var link = $('<a/>')
+            .attr('href','#')
+            .attr('draggable', false)
+            .addClass('dropdown-toggle ncube-tab-top-level')
+            .addClass(status)
+            .html(getTabImage(imgSrc)
+                + '<span class="tab-text">' + cubeInfo[CUBE_INFO.NAME] + '</span>'
+                + '<span class="click-space"><span class="big-caret"></span></span>'
+                + '<span class="glyphicon glyphicon-remove tab-close-icon" aria-hidden="true"></span>'
+            );
+        link.attr('data-toggle', 'dropdown');
+        var li = $('<li/>');
+        function closeTab() {
+            li.removeClass('open');
+            li.tooltip('hide');
+            li.find('button').remove();
+            li.find('input').remove();
+            $('div.dropdown-backdrop').hide();
+        }
+
+        li.addClass('active');
+        li.addClass('dropdown');
+        li.attr('id', getCubeInfoKey(cubeInfo).replace(/\./g,'_'));
+        li.attr('draggable', true);
+        li.on("dragstart", function(e) {
+            _draggingTabCubeInfo = cubeInfo;
+        });
+        li.tooltip({
+            trigger: 'hover',
+            placement: 'auto top',
+            animate: true,
+            delay: 250,
+            container: 'body',
+            title: cubeInfo.slice(0, CUBE_INFO.TAB_VIEW).join(' - '),
+            template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tab-tooltip"></div></div>'
+        });
+        li.click(function(e) {
+            // only show dropdown when clicking the caret, not just the tab
+            var target = $(e.target);
+            var isClose = target.hasClass('glyphicon-remove');
+            var isDroptdown = target.hasClass('click-space') || target.hasClass('big-caret');
+
+            if (isClose) {
+                li.tooltip('destroy');
+                removeTab(cubeInfo);
+            } else {
+               if (isDroptdown) { // clicking caret for dropdown
+                    $(this).find('.ncube-tab-top-level')
+                        .addClass('dropdown-toggle')
+                        .attr('data-toggle', 'dropdown');
+                    $(document).one('click', function() { // prevent tooltip and dropdown from remaining on screen
+                        closeTab();
+                    });
+                } else { // when clicking tab show tab, not dropdown
+                   $(this).find('.ncube-tab-top-level')
+                        .removeClass('dropdown-toggle')
+                        .attr('data-toggle', '')
+                        .tab('show');
+                }
+
+                var appChanged = _selectedApp !== cubeInfo[CUBE_INFO.APP];
+                var verChanged = _selectedVersion !== cubeInfo[CUBE_INFO.VERSION];
+                var staChanged = _selectedStatus !== cubeInfo[CUBE_INFO.STATUS];
+                var braChanged = _selectedBranch !== cubeInfo[CUBE_INFO.BRANCH];
+                var cubChanged = _selectedCubeName !== cubeInfo[CUBE_INFO.NAME];
+                var tabChanged = getActiveTabViewType() !== cubeInfo[CUBE_INFO.TAB_VIEW];
+
+                if (appChanged || verChanged || staChanged || braChanged || cubChanged || tabChanged) {
+                    makeCubeInfoActive(cubeInfo);
+                    if (appChanged || verChanged || staChanged || braChanged) {
+                        if (appChanged || verChanged || staChanged) {
+                            if (appChanged) {
+                                loadAppNames();
+                                loadAppListView();
+                            }
+                            loadVersions();
+                            loadStatusListView();
+                            loadVersionListView();
+                        }
+                        showActiveBranch();
+                        loadNCubes();
+                        loadNCubeListView();
+                    }
+                    selectTab(cubeInfo);
+                    saveState();
+                }
+            }
+        });
+
+        var dd = $('<ul/>');
+        dd.addClass('dropdown-menu tab-menu');
+
+        for (var menuIdx = 0, menuLen = _menuOptions.length; menuIdx < menuLen; menuIdx++) {
+            (function() {
+                var menuOption = _menuOptions[menuIdx];
+                var pageId = menuOption.pageId;
+                var imgHtml = getTabImage(menuOption.imgSrc);
+
+                var anc = $('<a/>')
+                    .attr('href', '#')
+                    .html(imgHtml + NBSP + menuOption.key)
+                    .click(function (e) {
+                        clearError();
+                        setActiveTabViewType(pageId);
+                        var ci2 = [cubeInfo[CUBE_INFO.APP], cubeInfo[CUBE_INFO.VERSION], cubeInfo[CUBE_INFO.STATUS], cubeInfo[CUBE_INFO.BRANCH], cubeInfo[CUBE_INFO.NAME], getActiveTabViewType()];
+                        var cia2 = getCubeInfoKey(ci2);
+                        var tabIdx = getOpenCubeIndex(ci2);
+                        var isCtrlKey = e.metaKey || e.ctrlKey;
+                        if (isCtrlKey) {
+                            e.stopImmediatePropagation();
+                            e.preventDefault();
+                        }
+
+                        if (tabIdx > -1) { // already open
+                            e.preventDefault();
+                            e.stopPropagation();
+                            closeTab();
+                            selectTab(ci2);
+                        } else {
+                            tabIdx = getOpenCubeIndex(cubeInfo);
+                            if (isCtrlKey) { // open new tab
+                                li.removeClass('open');
+                                li.tooltip('hide');
+                                addCurrentCubeTab(tabIdx);
+                            } else { // use current tab
+                                cubeInfo[CUBE_INFO.TAB_VIEW] = getActiveTabViewType();
+                                _openCubes[tabIdx].cubeKey = cia2;
+                                localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+                                li.attr('id', cia2.replace(/\./g,'_'));
+                                var img = link.find('img');
+                                if (img.length > 0) {
+                                    img.attr('src', menuOption.imgSrc);
+                                }
+                                li.find('a').removeClass(CLASS_ACTIVE_VIEW);
+                                $(this).addClass(CLASS_ACTIVE_VIEW);
+                            }
+                            switchTabPane(getActiveTabViewType());
+                        }
+                    });
+
+                dd.append($('<li/>').append(anc));
+            })();
+        }
+
+        dd.append(
+            $('<div/>').addClass('divider')
+        ).append(
+            $('<li/>')
+                .addClass('dropdown-submenu')
+                .append(
+                $('<a/>')
+                    .prop({href:'#', tabindex:'-1'})
+                    .html('Compare')
+            ).append(
+                createBranchesUl(function(branchName) {
+                    var infoDto = _cubeList[cubeInfo[CUBE_INFO.NAME].toLowerCase()];
+                    var leftInfoDto = $.extend(true, {}, infoDto);
+                    leftInfoDto.branch = branchName;
+                    diffCubes(leftInfoDto, infoDto, infoDto.name);
+                })
+            )
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Revision History...')
+                    .click(function(e) {
+                        revisionHistory();
+                    }))
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Show Outbound References')
+                    .click(function(e) {
+                        showRefsFromCube();
+                    }))
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Show Required Scope')
+                    .click(function(e) {
+                        showReqScope();
+                    }))
+        ).append(
+            $('<div/>').addClass('divider')
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Commit...')
+                    .click(function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        li.find('li').not($(this).parent()).find('button').remove();
+                        var buttons = $(this).find('button');
+                        if (buttons.length === 0) {
+                            $(this).append(
+                                $('<button/>')
+                                    .addClass('btn btn-danger btn-xs pull-right')
+                                    .html('Cancel')
+                            ).append(
+                                $('<button/>')
+                                    .addClass('btn btn-primary btn-xs pull-right')
+                                    .html('Confirm')
+                                    .click(function (e) {
+                                        closeTab();
+                                        var infoDto = _cubeList[cubeInfo[CUBE_INFO.NAME].toLowerCase()];
+                                        callCommit([infoDto], true);
+                                    })
+                            );
+                        } else {
+                            buttons.remove();
+                        }
+                    }))
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Rollback...')
+                    .click(function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        li.find('li').not($(this).parent()).find('button').remove();
+                        var buttons = $(this).find('button');
+                        if (buttons.length === 0) {
+                            $(this).append(
+                                $('<button/>')
+                                    .addClass('btn btn-danger btn-xs pull-right')
+                                    .html('Cancel')
+                            ).append(
+                                $('<button/>')
+                                    .addClass('btn btn-primary btn-xs pull-right')
+                                    .html('Confirm')
+                                    .click(function (e) {
+                                        closeTab();
+                                        var infoDto = _cubeList[cubeInfo[CUBE_INFO.NAME].toLowerCase()];
+                                        callRollback([infoDto]);
+                                    })
+                            );
+                        } else {
+                            buttons.remove();
+                        }
+                    }))
+        ).append(
+            $('<li/>')
+                .addClass('dropdown-submenu')
+                .append(
+                $('<a/>')
+                    .prop({href:'#', tabindex:'-1'})
+                    .html('Update')
+                ).append(
+                    createBranchesUl(function(branchName) {
+                        callUpdate(branchName);
+                    })
+            )
+        ).append(
+            $('<div/>')
+                .addClass('divider')
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Delete...')
+                    .click(function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        li.find('li').not($(this).parent()).find('button').remove();
+                        var buttons = $(this).find('button');
+                        if (buttons.length === 0) {
+                            $(this).append(
+                                $('<button/>')
+                                    .addClass('btn btn-danger btn-xs pull-right')
+                                    .html('Cancel')
+                            ).append(
+                                $('<button/>')
+                                    .addClass('btn btn-primary btn-xs pull-right')
+                                    .html('Confirm')
+                                    .click(function (e) {
+                                        closeTab();
+                                        var infoDto = _cubeList[cubeInfo[CUBE_INFO.NAME].toLowerCase()];
+                                        callDelete([infoDto.name]);
+                                    })
+                            );
+                        } else {
+                            buttons.remove();
+                        }
+                    }))
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Duplicate...')
+                    .click(function(e) {
+                        dupeCube();
+                    }))
+        ).append(
+            $('<li/>')
+                .append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Rename')
+                    .click(function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!ensureModifiable('Unable to rename cube.')) {
+                            return;
+                        }
+                        var parent = $(this).parent();
+                        var inputs = parent.find('input');
+                        if (inputs.length === 0) {
+                            var newNameInput = $('<input/>')
+                                .prop({type: 'text', placeholder: cubeInfo[CUBE_INFO.NAME]})
+                                .addClass('form-control')
+                                .click(function (ie) {
+                                    ie.preventDefault();
+                                    ie.stopPropagation();
+                                })
+                                .keyup(function(ie) {
+                                    if (ie.keyCode === KEY_CODES.ENTER) {
+                                        closeTab();
+                                        renameCube(newNameInput.val());
+                                    }
+                                });
+                            parent.append(newNameInput);
+                            $(this).append(
+                                $('<button/>')
+                                    .addClass('btn btn-danger btn-xs pull-right')
+                                    .html('Cancel')
+                            ).append(
+                                $('<button/>')
+                                    .addClass('btn btn-primary btn-xs pull-right')
+                                    .html('Confirm')
+                                    .click(function (e) {
+                                        closeTab();
+                                        renameCube(newNameInput.val());
+                                    })
+                            );
+                            newNameInput[0].focus();
+                        } else {
+                            inputs.remove();
+                            parent.find('button').remove();
+                        }
+                    }))
+        ).append(
+            $('<div/>')
+                .prop({'class': 'divider'})
+        ).append(
+            $('<li/>').append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Close')
+                    .click(function() {
+                        li.tooltip('destroy');
+                        removeTab(cubeInfo);
+                    }))
+        ).append(
+            $('<li/>').append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Close All')
+                    .click(function() {
+                        li.tooltip('destroy');
+                        removeAllTabs();
+                        switchTabPane(null);
+                    }))
+        ).append(
+            $('<li/>').append(
+                $('<a/>')
+                    .attr('href','#')
+                    .html('Close Others')
+                    .click(function() {
+                        li.tooltip('destroy');
+                        removeAllTabs();
+                        addCurrentCubeTab();
+                    }))
+        );
+
+        li.append(link);
+        li.append(dd);
+        _openTabList.first().append(li);
+
+        trimText(li.find('.tab-text')[0]);
+    }
+
+    function trimText(el){
+        if (el.scrollWidth > el.offsetWidth) {
+            var value = el.innerHTML;
+            do {
+                value = '...' + value.substr(4);
+                el.innerHTML = value;
+            }
+            while (el.scrollWidth > el.offsetWidth);
+        }
+    }
+
+    function createBranchesUl(func) {
+        var branchNames = getBranchNames();
+        var branchesUl = $('<ul/>').addClass('dropdown-menu');
+        for (var bnIdx = 0, bnLen = branchNames.length; bnIdx < bnLen; bnIdx++) {
+            (function() {
+                var branchName = branchNames[bnIdx];
+                branchesUl.append($('<li/>').append(
+                        $('<a/>').attr('href', '#').html(branchName).click(function () {
+                            return func(branchName);
+                        })
+                    )
+                );
+            })();
+        }
+        return branchesUl;
+    }
+
+    function switchTabPane(pageId)
+    {
+        $('.tab-pane').removeClass('active');
+        if (pageId) {
+            $('#' + pageId).addClass('active');
+            var iframeId = 'iframe_' + pageId;
+            try {
+                var frame = document.getElementById(iframeId);
+                if (frame) {
+                    var cw = frame.contentWindow;
+                    if (cw.tabActivated !== undefined) {
+                        cw.tabActivated(buildAppState());
+                        localStorage[ACTIVE_TAB_VIEW_TYPE] = pageId;
+                    }
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    }
+
+    function updateTabStatus() {
+        var allStatusClasses = [CLASS_OUT_OF_SYNC, CLASS_CONFLICT];
+        function updateElementStatus(el, status) {
+            el = $(el);
+            el.removeClass(allStatusClasses);
+            if (status !== undefined && status !== null) {
+                el.addClass(status);
+            }
+        }
+
+        // top tabs
+        var tabs = _openTabList.find('li').find('a.ncube-tab-top-level');
+        for (var tabNum = 0, tabLen = tabs.length; tabNum < tabLen; tabNum++) {
+            updateElementStatus(tabs[tabNum], _openCubes[tabNum].status);
+        }
+
+        // overflow
+        var overflow = _tabOverflow.find('li').find('a');
+        for (var oNum = 0, oLen = overflow.length; oNum < oLen; oNum++) {
+            updateElementStatus(overflow[oNum], _openCubes[tabNum + oNum]);
+        }
+    }
+
+    function calcMaxTabs() {
+        var windowWidth = _openTabsPanel.width();
+        var availableWidth = windowWidth - _tabOverflow.outerWidth();
+        return Math.floor(availableWidth / TAB_WIDTH);
+    }
+
+    function buildTabs() {
+        _openTabList.children().remove();
+        _tabOverflow.hide();
+        var len = _openCubes.length;
+        if (len > 0) {
+            var maxTabs = calcMaxTabs();
+
+            var cubeInfo = getSelectedCubeInfo();
+            var idx = getOpenCubeIndex(cubeInfo);
+            if (idx >= maxTabs) { // if selected tab is now in overflow, bring to front
+                var temp = _openCubes.splice(idx, 1);
+                _openCubes.unshift(temp[0]);
+                localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+            }
+
+            for (var i = 0; i < len && i < maxTabs; i++) {
+                var openCube = _openCubes[i];
+                addTab(getCubeInfo(openCube.cubeKey), openCube.status);
+            }
+            if (len > maxTabs) {
+                _tabOverflow.show();
+                buildTabOverflow(maxTabs, len);
+            }
+            selectTab(cubeInfo);
+        }
+    }
+
+    function buildTabOverflow(maxTabs, len) {
+        $('#tab-overflow-text')[0].innerHTML = len - maxTabs;
+        var dd = _tabOverflow.find('ul');
+        var largestText = TAB_WIDTH;
+
+        for (var i = maxTabs; i < len; i++) {
+            (function() {
+                var openCube = _openCubes[i];
+                var cubeInfo = getCubeInfo(openCube.cubeKey);
+                var imgSrc;
+                for (var x = 0, xLen = _menuOptions.length; x < xLen; x++) {
+                    var opt = _menuOptions[x];
+                    if (opt.pageId === cubeInfo[CUBE_INFO.TAB_VIEW]) {
+                        imgSrc = opt.imgSrc;
+                        break;
+                    }
+                }
+
+                var tabText = cubeInfo.slice(0, CUBE_INFO.TAB_VIEW).join(' - ');
+                var textWidth = $('<p>' + tabText + '</p>').canvasMeasureWidth(FONT_CELL) + CALC_WIDTH_TAB_OVERFLOW_MOD;
+                if (textWidth > largestText) {
+                    largestText = textWidth;
+                }
+
+                dd.append(
+                    $('<li/>').append(
+                        $('<a/>')
+                            .attr('href', '#')
+                            .addClass(openCube.status)
+                            .html(getTabImage(imgSrc)
+                                + '<span class="dropdown-tab-text">' + tabText + '</span>'
+                                + '<span class="glyphicon glyphicon-remove tab-close-icon" aria-hidden="true"></span>'
+                            )
+                            .click(function(e) {
+                                if ($(e.target).hasClass('glyphicon-remove')) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    removeTab(cubeInfo);
+                                } else {
+                                    makeCubeInfoActive(cubeInfo);
+                                    buildTabs();
+                                }
+                            })
+                    )
+                );
+            })();
+        }
+
+        largestText += TAB_OVERFLOW_TEXT_PADDING;
+        var button = _tabOverflow.find('button');
+        var offset = button.offset();
+        var maxWidth = offset.left + button.outerWidth();
+        var dropdownWidth = largestText < maxWidth ? largestText : maxWidth;
+        var dropDownTop = offset.top + button.outerHeight() + parseInt(button.css('marginTop').replace('px',''));
+        var dropDownLeft = maxWidth - dropdownWidth;
+        dd.css({top: dropDownTop + 'px', left: dropDownLeft + 'px', width: dropdownWidth + 'px'});
     }
 
     function buildMenu()
@@ -150,24 +937,29 @@ var NCE = (function ($)
             return;
         }
         var menu = result.data;
-        $('#appTitle')[0].innerHTML = menu['~Title'];
-        var ul = $('#menuList');
-        ul.empty();
+        $('#appTitle')[0].innerHTML = menu[CONFIG_TITLE];
+        _defaultTab = menu[CONFIG_DEFAULT_TAB];
+        if (_defaultTab) {
+            _defaultTab = _defaultTab.replace(/\s/g,'_') + PAGE_ID;
+            if (!_activeTabViewType) {
+                setActiveTabViewType(_defaultTab);
+            }
+        }
+        _menuOptions = [];
         $.each(menu, function (key, value)
         {
             if (!key.startsWith('~') && !key.startsWith('@') && !key.startsWith('#'))
             {
-                var menuId = key.replace(/\s/g,'_') + 'Tab';
-                var pageId = key.replace(/\s/g,'_') + 'PageId';
-                var li = $('<li/>');
-                var a = $('<a/>').prop({'id': menuId, 'href': '#' + pageId});
-                a.attr({'data-toggle':'tab', 'style':"border-radius:8px"});
-                a[0].innerHTML = key;
-                li.append(a);
-                ul.append(li);
+                var pageId = key.replace(/\s/g,'_') + PAGE_ID;
+                _menuOptions.push({key:key, pageId:pageId, imgSrc:value['img']});
+                if (!_activeTabViewType) {
+                    setActiveTabViewType(pageId);
+                    _defaultTab = pageId;
+                }
 
                 var div = $('<div/>').prop({class:'tab-pane', id:pageId});
-                div.attr({style:'overflow:hidden;height:100%'});
+                var tabHeight = $('#ncube-tabs').outerHeight();
+                div.attr({style:'overflow:hidden;height:calc(100% - ' + tabHeight + 'px);'});
                 _mainTabPanel.append(div);
 
                 var iframeId = 'iframe_' + pageId;
@@ -180,21 +972,6 @@ var NCE = (function ($)
                     html += '?appId=' + JSON.stringify(getAppId());
                 }
                 iframe.attr({style:'position:relative;height:100%;width:100%', src:html});
-
-                $('#' + menuId).click(function ()
-                {
-                    clearError();
-                    _activeTab = menuId;
-
-                    try
-                    {
-                        document.getElementById(iframeId).contentWindow.tabActivated(buildAppState());
-                    }
-                    catch (e)
-                    {
-                        console.log(e);
-                    }
-                });
             }
         });
     }
@@ -220,12 +997,19 @@ var NCE = (function ($)
             getSelectedApp: getSelectedApp,
             getSelectedVersion: getSelectedVersion,
             getSelectedStatus: getSelectedStatus,
+            getSelectedCubeInfoKey: getSelectedCubeInfoKey,
             isHeadSelected: isHeadSelected,
             loadCube: loadCube,
             reloadCube: reloadCube,
             selectBranch: selectBranch,
             selectCubeByName: selectCubeByName,
-            showNote: showNote
+            showNote: showNote,
+            loadNCubes: loadNCubes,
+            loadNCubeListView: loadNCubeListView,
+            saveViewPosition: saveViewPosition,
+            getViewPosition: getViewPosition,
+            getNumFrozenCols: getNumFrozenCols,
+            saveNumFrozenCols: saveNumFrozenCols
         };
     }
 
@@ -244,7 +1028,6 @@ var NCE = (function ($)
         _searchContent.val('');
         loadNCubeListView();
         setListSelectedStatus(_selectedCubeName, '#ncube-list');
-        loadCube(); // load spreadsheet side
         _searchNames.val('');
         _searchContent.val('');
         _cubeCount[0].textContent = Object.keys(_cubeList).length;
@@ -252,9 +1035,40 @@ var NCE = (function ($)
 
     function selectCubeByName(cubeName)
     {
+        if (!cubeName) {
+            return;
+        }
         _selectedCubeName = getProperCubeName(cubeName);
         localStorage[SELECTED_CUBE] = cubeName;
-        loadCube(); // load spreadsheet side
+
+        var cubeInfo = [_selectedApp, _selectedVersion, _selectedStatus, _selectedBranch, _selectedCubeName];
+        var cis = getCubeInfoKey(cubeInfo);
+        var found = false;
+        for (var i = 0, len = _openCubes.length; i < len; i++) {
+            var oci = _openCubes[i].cubeKey;
+            var idx = oci.lastIndexOf(TAB_SEPARATOR);
+            var tab = oci.substring(idx + TAB_SEPARATOR.length);
+            oci = oci.substring(0, idx);
+
+            if (oci === cis) {
+                cubeInfo.push(tab);
+
+                if (i < calcMaxTabs()) {
+                    selectTab(cubeInfo);
+                } else {
+                    makeCubeInfoActive(cubeInfo);
+                    buildTabs();
+                    return;
+                }
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            setActiveTabViewType(_defaultTab);
+            addCurrentCubeTab();
+        }
+        saveState();
     }
 
     function runSearch()
@@ -327,15 +1141,51 @@ var NCE = (function ($)
     // Clear versions (add single 'Loading versions...' entry)
     function setVersionListLoading()
     {
-        var select = $('#version-list');
-        select.empty();
-        var option = $('<option/>');
-        option[0].textContent = 'Loading versions...';
-        select.append(option);
+        _versionMenu.parent().find('.dropdown-menu').empty();
+        _versionMenu[0].innerHTML = 'Version: Loading...';
+    }
+
+    function changeStatus(value) {
+        _selectedStatus = value;
+        loadVersions();
+        loadVersionListView();
+        loadNCubes();
+        loadNCubeListView();
+        runSearch();
+        buildMenu();
     }
 
     function addListeners()
     {
+        _openTabsPanel.on('drop dragdrop', function(e) {
+            $('.tooltip').hide();
+            _tabDragIndicator.hide();
+            var posX = e.originalEvent.x - $('#center').offset().left;
+            var oldTabIdx = getOpenCubeIndex(_draggingTabCubeInfo);
+            var newTabIdx = Math.floor(posX / TAB_WIDTH);
+            if (newTabIdx !== oldTabIdx) {
+                _openCubes.splice(newTabIdx, 0, _openCubes.splice(oldTabIdx, 1)[0]);
+                localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+                buildTabs();
+            }
+        });
+        _openTabsPanel.on('dragenter dragover', function(e) {
+            e.preventDefault();
+            var offsetLeft = $('#center').offset().left;
+            var posX = e.originalEvent.x - offsetLeft;
+            var left = Math.floor(posX / TAB_WIDTH) * TAB_WIDTH + offsetLeft;
+            var top = _openTabsPanel.outerHeight() - _tabDragIndicator.height() + _openTabsPanel.offset().top;
+            _tabDragIndicator.css({left:left, top:top});
+            _tabDragIndicator.show()
+        });
+
+        $('#status-release').click(function() {
+            changeStatus(STATUS.RELEASE);
+        });
+        $('#status-snapshot').click(function() {
+            changeStatus(STATUS.SNAPSHOT);
+        });
+
         // 'Close' for the Diff Modal
         $('#diffModalClose').click(function() {
             _diffModal.css('display', 'none');
@@ -368,7 +1218,7 @@ var NCE = (function ($)
 
         _searchNames.keyup(function (e)
         {
-            if (e.keyCode == 27)
+            if (e.keyCode === KEY_CODES.ESCAPE)
             {   // ESCape key
                 clearSearch();
             }
@@ -376,51 +1226,10 @@ var NCE = (function ($)
 
         _searchContent.keyup(function (e)
         {
-            if (e.keyCode == 27)
+            if (e.keyCode === KEY_CODES.ESCAPE)
             {   // ESCape key
                 clearSearch();
             }
-        });
-
-        // Selection listener for application change
-        $('#app-list').change(function (e)
-        {
-            var appName = e.target.value;
-            localStorage[SELECTED_APP] = appName;
-            _selectedApp = appName;
-
-            setVersionListLoading();
-            setCubeListLoading();
-
-            setTimeout(function()
-            {   // Allow selection widget to update before loading content
-                loadVersions();
-                loadVersionListView();
-                loadNCubes();
-                loadNCubeListView();
-                loadCube();
-                runSearch();
-                buildMenu();
-            }, PROGRESS_DELAY);
-        });
-
-        // Selection listener for version number change
-        $('#version-list').change(function (e)
-        {
-            var version = e.target.value;
-            localStorage[SELECTED_VERSION] = version;
-            _selectedVersion = version;
-
-            setCubeListLoading();
-
-            setTimeout(function()
-            {   // Allow bootstrap-selection widget to update before loading content
-                loadNCubes();
-                loadNCubeListView();
-                loadCube();
-                runSearch();
-                buildMenu();
-            }, PROGRESS_DELAY);
         });
 
         // Set up back button support (base a page on a app, version, status, branch, and cube name)
@@ -470,17 +1279,9 @@ var NCE = (function ($)
         {
             newCubeSave()
         });
-        $('#renameCubeMenu').click(function ()
-        {
-            renameCube();
-        });
         $('#renameCubeOk').click(function ()
         {
             renameCubeOk();
-        });
-        $('#dupeCubeMenu').click(function ()
-        {
-            dupeCube();
         });
         $('#dupeCubeCopy').click(function ()
         {
@@ -489,6 +1290,14 @@ var NCE = (function ($)
         $('#deleteCubeMenu').click(function ()
         {
             deleteCube();
+        });
+        $('#deleteSelectAll').click(function()
+        {
+            checkAll(true, 'input[type="checkbox"]');
+        });
+        $('#deleteSelectNone').click(function()
+        {
+            checkAll(false, 'input[type="checkbox"]');
         });
         $('#deleteCubeOk').click(function ()
         {
@@ -510,34 +1319,13 @@ var NCE = (function ($)
         {
             checkAll(false, 'input[type="checkbox"]');
         });
-        $('#revisionHistoryMenu').click(function ()
-        {
-            revisionHistory();
-        });
         $('#revisionHistoryOk').click(function ()
         {
             revisionHistoryOk();
         });
-        $('#showRefsToMenu').click(function ()
-        {
-            setTimeout(function() { showRefsToCube(); }, PROGRESS_DELAY);
-            showNote('Calculating inbound references from other n-cubes to this n-cube...', 'Please wait...');
-        });
-        $('#showRefsToClose').click(function ()
-        {
-            showRefsToCubeClose()
-        });
-        $('#showRefsFromMenu').click(function ()
-        {
-            showRefsFromCube()
-        });
         $('#showRefsFromClose').click(function ()
         {
             showRefsFromCubeClose()
-        });
-        $('#showReqScopeMenu').click(function ()
-        {
-            showReqScope()
         });
         $('#showReqScopeClose').click(function ()
         {
@@ -558,6 +1346,10 @@ var NCE = (function ($)
         $('#changeVerOk').click(function ()
         {
             changeVersionOk()
+        });
+        $('#clearStorage').click(function()
+        {
+            clearStorage();
         });
         $('#clearCache').click(function()
         {
@@ -588,26 +1380,47 @@ var NCE = (function ($)
 
     function loadAppListView()
     {
-        $('#appCount')[0].textContent = _apps.length;  // update no. applications badge
-        var select = $('#app-list');
-        select.empty();
+        var ul = _appMenu.parent().find('.dropdown-menu');
+        ul.empty();
 
         $.each(_apps, function (index, value)
         {
-            var option = $("<option/>");
-            option[0].textContent = value;
-            select.append(option);
+            var li = $('<li/>');
+            var an = $('<a/>');
+            an.attr('href','#');
+            an[0].innerHTML = value;
+            an.click(function() {
+                localStorage[SELECTED_APP] = value;
+                _selectedApp = value;
+                _appMenu.find('button')[0].innerHTML = value + '&nbsp;<b class="caret"></b>';
+
+                setVersionListLoading();
+                setCubeListLoading();
+
+                setTimeout(function()
+                {   // Allow selection widget to update before loading content
+                    loadVersions();
+                    loadVersionListView();
+                    loadNCubes();
+                    loadNCubeListView();
+                    runSearch();
+                    buildMenu();
+                }, PROGRESS_DELAY);
+            });
+
+            li.append(an);
+            ul.append(li);
         });
 
         if (_selectedApp)
         {
-            select.val(_selectedApp);
+            _appMenu[0].innerHTML = 'Application:&nbsp;<button class="btn-sm btn-primary">' + _selectedApp + '&nbsp;<b class="caret"></b></button>';
         }
     }
 
     function saveState()
     {
-        var title = (_selectedCubeName ? _selectedCubeName : '') + ':' + (_selectedApp ? _selectedApp : '') + '/' + (_selectedVersion ? _selectedVersion : '') + '/' + (_selectedStatus ? _selectedStatus : '') + '/' + (_selectedBranch ? _selectedBranch : '');
+        var title = (_selectedApp ? _selectedApp : '') + ' - ' + (_selectedVersion ? _selectedVersion : '') + ' - ' + (_selectedStatus ? _selectedStatus : '') + ' - ' + (_selectedBranch ? _selectedBranch : '') + ' - ' + (_selectedCubeName ? _selectedCubeName : '');
         document.title = title;
         var state = history.state;
         if (state && state.app == _selectedApp &&
@@ -627,48 +1440,46 @@ var NCE = (function ($)
 
     function loadStatusListView()
     {
-        var list = $('#status-list');
-        list.empty();
-        $.each(_statuses, function (index, value)
-        {
-            var li = $("<li/>");
-            var anchor = $('<a href="#"/>');
-            anchor.click(function ()
-            {
-                var status = anchor[0].textContent;
-                setListSelectedStatus(status, '#status-list');
-                _selectedStatus = status;
-                loadVersions();
-                loadVersionListView();
-                loadNCubes();
-                loadNCubeListView();
-                loadCube();
-                runSearch();
-                buildMenu();
-            });
-            anchor[0].textContent = value;
-            li.append(anchor);
-            list.append(li);
-        });
-        setListSelectedStatus(_selectedStatus, '#status-list');
+        var id = _selectedStatus === STATUS.RELEASE ? 'status-release' : 'status-snapshot';
+        var el = $('#' + id);
+        el.addClass('active');
+        el.find('input').prop({checked:''});
     }
 
     function loadVersionListView()
     {
-        $('#verCount')[0].textContent = _versions.length;  // update number of versions for the selected app
-        var select = $('#version-list');
-        select.empty();
+        var ul = _versionMenu.parent().find('.dropdown-menu');
+        ul.empty();
 
         $.each(_versions, function (index, value)
         {
-            var option = $("<option/>");
-            option[0].textContent = value;
-            select.append(option);
+            var li = $('<li/>');
+            var an = $('<a/>');
+            an.attr('href','#');
+            an[0].innerHTML = value;
+            an.click(function() {
+                localStorage[SELECTED_VERSION] = value;
+                _selectedVersion = value;
+                _versionMenu.find('button')[0].innerHTML = value + '&nbsp;<b class="caret"></b>';
+
+                setCubeListLoading();
+
+                setTimeout(function()
+                {   // Allow bootstrap-selection widget to update before loading content
+                    loadNCubes();
+                    loadNCubeListView();
+                    runSearch();
+                    buildMenu();
+                }, PROGRESS_DELAY);
+            });
+
+            li.append(an);
+            ul.prepend(li);
         });
 
         if (_selectedVersion)
         {
-            select.val(_selectedVersion);
+            _versionMenu[0].innerHTML = 'Version:&nbsp;<button class="btn-sm btn-primary">' + _selectedVersion + '&nbsp;<b class="caret"></b></button>';
         }
     }
 
@@ -849,19 +1660,6 @@ var NCE = (function ($)
         {
             showNote('Unable to load n-cubes:<hr class="hr-small"/>' + result.data);
         }
-
-        // If there is no _selectedCubeName, establish one if possible (choose 1st cube in list)
-        if (!_selectedCubeName || !doesCubeExist())
-        {
-            if (first)
-            {
-                _selectedCubeName = (_cubeList && first) ? _cubeList[first.toLowerCase()].name : null;
-            }
-            else
-            {
-                _selectedCubeName = null;
-            }
-        }
     }
 
     function doesCubeExist()
@@ -1021,33 +1819,85 @@ var NCE = (function ($)
 
     function deleteCube()
     {
-        if (!ensureModifiable('Cannot delete n-cube.'))
-        {
+        clearError();
+        if (!_selectedApp || !_selectedVersion || !_selectedStatus) {
+            showNote('Need to have an application, version, and status selected first.');
+            return;
+        }
+        if (isHeadSelected()) {
+            selectBranch();
             return;
         }
 
-        $('#deleteCubeLabel')[0].textContent = "Delete '" + _selectedCubeName + "' ?";
+        var ul = $('#deleteCubeList');
+        ul.empty();
+        $('#deleteCubeLabel')[0].textContent = 'Delete Cubes in ' + _selectedVersion + ', ' + _selectedStatus;
+        var cubeLinks = _listOfCubes.find('a');
+        for (var i = 0, len = cubeLinks.length; i < len; i++) {
+            var cubeName = cubeLinks[i].textContent;
+            var li = $('<li/>').prop({class: 'list-group-item skinny-lr'});
+            var div = $('<div/>').prop({class: 'container-fluid'});
+            var checkbox = $('<input>').prop({
+                class: 'deleteCheck',
+                type: 'checkbox'
+            });
+            var label = $('<label/>').prop({class: 'checkbox no-margins'});
+            label[0].textContent = cubeName;
+            checkbox.prependTo(label); // <=== create input without the closing tag
+            div.append(label);
+            li.append(div);
+            ul.append(li);
+        }
         $('#deleteCubeModal').modal();
     }
 
-    function deleteCubeOk()
-    {
+    function deleteCubeOk() {
         $('#deleteCubeModal').modal('hide');
-        var result = call("ncubeController.deleteCubes", [getAppId(), [_selectedCubeName]]);
-        if (result.status === true)
-        {
-            delete _cubeList[_selectedCubeName.toLowerCase()];
-            _selectedCubeName = null;
-            if (keyCount(_cubeList) > 0)
-            {
-                _selectedCubeName = Object.keys(_cubeList)[0];
-                loadCube();
+
+        var input = $('.deleteCheck');
+        var cubesToDelete = [];
+        $.each(input, function (index, label) {
+            if ($(this).is(':checked')) {
+                cubesToDelete.push($(this).parent()[0].textContent);
             }
+        });
+
+        callDelete(cubesToDelete);
+    }
+
+    function callDelete(cubesToDelete) {
+        var result = call("ncubeController.deleteCubes", [getAppId(), cubesToDelete]);
+        if (result.status === true) {
+            var cubeInfo = [];
+            cubeInfo[CUBE_INFO.APP] = _selectedApp;
+            cubeInfo[CUBE_INFO.VERSION] = _selectedVersion;
+            cubeInfo[CUBE_INFO.STATUS] = _selectedStatus;
+            cubeInfo[CUBE_INFO.BRANCH] = _selectedBranch;
+            for (var i = 0, len = cubesToDelete.length; i < len; i++) {
+                var cubeName = cubesToDelete[i];
+                delete _cubeList[cubeName.toLowerCase()];
+                if (_selectedCubeName === cubeName) {
+                    _selectedCubeName = null;
+                    _activeTabViewType = null;
+                    delete localStorage[SELECTED_CUBE];
+                    delete localStorage[ACTIVE_TAB_VIEW_TYPE];
+                }
+
+                cubeInfo[CUBE_INFO.NAME] = cubeName;
+
+                var cis = getCubeInfoKey(cubeInfo);
+                for (var x = _openCubes.length - 1; x >= 0; x--) {
+                    if (_openCubes[x].cubeKey.indexOf(cis) > -1) {
+                        _openCubes.splice(x, 1);
+                    }
+                }
+            }
+            localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
+            buildTabs();
+            loadNCubeListView();
             runSearch();
-        }
-        else
-        {
-            showNote("Unable to delete n-cube '" + _selectedCubeName + "':<hr class=\"hr-small\"/>" + result.data);
+        } else {
+            showNote("Unable to delete cubes: " + '<hr class="hr-small"/>' + result.data);
         }
     }
 
@@ -1301,37 +2151,41 @@ var NCE = (function ($)
         $('#revisionHistoryModal').modal('hide');
     }
 
-    function renameCube()
-    {
-        if (!ensureModifiable('Unable to rename cube.'))
-        {
-            return;
-        }
+    function renameCube(newName) {
+        var result = call("ncubeController.renameCube", [getAppId(), _selectedCubeName, newName]);
+        if (result.status === true) {
+            var oldCubeInfo = [];
+            oldCubeInfo[CUBE_INFO.APP] = _selectedApp;
+            oldCubeInfo[CUBE_INFO.VERSION] = _selectedVersion;
+            oldCubeInfo[CUBE_INFO.STATUS] = _selectedStatus;
+            oldCubeInfo[CUBE_INFO.BRANCH] = _selectedBranch;
+            oldCubeInfo[CUBE_INFO.NAME] = _selectedCubeName;
+            var oldCis = getCubeInfoKey(oldCubeInfo);
 
-        $('#renameCubeAppName').val(_selectedApp);
-        $('#renameCubeVersion').val(_selectedVersion);
-        $('#renameCubeName').val(_selectedCubeName);
-        $('#renameNewCubeName').val('');
-        $('#renameCubeLabel')[0].textContent = 'Rename';
-        $('#renameCubeModal').modal();
-    }
+            var newCubeInfo = [];
+            newCubeInfo[CUBE_INFO.APP] = _selectedApp;
+            newCubeInfo[CUBE_INFO.VERSION] = _selectedVersion;
+            newCubeInfo[CUBE_INFO.STATUS] = _selectedStatus;
+            newCubeInfo[CUBE_INFO.BRANCH] = _selectedBranch;
+            newCubeInfo[CUBE_INFO.NAME] = newName;
+            newCubeInfo[CUBE_INFO.TAB_VIEW] = getActiveTabViewType();
+            var newCis = getCubeInfoKey(newCubeInfo);
 
-    function renameCubeOk()
-    {
-        $('#renameCubeModal').modal('hide');
-        var oldName = $('#renameCubeName').val();
-        var newName = $('#renameNewCubeName').val();
-        var result = call("ncubeController.renameCube", [getAppId(), oldName, newName]);
-        if (result.status === true)
-        {
-            loadNCubes();
+            for (var i = 0, len = _openCubes.length; i < len; i++) {
+                var openCube = _openCubes[i];
+                if (openCube.cubeKey.indexOf(oldCis) > -1) {
+                    openCube.cubeKey = newCis;
+                }
+            }
+            localStorage[OPEN_CUBES] = JSON.stringify(_openCubes);
             _selectedCubeName = newName;
+            localStorage[SELECTED_CUBE] = _selectedCubeName;
+            buildTabs();
+            loadNCubes();
             loadNCubeListView();
             loadCube();
             runSearch();
-        }
-        else
-        {
+        } else {
             showNote("Unable to rename n-cube '" + _selectedCubeName + "':<hr class=\"hr-small\"/>" + result.data);
         }
     }
@@ -1358,7 +2212,7 @@ var NCE = (function ($)
         {
             var appId = {
                 'app':app,
-                'status':'SNAPSHOT',
+                'status':STATUS.SNAPSHOT,
                 'branch':_selectedBranch
             };
             var result = call("ncubeController.getAppVersions", [_selectedApp, _selectedStatus, _selectedBranch]);
@@ -1388,7 +2242,7 @@ var NCE = (function ($)
         var destAppId = {
             'app':newApp,
             'version':newVersion,
-            'status':'SNAPSHOT',
+            'status':STATUS.SNAPSHOT,
             'branch':_selectedBranch
         };
         var result = call("ncubeController.duplicateCube", [getAppId(), destAppId, _selectedCubeName, newName]);
@@ -1397,8 +2251,8 @@ var NCE = (function ($)
             loadAppNames();
             _selectedApp = newApp;
             loadAppListView();
-            _selectedStatus = 'SNAPSHOT';
-            setListSelectedStatus('SNAPSHOT', '#status-list');
+            _selectedStatus = STATUS.SNAPSHOT;
+            loadStatusListView();
             loadVersions();
             _selectedVersion = newVersion;
             loadVersionListView();
@@ -1410,47 +2264,6 @@ var NCE = (function ($)
         {
             showNote("Unable to duplicate n-cube '" + _selectedCubeName + "':<hr class=\"hr-small\"/>" + result.data);
         }
-    }
-
-    function showRefsToCube()
-    {
-        clearError();
-        if (!_selectedApp || !_selectedVersion || !_selectedCubeName || !_selectedStatus)
-        {
-            showNote('No n-cube selected. No (inbound) references to show.');
-            return;
-        }
-        $('#showRefsToLabel')[0].textContent = 'Inbound refs to: ' + _selectedCubeName;
-        var ul = $('#refsToCubeList');
-        ul.empty();
-        $('#showRefsToCubeModal').modal();
-        var result = call("ncubeController.getReferencesTo", [getAppId(), _selectedCubeName]);
-        if (result.status === true)
-        {
-            $.each(result.data, function (index, value)
-            {
-                var li = $("<li/>").attr({'class': 'list-group-item skinny-lr'});
-                var anchor = $('<a href="#"/>');
-                anchor[0].innerHTML = value;
-                anchor.click(function ()
-                {
-                    showRefsToCubeClose();
-                    _selectedCubeName = getProperCubeName(value);
-                    loadCube();
-                });
-                li.append(anchor);
-                ul.append(li);
-            });
-        }
-        else
-        {
-            showNote('Error fetching inbound references to ' + _selectedCubeName + ' (' + _selectedVersion + ', ' + _selectedStatus + '):<hr class="hr-small"/>' + result.data);
-        }
-    }
-
-    function showRefsToCubeClose()
-    {
-        $('#showRefsToCubeModal').modal('hide');
     }
 
     function showRefsFromCube()
@@ -1476,8 +2289,7 @@ var NCE = (function ($)
                 anchor.click(function ()
                 {
                     showRefsFromCubeClose();
-                    _selectedCubeName = getProperCubeName(value);
-                    loadCube();
+                    selectCubeByName(value);
                 });
                 li.append(anchor);
                 ul.append(li);
@@ -1623,6 +2435,16 @@ var NCE = (function ($)
         return true;
     }
 
+    function clearStorage() {
+        var keys = Object.keys(localStorage);
+        for (var i = 0, len = keys.length; i < len; i++) {
+            var key = keys[i];
+            if (key.startsWith(NCE_PREFIX)) {
+                delete localStorage[key];
+            }
+        }
+    }
+
     function clearCache()
     {
         var result = call("ncubeController.clearCache", [getAppId()]);
@@ -1635,7 +2457,7 @@ var NCE = (function ($)
 
     function serverStats()
     {
-        var result = call("ncubeController.heartBeat", []);
+        var result = call("ncubeController.heartBeat", [{}]);
 
         if (result.status === false)
         {
@@ -1643,7 +2465,7 @@ var NCE = (function ($)
             return;
         }
         clearError();
-        displayMap(result.data, 'Server Statistics');
+        displayMap(result.data.serverStats, 'Server Statistics');
     }
 
     function httpHeaders()
@@ -1737,7 +2559,7 @@ var NCE = (function ($)
         });
         $('#branchUpdate').click(function()
         {
-            setTimeout(function() { updateBranch(); }, PROGRESS_DELAY);
+            setTimeout(function() { callUpdate(); }, PROGRESS_DELAY);
             showNote('Updating branch...');
         });
         $('#branchDelete').click(function()
@@ -1777,7 +2599,7 @@ var NCE = (function ($)
                 reloadCube();
                 runSearch();
             }, PROGRESS_DELAY);
-            showNote('Closing merge window, reloading cubes...', 'Note', 2000);
+            showNote('Closing merge window, reloading cubes...', 'Note', 1000);
         });
     }
 
@@ -1786,21 +2608,25 @@ var NCE = (function ($)
         $('#BranchMenu')[0].innerHTML = 'Branch:&nbsp;<button class="btn-sm btn-primary">&nbsp;' + (_selectedBranch || head) + '&nbsp;<b class="caret"></b></button>';
     }
 
+    function getBranchNames(refresh) {
+        if (refresh || _branchNames.length === 0) {
+            var result = call("ncubeController.getBranches", []);
+            if (!result.status) {
+                showNote('Unable to get branches:<hr class="hr-small"/>' + result.data);
+                return [];
+            }
+            _branchNames = result.data;
+        }
+        return _branchNames;
+    }
+
     function selectBranch()
     {
         clearError();
         $('#newBranchName').val("");
         $('#branchNameWarning').hide();
 
-        var result = call("ncubeController.getBranches", []);
-
-        if (!result.status)
-        {
-            showNote('Unable to get branches:<hr class="hr-small"/>' + result.data);
-            return;
-        }
-
-        var branchNames = result.data;
+        var branchNames = getBranchNames(true);
         var ul = $('#branchList');
         ul.empty();
 
@@ -1878,11 +2704,9 @@ var NCE = (function ($)
             loadStatusListView();
             loadVersionListView();
             loadNCubeListView();
-            loadCube();
             runSearch();
             buildMenu();
             clearError();
-            showNote('<kbd>' + (branchName || head) + '</kbd>', 'Active Branch', 3000);
         }, PROGRESS_DELAY);
         clearError();
         showNote('Changing branch to: ' + branchName, 'Please wait...');
@@ -1926,6 +2750,11 @@ var NCE = (function ($)
         $('#commitRollbackLabel')[0].textContent = title;
 
         var branchChanges = result.data;
+        branchChanges.sort(
+            function compare(a,b)
+            {
+                return a.name.localeCompare(b.name);
+            });
 
         _commitModal.prop('changes', branchChanges);
         var ul = $('#commitRollbackList');
@@ -2021,8 +2850,20 @@ var NCE = (function ($)
 
         _commitModal.modal('hide');
 
+        callCommit(changes);
+    }
+
+    function callCommit(changedDtos, fromTabMenu) {
+        showNote('Committing changes on selected cubes...', 'Please wait...');
         setTimeout(function() {
-            var result = call("ncubeController.commitBranch", [getAppId(), changes]);
+            var result;
+            if (fromTabMenu) {
+                var cubeName = changedDtos[0].name;
+                result = call("ncubeController.commitCube", [getAppId(), cubeName]);
+            } else {
+                result = call("ncubeController.commitBranch", [getAppId(), changedDtos]);
+            }
+
             clearError();
             if (result.status === false)
             {
@@ -2035,7 +2876,7 @@ var NCE = (function ($)
             reloadCube();
             runSearch();
 
-            var note = 'Successfully committed ' + changes.length + ' cube(s).<hr class="hr-small"/>';
+            var note = 'Successfully committed ' + result.data.length + ' cube(s).<hr class="hr-small"/>';
             note += '<b style="color:cornflowerblue">Committed cubes:</b><br>';
             $.each(result.data, function(idx, infoDto)
             {
@@ -2043,7 +2884,6 @@ var NCE = (function ($)
             });
             showNote(note);
         }, PROGRESS_DELAY);
-        showNote('Committing changes on selected cubes...', 'Please wait...');
     }
 
     function rollbackOk()
@@ -2060,8 +2900,13 @@ var NCE = (function ($)
         });
 
         _commitModal.modal('hide');
+        callRollback(changes);
+    }
+
+    function callRollback(changes) {
+        showNote('Rolling back changes on selected cubes...', 'Please wait...');
         setTimeout(function(){
-            var names = []
+            var names = [];
             for (var i=0; i < changes.length; i++)
             {
                 names.push(changes[i].name)
@@ -2088,14 +2933,18 @@ var NCE = (function ($)
             });
             showNote(note);
         }, PROGRESS_DELAY);
-        showNote('Rolling back changes on selected cubes...', 'Please wait...');
     }
 
-    function updateBranch()
+    function callUpdate(sourceBranch)
     {
         clearError();
 
-        var result = call('ncubeController.updateBranch', [getAppId()]);
+        var result;
+        if (sourceBranch != undefined) {
+            result = call('ncubeController.updateBranchCube', [getAppId(), _selectedCubeName, sourceBranch]);
+        } else  {
+            result = call('ncubeController.updateBranch', [getAppId()]);
+        }
         if (!result.status)
         {
             showNote('Unable to update branch:<hr class="hr-small"/>' + result.data);
@@ -2448,11 +3297,23 @@ var NCE = (function ($)
         }, 500);
     }
 
-    function heartBeat()
-    {
-        setInterval(function()
-        {
-            call("ncubeController.heartBeat", []);
+    function createHeartBeatTransferObj() {
+        var obj = {};
+        for (var i = 0, len = _openCubes.length; i < len; i++) {
+            var cubeInfo = getCubeInfo(_openCubes[i].cubeKey);
+            var key = cubeInfo.slice(0, CUBE_INFO.TAB_VIEW).join(TAB_SEPARATOR);
+            obj[key] = '';
+        }
+
+        return {obj:obj, aBuffer: new ArrayBuffer(1024 * 1024)};
+    }
+
+    function heartBeat() {
+        var transferObj = createHeartBeatTransferObj();
+        _heartBeatThread.postMessage(transferObj, [transferObj.aBuffer]);
+        setInterval(function() {
+            transferObj = createHeartBeatTransferObj();
+            _heartBeatThread.postMessage(transferObj, [transferObj.aBuffer]);
         }, 60000);
     }
 
@@ -2534,16 +3395,32 @@ var NCE = (function ($)
         return _selectedStatus;
     };
 
+    var setActiveTabViewType = function(viewType)
+    {
+        _activeTabViewType = viewType;
+        return getActiveTabViewType();
+    };
+
+    var getActiveTabViewType = function()
+    {
+        if (!_activeTabViewType)
+        {
+            _activeTabViewType = 'n-cube' + PAGE_ID;
+        }
+        return _activeTabViewType;
+    };
+
     // API
     return {
-        getSelectedStatus: getSelectedStatus
+        getSelectedStatus: getSelectedStatus,
+        buildTabs: buildTabs
     }
 
 })(jQuery);
 
 function frameLoaded()
 {
-    $('#menuList').find(':first-child').find('a').click();
+    NCE.buildTabs();
     $('.fadeMe2').fadeOut(800, function()
     {
         $('.fadeMe2').remove();

@@ -12,7 +12,8 @@ import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 /**
  * RESTful Ajax/JSON API for editor application
  *
@@ -35,6 +36,8 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class NCubeService
 {
+    private static final Logger LOG = LogManager.getLogger(NCubeService.class)
+
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String contentMatching, Map options)
     {
         if (!cubeNamePattern.startsWith('*'))
@@ -99,6 +102,11 @@ class NCubeService
         return NCubeManager.updateBranch(appId, username)
     }
 
+    Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String sourceBranch, String username)
+    {
+        return NCubeManager.updateBranchCube(appId, cubeName, sourceBranch, username)
+    }
+
     void deleteBranch(ApplicationID appId)
     {
         NCubeManager.deleteBranch(appId);
@@ -116,6 +124,16 @@ class NCubeService
 
     void createCube(ApplicationID appId, NCube ncube, String username)
     {
+        List<NCubeInfoDto> list = NCubeManager.search(appId, ncube.name, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        if (!list.isEmpty())
+        {
+            throw new IllegalArgumentException(ncube.name + ' exists.')
+        }
+        list = NCubeManager.search(appId, ncube.name, null, [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY):true])
+        if (!list.isEmpty())
+        {
+            throw new IllegalArgumentException(ncube.name + ' was previously deleted. Use restore instead.')
+        }
         NCubeManager.updateCube(appId, ncube, username)
     }
 
@@ -416,5 +434,35 @@ class NCubeService
             String s = "Failed to load n-cubes from passed in JSON, last successful cube read: " + lastSuccessful
             throw new IllegalArgumentException(s, e)
         }
+    }
+
+    Object getUpToDateStatus(ApplicationID appId, String cubeName)
+    {
+        return true
+//        if (appId.isHead())
+//        {   // HEAD cube can never be out-of-date by definition.
+//            return true
+//        }
+//
+//        Map options = [(NCubeManager.SEARCH_EXACT_MATCH_NAME): true,
+//                       (NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true]
+//
+//        String realHeadSha1
+//        List<NCubeInfoDto> list = NCubeManager.search(appId.asHead(), cubeName, null, options)
+//        if (list.size() != 1)
+//        {   // New cube in your branch but not yet in HEAD branch
+//            return true
+//        }
+//
+//        NCubeInfoDto dto = list[0]
+//        realHeadSha1 = dto.sha1
+//
+//        list = NCubeManager.search(appId, cubeName, null, options)
+//        if (list.size() != 1)
+//        {   // Ignore when you can't find the cube that was requested
+//            return true
+//        }
+//        dto = list[0]
+//        return StringUtilities.equalsIgnoreCase(realHeadSha1, dto.headSha1)
     }
 }

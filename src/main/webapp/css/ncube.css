@@ -48,53 +48,103 @@ div#editColumnsModal div.panel-group
 
 /* begin coord bar and HOT */
 
-#coordinate-bar {
+#util-container-bar {
     position: fixed;
+    height: 20px;
 }
 
 #coordinate-bar-text {
     white-space: nowrap;
     overflow-x: scroll;
-    cursor: ew-resize;
+    cursor: default;
     position: absolute;
-    left: 20px;
+    left: 24px;
 }
 #coordinate-bar-text::-webkit-scrollbar {
     display:none;
 }
 
 #coordinate-bar-move-left {
-    cursor: pointer;
-    width: 20px;
     position: absolute;
     left: 0px;
     display: none;
 }
 
 #coordinate-bar-move-right {
-    cursor: pointer;
-    width: 20px;
     position: absolute;
     display: none;
+}
+
+#search-container {
+    width: 300px;
+    position: absolute;
+    max-height: 20px;
+    overflow: hidden;
+}
+
+#search-container input {
+    padding: 0;
+    width: 138px;
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+}
+
+#search-info {
+    color: #C7C7CD;
+    width: 84px;
+    display: inline-block;
+    text-align: right;
+}
+
+#search-field {
+    outline: none;
+}
+
+.bg-white {
+    background-color: white;
+}
+
+.bg-off-white {
+    background-color: #F4F4F4;
+}
+
+.pos-fixed {
+    position: fixed;
 }
 
 .handsontable table.htCore {
     background-color: #BEEEEF;
 }
 
-.handsontable th {
-    background-color: #929292 !important;
-    color: white !important;
-}
-
 .handsontable th.handsonCurrentRow, .handsonTableHeader.handsonCurrentRow {
-    opacity: .75;
+    background-color: rgba(146, 146, 146, 0.75) !important;
+}
+.handsontable .htCore td.searchResult {
+    background-color: #EFFB3C;
+    color: #583707;
 }
 
-.handsontable th, .handsontable td {
+.handsontable td.handsonTableHeader {
+    color: white;
+    background-color: #929292;
+}
+
+.handsontable .oddRow {
+    background-color: #E0E0E0;
+}
+
+.handsontable .htCore th, .handsontable .htCore td {
     border-top: 1px solid #CCC;
     border-bottom: none !important;
-    white-space: nowrap !important;
+}
+
+.handsontable.ht_clone_top_left_corner {
+    overflow: visible !important;
+}
+
+.handsontable .htCore th {
+    color: #D9D9D9;
 }
 
 .handsontable .tableDefault {
@@ -103,6 +153,25 @@ div#editColumnsModal div.panel-group
 
 .dropdown-menu {
     position: fixed;
+}
+
+.indent-axis-buttons {
+    padding: 3px 20px;
+}
+
+
+.frozen-cols-input {
+    width: 30px;
+    height: inherit;
+    padding: 2px 5px;
+}
+
+#hot-container > div.ht_clone_top_left_corner.handsontable > div > div > div > table > tbody > tr:nth-child(2) > th {
+    font-size: x-small;
+    white-space: normal;
+    line-height: 15px;
+    color: #555;
+    padding: 0;
 }
 
 /* end coord bar and HOT */
@@ -126,7 +195,8 @@ div#editColumnsModal div.panel-group
     border-color:darkgray;
 }
 
-.code {
+.handsontable td.code {
+    white-space: pre-wrap;
     font-family: menlo,"Lucida Console",monaco,monospace,courier;
 }
 

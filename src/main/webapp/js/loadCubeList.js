@@ -69,4 +69,4 @@ onmessage = function(e)
         url += '/cmd/ncubeController/search';
         return url;
     }
-}
+};

@@ -76,6 +76,7 @@ var TestEditor = (function ($)
             _testLayoutCenter = $('#testLayoutCenter');
             _testParameters = $('#testParameters');
             _testAssertions = $('#testAssertions');
+            _selectedTestName = $('#selectedTestName');
             secondaryLayout.resizeAll();
 
             $('#renameTestOk').click(function (e)
@@ -179,25 +180,19 @@ var TestEditor = (function ($)
             $('#runCurrentTestMenu').click(function (e)
             {
                 e.preventDefault();
-                $(this).css({'cursor':'wait'});
                 runCurrentTest();
-                $(this).css({'cursor':'default'})
             });
 
             $('#runTestButton').click(function (e)
             {
                 e.preventDefault();
-                $(this).css({'cursor':'wait'});
                 runCurrentTest();
-                $(this).css({'cursor':'default'})
             });
 
             $('#runTestMenu').click(function (e)
             {
                 e.preventDefault();
-                $(this).css({'cursor':'wait'});
                 runCurrentTest();
-                $(this).css({'cursor':'default'})
             });
 
             $('#renameCurrentTestMenu').click(function (e)
@@ -260,7 +255,7 @@ var TestEditor = (function ($)
     {
         if (!nce.getSelectedCubeName())
         {
-            $('#selectedTestName')[0].innerHTML = 'No n-cube selected.';
+            _selectedTestName[0].innerHTML = 'No n-cube selected.';
             return false;
         }
 
@@ -295,12 +290,16 @@ var TestEditor = (function ($)
         }
     };
 
+    var hasTests = function()
+    {
+        return _testData != null && _testData.length > 0;
+    };
+
     var refreshTestList = function()
     {
         _testListItems.empty();
-        var hasTests = _testData != null && _testData.length > 0;
 
-        if (hasTests)
+        if (hasTests())
         {
             $("#testCount")[0].textContent = _testData.length;
             $.each(_testData, function (index, value)
@@ -332,7 +331,7 @@ var TestEditor = (function ($)
         enableTestItems();
         loadTestView();
 
-        if (hasTests)
+        if (hasTests())
         {
             _testListWarning.attr('hidden', true);
             _testList.removeAttr('hidden');
@@ -372,7 +371,8 @@ var TestEditor = (function ($)
 
         try
         {
-            $('#selectedTestName')[0].textContent = testData['name'];
+            _selectedTestName[0].textContent = testData['name'];
+            loadTestOutput();
             var coordinate = testData['coord'];
 
             if (coordinate)
@@ -501,7 +501,7 @@ var TestEditor = (function ($)
     {
         var parent = $(e.currentTarget).parent("div.form-group");
         var param = parent.attr('parameter-id');
-        var test = $('#selectedTestName').html();
+        var test = getSelectedTestName();
 
         var title = "Delete Parameter?";
         var label = "Delete parameter '" + param + "' from '" + test + "'?";
@@ -513,7 +513,7 @@ var TestEditor = (function ($)
     {
         var parent = $(e.currentTarget).parent("div.form-group");
         var param = parent.attr('parameter-id');
-        var test = $('#selectedTestName').html();
+        var test = getSelectedTestName();
         var title = "Delete Assertion?";
         var label = "Delete assertion '" + param + "' from '" + test + "'?";
 
@@ -708,7 +708,7 @@ var TestEditor = (function ($)
 
         // change name of selected test
         $('#testListItems').find('li').find('a.selected').html(newName);
-        $('#selectedTestName').html(newName);
+        _selectedTestName.html(newName);
 
         // change currently selected model item
         var test = _testData[_testSelectionAnchor];
@@ -787,29 +787,36 @@ var TestEditor = (function ($)
 
         try
         {
-            var test = getActiveTest();
-            _testData[_testSelectionAnchor] = test;
+            $('#testResults').html('Running test...');
+            setOutputHeaderColor(null);
 
-            var result = nce.call("ncubeController.runTest", [nce.getAppId(), nce.getSelectedCubeName(), test]);
-            saveAllTests(true);
-
-            if (result.status != true)
+            setTimeout(function()
             {
-                showTestResult(false, "Could not run test:  " + result.data);
+                var test = getActiveTest();
+                _testData[_testSelectionAnchor] = test;
+
+                var result = nce.call("ncubeController.runTest", [nce.getAppId(), nce.getSelectedCubeName(), test]);
+                saveAllTests(true);
+
+                if (result.status != true)
+                {
+                    showTestResult(false, "Could not run test:  " + result.data);
+
+                    _testLayoutCenter.find('> .well').animate({
+                        scrollTop: _testResultsDiv.offset().top
+                    }, 200);
+
+                    return;
+                }
+
+                showTestResult(result.data["_result"], result.data["_message"]);
 
                 _testLayoutCenter.find('> .well').animate({
                     scrollTop: _testResultsDiv.offset().top
                 }, 200);
-
-                return;
-            }
-
-            showTestResult(result.data["_result"], result.data["_message"]);
-
-            _testLayoutCenter.find('> .well').animate({
-                scrollTop: _testResultsDiv.offset().top
-            }, 200);
-
+                nce.loadNCubes();
+                nce.loadNCubeListView();
+            }, 1);
         }
         catch (e)
         {
@@ -852,7 +859,7 @@ var TestEditor = (function ($)
     var getActiveTest = function()
     {
         var test = {};
-        var name = $("#selectedTestName").html();
+        var name = getSelectedTestName();
 
         if (name == null)
         {
@@ -919,20 +926,72 @@ var TestEditor = (function ($)
         _testResultsDiv.hide();
         var testResults = $('#testResults');
         testResults.empty();
+        setOutputHeaderColor(success);
+        testResults.html(message);
+        _testResultsDiv.fadeIn("fast");
+        storeTestOutput();
+    };
 
-        if (success)
+    var setOutputHeaderColor = function(success)
+    {
+        if (success === true)
         {
             _testResultsDiv.addClass("panel-success");
             _testResultsDiv.removeClass("panel-danger");
         }
-        else
+        else if (success === false)
         {
             _testResultsDiv.addClass("panel-danger");
             _testResultsDiv.removeClass("panel-success");
         }
+        else
+        {
+            _testResultsDiv.removeClass("panel-success");
+            _testResultsDiv.removeClass("panel-danger");
+        }
+    };
 
-        testResults.html(message);
-        _testResultsDiv.fadeIn("fast");
+    var getSelectedTestName = function()
+    {
+        return _selectedTestName.html();
+    };
+
+    var getTestKey = function()
+    {
+        return nce.getSelectedCubeInfoKey() + TAB_SEPARATOR + getSelectedTestName();
+    };
+
+    var loadTestOutput = function()
+    {
+        var testOutputStr = sessionStorage[TEST_RESULTS];
+        if (hasTests() && testOutputStr)
+        {
+            _testResultsDiv.fadeIn('fast');
+            var testOutput = JSON.parse(testOutputStr);
+            var html = testOutput[getTestKey()];
+            if (html)
+            {
+                setOutputHeaderColor(html.indexOf('Could not run test:') == -1);
+                _testResultsDiv[0].innerHTML = html;
+            }
+            else
+            {
+                setOutputHeaderColor(null);
+                $('#testResults')[0].innerHTML = 'No prior test results';
+            }
+        }
+    };
+
+    var storeTestOutput = function()
+    {
+        var s = sessionStorage[TEST_RESULTS];
+        var testOutput = {};
+        if (s)
+        {
+            testOutput = JSON.parse(s)
+        }
+        testOutput[getTestKey()] = _testResultsDiv[0].innerHTML;
+        sessionStorage[TEST_RESULTS] = JSON.stringify(testOutput);
     };
 
     var clearTestSelection = function()
@@ -1255,7 +1314,6 @@ var TestEditor = (function ($)
         {
             return;
         }
-
 
         loadTestListView("ncubeController.getTests", false);
     };

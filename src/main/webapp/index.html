@@ -57,12 +57,26 @@
         </ul>
         <ul class="nav navbar-nav navbar-right">
             <li class="dropdown">
-                <a id="DataMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Data <b class="caret"></b></a>
+                <a id="AppMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Application: </a>
                 <ul class="dropdown-menu">
-                    <li><a id="clearCache" href="#">Clear Cache</a></li>
-                    <li><a id="serverStats" href="#">Server Stats</a></li>
-                    <li><a id="httpHeaders" href="#">View HTTP Headers</a></li>
                 </ul>
+            </li>
+            <li class="dropdown">
+                <a id="VersionMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Version: </a>
+                <ul class="dropdown-menu">
+                </ul>
+            </li>
+            <li>
+                <a href="#">Status:
+                    <div class="btn-group btn-group-sm" data-toggle="buttons">
+                        <label id="status-release" class="btn btn-primary">
+                            <input type="radio" name="options" autocomplete="off"> RELEASE
+                        </label>
+                        <label id="status-snapshot" class="btn btn-primary">
+                            <input type="radio" name="options" autocomplete="off"> SNAPSHOT
+                        </label>
+                    </div>
+                </a>
             </li>
             <li class="dropdown">
                 <a id="BranchMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Branch: </a>
@@ -75,52 +89,24 @@
                     <li><a id="branchRollback" href="#">Rollback...</a></li>
                 </ul>
             </li>
+            <li class="dropdown">
+                <a id="DataMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Data <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                    <li><a id="clearCache" href="#">Clear Cache</a></li>
+                    <li><a id="clearStorage" href="#">Clear Local Storage</a></li>
+                    <li><a id="serverStats" href="#">Server Stats</a></li>
+                    <li><a id="httpHeaders" href="#">View HTTP Headers</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#" id="releaseCubesMenu">Release SNAPSHOT</a></li>
+                    <li><a href="#" id="changeVerMenu">Change SNAPSHOT version</a></li>
+                </ul>
+            </li>
         </ul>
     </nav>
 </header>
 
 <div id="west" class="ui-layout-west noselect">
-    <div id="app-list-div" class="panel">
-        <div class="panel-heading">
-            <div class="btn-group">
-                <a class="btn-sm btn-primary" href="#">Application</a>
-            </div>
-            <span id="appCount" class="badge pull-right"></span>
-        </div>
-        <select id="app-list" class="form-control">
-            <option>Loading applications...</option>
-        </select>
-    </div>
-
-    <div id="version-list-div" class="panel">
-        <div class="panel-heading">
-            <div class="btn-group">
-                <a id="foo" href="#" class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown" role="button">
-                    <span>Version</span><span class="caret"></span>
-                </a>
-                <ul class="dropdown-menu" role="menu" aria-labelledby="foo">
-                    <li><a href="#" id="releaseCubesMenu">Release SNAPSHOT</a></li>
-                    <li><a href="#" id="changeVerMenu">Change SNAPSHOT version</a></li>
-                </ul>
-            </div>
-            <span id="verCount" class="badge pull-right"></span>
-        </div>
-        <select id="version-list" class="form-control">
-            <option>Loading versions...</option>
-        </select>
-    </div>
-
-    <div id="status-list-div" class="panel">
-        <div class="main-list">
-            <ul class="nav nav-list" id="status-list">
-                <li>
-                    <a>Loading status...</a>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <div id="ncube-list-div" class="panel" style="height:calc(100% - 210px)">
+    <div id="ncube-list-div" class="panel" style="height:100%">
         <div class="panel-heading">
             <div class="btn-group">
                 <a href="#" class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown"
@@ -129,15 +115,8 @@
                 </a>
                 <ul class="dropdown-menu">
                     <li><a href="#" id="newCubeMenu">New</a></li>
-                    <li><a href="#" id="renameCubeMenu">Rename</a></li>
-                    <li><a href="#" id="dupeCubeMenu">Duplicate</a></li>
                     <li><a href="#" id="deleteCubeMenu">Delete</a></li>
                     <li><a href="#" id="restoreCubeMenu">Restore</a></li>
-                    <li class="divider"></li>
-                    <li><a href="#" id="revisionHistoryMenu">Show revision history</a></li>
-                    <li><a href="#" id="showRefsToMenu">Show inbound references</a></li>
-                    <li><a href="#" id="showRefsFromMenu">Show outbound references</a></li>
-                    <li><a href="#" id="showReqScopeMenu">Show required scope</a></li>
                 </ul>
             </div>
             <span id="ncubeCount" class="badge pull-right"></span>
@@ -159,8 +138,22 @@
     </div>
 </div>
 
+<div id="tab-drag-indicator">
+</div>
+
 <div id="center" class="ui-layout-center">
-    <div id="ncubeTabContent" class="tab-content ui-layout-content" style="padding:0"></div>
+    <div id="ncubeTabContent" class="tab-content ui-layout-content" style="padding:0">
+        <div id="ncube-tabs">
+            <ul class="nav nav-tabs nav-tabs-short"></ul>
+            <div id="tab-overflow" class="pull-right">
+                <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="glyphicon glyphicon-align-justify"></span>
+                    <span id="tab-overflow-text"></span>
+                </button>
+                <ul class="dropdown-menu overflow-dropdown"></ul>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- New Cube Modal -->
@@ -218,61 +211,24 @@
     </div>
 </div>
 
-<!-- Rename Cube Modal -->
-<div id="renameCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="renameCubeLabel"
-     aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 id="renameCubeLabel" class="modal-title"></h3>
-            </div>
-            <div class="modal-body">
-                <form role="form">
-                    <div class="form-group">
-                        <label for="renameCubeAppName">App</label>
-                        <input id="renameCubeAppName" type="text" class="form-control" readonly>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="renameCubeName">Old n-cube Name</label>
-                        <input class="form-control" type="text" id="renameCubeName" readonly/>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="renameNewCubeName">New n-cube Name</label>
-                        <input class="form-control" type="text" id="renameNewCubeName" placeholder="Type name here"/>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="renameCubeVersion">New version</label>
-                        <input id="renameCubeVersion" type="text" class="form-control" readonly>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't rename</button>
-                <button id="renameCubeOk" class="btn btn-primary">Rename</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Delete Cube Modal -->
 <div id="deleteCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteCubeLabel"
      aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="deleteCubeLabel" class="modal-title"></h3>
             </div>
-            <div class="modal-body">
-                <h4>Are you sure?</h4>
+            <div class="modal-body" style="overflow: auto;height:450px">
+                <ul id="deleteCubeList" class="list-group no-padding">
+                </ul>
             </div>
             <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
-                <button id="deleteCubeOk" class="btn btn-primary">Delete</button>
+                <button id="deleteSelectAll" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select All</button>
+                <button id="deleteSelectNone" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select None</button>
+                <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Don't delete</button>
+                <button id="deleteCubeOk" class="btn btn-primary btn-sm">Delete</button>
             </div>
         </div>
     </div>
