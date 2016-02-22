@@ -22,8 +22,8 @@ onmessage = function(e)
     var appIdString = JSON.stringify(appId);
     var req = new XMLHttpRequest();
 
-    req.open("GET", getSearchUrl() + '?json=[' + appIdString + ',"' + filter + '","' + content + '",true]', false);
-    req.send();
+    req.open("POST", getSearchUrl(), false);
+    req.send('[' + appIdString + ',"' + filter + '","' + content + '",true]');
 
     if (req.response)
     {
@@ -69,4 +69,4 @@ onmessage = function(e)
         url += '/cmd/ncubeController/search';
         return url;
     }
-}
+};

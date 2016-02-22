@@ -9,34 +9,15 @@
         <welcome-file>index.html</welcome-file>
     </welcome-file-list>
 
-    <servlet>
-        <description>JSON Servlet</description>
-        <display-name>jsonServlet</display-name>
-        <servlet-name>jsonServlet</servlet-name>
-        <servlet-class>com.cedarsoftware.servlet.JsonCommandServlet</servlet-class>
-        <init-param>
-            <param-name>tenant</param-name>
-            <param-value>NONE</param-value>
-        </init-param>
-        <init-param>
-            <param-name>app</param-name>
-            <param-value>NCE</param-value>
-        </init-param>
-    </servlet>
-
-    <servlet-mapping>
-        <servlet-name>jsonServlet</servlet-name>
-        <url-pattern>/cmd/*</url-pattern>
-    </servlet-mapping>
-
-    <!-- URL Rewrite Filter  - must be defined prior to RA Front Filter -->
     <filter>
         <filter-name>URL Rewrite Filter</filter-name>
         <filter-class>org.tuckey.web.filters.urlrewrite.UrlRewriteFilter</filter-class>
     </filter>
+
     <filter-mapping>
         <filter-name>URL Rewrite Filter</filter-name>
         <url-pattern>/sys/*</url-pattern>
+        <url-pattern>/cmd/*</url-pattern>
     </filter-mapping>
 
     <session-config>

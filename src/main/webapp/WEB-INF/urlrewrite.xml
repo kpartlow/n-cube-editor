@@ -13,14 +13,14 @@
         <to>null</to>
     </rule>
 
-    <!-- todo, route everything via tuckey, do not use web.xml other than to map tuckey -->
-    <!--<rule match-type="regex">-->
-        <!--<note>-->
-            <!--Redirect inbound requests using n-cube's sys.classpath-->
-        <!--</note>-->
-        <!--<from>^/cmd/.*$</from>-->
-        <!--<run class="com.cedarsoftware.servlet.JsonCommandServlet" method="route" />-->
-        <!--<to>null</to>-->
-    <!--</rule>-->
+    <!-- Route all HTTP GET/PUT JSON commands to the JsonCommandServlet -->
+    <rule match-type="regex">
+        <note>
+            Redirect inbound requests using n-cube's sys.classpath
+        </note>
+        <from>^/cmd/[^/]+/.*$</from>
+        <run class="com.cedarsoftware.servlet.JsonCommandServlet" method="route"/>
+        <to>null</to>
+    </rule>
 
 </urlrewrite>

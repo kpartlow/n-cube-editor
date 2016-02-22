@@ -8,12 +8,15 @@
  */
 function resolveRefs(jObj)
 {
+    if (!jObj)
+        return;
+
     var idsToObjs = [];
 
-    // First pass, store all objects that have an @ID field, mapped to their instance (self)
+    // First pass, store all objects that have an @id field, mapped to their instance (self)
     walk(jObj, idsToObjs);
 
-    // Replace all @ref: objects with the object from the association above.
+    // Replace all @ref objects with the object from the association above.
     substitute(null, null, jObj, idsToObjs);
 
     idsToObjs = null;
@@ -21,14 +24,24 @@ function resolveRefs(jObj)
 
 function walk(jObj, idsToObjs)
 {
-    for (var field in jObj)
+    if (!jObj)
+        return;
+
+    var keys = Object.keys(jObj); // will return an array of own properties
+
+    for (var i = 0, len = keys.length; i < len; i++)
     {
+        var field = keys[i];
         var value = jObj[field];
-        if (field == "@id")
+
+        if (!value)
+            continue;
+
+        if (field === "@id")
         {
             idsToObjs[value] = jObj;
         }
-        else if (typeof(value) == "object")
+        else if (typeof(value) === "object")
         {
             walk(value, idsToObjs);
         }
@@ -37,17 +50,27 @@ function walk(jObj, idsToObjs)
 
 function substitute(parent, fieldName, jObj, idsToObjs)
 {
-    for (var field in jObj)
+    if (!jObj)
+        return;
+
+    var keys = Object.keys(jObj); // will return an array of own properties
+
+    for (var i = 0, len = keys.length; i < len; i++)
     {
+        var field = keys[i];
         var value = jObj[field];
-        if (field == "@ref")
+
+        if (!value)
+            continue;
+
+        if (field === "@ref")
         {
-            if (parent != null && fieldName != null)
+            if (parent && fieldName)
             {
                 parent[fieldName] = idsToObjs[jObj["@ref"]];
             }
         }
-        else if (typeof(value) == "object")
+        else if (typeof(value) === "object")
         {
             substitute(jObj, field, value, idsToObjs);
         }
@@ -214,25 +237,3 @@ function call(target, args, params)
         return result;
     }
 }
-
-(function ($) {
-	$.extend({
-		getQueryString: function (name)
-		{
-			function parseParams()
-			{ var params = {},
-				e,
-				a = /\+/g,  // Regex for replacing addition symbol with a space
-				r = /([^&=]+)=?([^&]*)/g,
-				d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
-				q = window.location.search.substring(1);
-				while (e = r.exec(q))
-					params[d(e[1])] = d(e[2]);
-				return params;
-				}
-			if (!this.queryStringParams)
-				this.queryStringParams = parseParams();
-			return this.queryStringParams[name];
-			}
-	});
-})(jQuery);

@@ -23,6 +23,7 @@
         class_name: '', // set on the gritter-item
         fade_in_speed: 'medium', // how fast notifications fade in
         fade_out_speed: 800, // how fast the notices fade out
+        append: true,
         time: 6000 // hang on the screen for...
     };
 
@@ -111,6 +112,7 @@
             // Basics
             var title = params.title,
                 text = params.text,
+                append = params.append,
                 image = params.image || '',
                 sticky = params.sticky || false,
                 item_class = params.class_name || $.gritter.options.class_name,
@@ -146,14 +148,15 @@
                 [title, text, this._tpl_close, image_str, this._item_count, '', item_class], tmp
             );
 
-            // If it's false, don't show another gritter message
-            if (this['_before_open_' + number]() === false)
+            var popup = $('#gritter-notice-wrapper').addClass(position);
+            if (append)
             {
-                return false;
+                popup.append(tmp);
             }
-
-            $('#gritter-notice-wrapper').addClass(position).append(tmp);
-
+            else
+            {
+                popup.prepend(tmp);
+            }
             var item = $('#gritter-item-' + this._item_count);
 
             item.fadeIn(this.fade_in_speed, function()

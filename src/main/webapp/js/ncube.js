@@ -31,9 +31,9 @@ var NCubeEditor = (function ($)
     var _axisName;
     var _cellId = null;
     var _uiCellId = null;
-    var _focusedElement = null;
     var _clipboard = null;
     var _colIds = -1;   // Negative and gets smaller (to differentiate on server side what is new)
+    var _clipFormat = CLIP_NCE;
 
     var init = function(info)
     {
@@ -90,21 +90,55 @@ var NCubeEditor = (function ($)
                 $('#editCellValue').focus();
             });
 
+            $(window).scroll(function() {
+                clearTimeout($.data(this, 'scrollTimer'));
+                $.data(this, 'scrollTimer', setTimeout(function() {
+                    var scrollTop = $(this).scrollTop();
+                    var scrollLeft = $(this).scrollLeft();
+                    nce.saveViewPosition({scrollTop:scrollTop, scrollLeft:scrollLeft});
+                }, 250));
+            });
+
             $(document).keydown(function(e)
             {
                 var isModalDisplayed = $('body').hasClass('modal-open');
+                var focus = $(':focus');
 
-                var focus = $('input:focus');
                 if (!isModalDisplayed && focus && focus.attr('id') != 'cube-search' && focus.attr('id') != 'cube-search-content')
                 {
                     if (e.metaKey || e.ctrlKey)
                     {   // Control Key (command in the case of Mac)
-                        if (e.keyCode == 88 || e.keyCode == 67)
+                        if (e.keyCode == 88)
+                        {
+                            editCutCopy(true);  // true = isCut
+                        }
+                        else if (e.keyCode == 67)
                         {   // Ctrl-C or Ctrl-X
-                            editCutCopy(e.keyCode == 88);
+                            if (CLIP_NCE == _clipFormat)
+                            {   // NCE
+                                editCutCopy(false); // false = copy
+                            }
+                            else
+                            {   // Excel
+                                excelCopy();
+                            }
+                        }
+                        else if (e.keyCode == 75)
+                        {   // Toggle clipboard format to copy (NCE versus Excel)
+                            if (CLIP_NCE == _clipFormat)
+                            {
+                                _clipFormat = 'EXCEL';
+                                nce.showNote('Use generic format (Excel support)', 'Note', 2000);
+                            }
+                            else
+                            {
+                                _clipFormat = CLIP_NCE;
+                                nce.showNote('Use N-Cube Editor format (NCE support)', 'Note', 2000);
+                            }
                         }
                         else if (e.keyCode == 86)
                         {   // Ctrl-V
+                            // Point focus to hidden text area so that it will receive the pasted content
                             editPaste();
                         }
                     }
@@ -115,31 +149,28 @@ var NCubeEditor = (function ($)
 
     var load = function()
     {
-        if (!nce.getCubeMap() || !nce.doesCubeExist())
-        {
-            $('#ncube-content').innerHTML = '';
-            return;
-        }
-
-        var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
-        if (!info)
-        {
-            $('#ncube-content').innerHTML = '';
-            return;
-        }
-
         loadCubeHtml();
+
+        $('.dropdown-toggle').click(function () {
+            var button = $(this);
+            var offset = button.offset();
+            var dropDownTop = offset.top + button.outerHeight();
+            var dropDownLeft = offset.left;
+
+            var modal = button.closest('.modal-content');
+            if (modal[0]) {
+                var modalOffset = modal.offset();
+                dropDownTop -= modalOffset.top;
+                dropDownLeft -= modalOffset.left;
+            }
+
+            button.parent().find('ul').css({top: dropDownTop + 'px', left: dropDownLeft + 'px'});
+        });
     };
 
     var loadCubeHtml = function()
     {
-        if (!nce.getSelectedCubeName() || !nce.getSelectedApp() || !nce.getSelectedVersion() || !nce.getSelectedStatus())
-        {
-            $('#ncube-content')[0].innerHTML = 'No n-cubes to load';
-            return;
-        }
-
-        var result = nce.call("ncubeController.getHtml", [nce.getAppId(), nce.getSelectedCubeName()], {noResolveRefs:true});
+        var result = nce.call("ncubeController.getHtml", [nce.getSelectedTabAppId(), nce.getSelectedCubeName()], {noResolveRefs:true});
         if (result.status === true)
         {
             document.getElementById('ncube-content').innerHTML = result.data;
@@ -217,7 +248,7 @@ var NCubeEditor = (function ($)
                 }
                 else
                 {
-                    var result = nce.call("ncubeController.resolveRelativeUrl", [nce.getAppId(), link], {noResolveRefs:true});
+                    var result = nce.call("ncubeController.resolveRelativeUrl", [nce.getSelectedTabAppId(), link], {noResolveRefs:true});
                     if (result.status === true && result.data)
                     {
                         link = result.data;
@@ -237,6 +268,16 @@ var NCubeEditor = (function ($)
         if (nce.getSelectedCubeName().indexOf('erne.') != 0)
         {
             buildCubeNameLinks();
+        }
+
+        scrollToSavedPosition();
+    };
+
+    var scrollToSavedPosition = function() {
+        var pos = nce.getViewPosition();
+        if (typeof pos === 'object') {
+            $(window).scrollTop(pos.scrollTop);
+            $(window).scrollLeft(pos.scrollLeft);
         }
     };
 
@@ -278,7 +319,7 @@ var NCubeEditor = (function ($)
             {
                 _uiCellId = $(e.target);
                 _cellId = _uiCellId.attr('data-id').split("_");
-                var result = nce.call("ncubeController.getCellCoordinate", [nce.getAppId(), nce.getSelectedCubeName(), _cellId]);
+                var result = nce.call("ncubeController.getCellCoordinate", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId]);
                 if (result.status === true)
                 {
                     nce.clearError();
@@ -507,7 +548,7 @@ var NCubeEditor = (function ($)
         var axisName = $('#addAxisName').val();
         var axisType = $('#addAxisTypeName').val();
         var axisValueType = $('#addAxisValueTypeName').val();
-        var result = nce.call("ncubeController.addAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName, axisType, axisValueType]);
+        var result = nce.call("ncubeController.addAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName, axisType, axisValueType]);
         if (result.status === true)
         {
             nce.loadCube();
@@ -533,7 +574,7 @@ var NCubeEditor = (function ($)
     {
         $('#deleteAxisModal').modal('hide');
         var axisName = $('#deleteAxisName').val();
-        var result = nce.call("ncubeController.deleteAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.deleteAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
         if (result.status === true)
         {
             nce.loadCube();
@@ -551,7 +592,7 @@ var NCubeEditor = (function ($)
             return false;
         }
 
-        var result = nce.call("ncubeController.getAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.getAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
         var axis;
         if (result.status === true)
         {
@@ -633,7 +674,7 @@ var NCubeEditor = (function ($)
         var hasDefault = $('#updateAxisDefaultCol').prop('checked');
         var sortOrder = $('#updateAxisSortOrder').prop('checked');
         var fireAll = $('#updateAxisFireAll').prop('checked');
-        var result = nce.call("ncubeController.updateAxis", [nce.getAppId(), nce.getSelectedCubeName(), _axisName, axisName, hasDefault, sortOrder, fireAll]);
+        var result = nce.call("ncubeController.updateAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _axisName, axisName, hasDefault, sortOrder, fireAll]);
         if (result.status === true)
         {
             nce.loadCube();
@@ -686,10 +727,10 @@ var NCubeEditor = (function ($)
         <ul><li>Examples: \
         <ul> \
         <li><i>Numbers</i>: <code>6, 10, [20, 30], 45</code></li> \
-        <li><i>Strings</i>: <code>TX, OH, GA</code></li> \
-        <li><i>Strings (3) with spaces</i>: <code>brown fox, jumps honey badger, is eaten</code></li> \
-        <li><i>Date range</i>: <code>[2010/01/01, 2012/12/31]</code></li> \
-        <li><i>Date ranges</i>: <code>[2015-01-01, 2016-12-31], [2019/01/01, 2020/12/31]</code> \
+        <li><i>Strings</i>: <code>\"TX\", \"OH\", \"GA\"</code></li> \
+        <li><i>Dates</i>: <code>\"2016-01-01\"</code></li> \
+        <li><i>Date range</i>: <code>[\"2010/01/01\", \"2012/12/31\"]</code></li> \
+        <li><i>Date ranges</i>: <code>[\"2015-01-01\", \"2016-12-31\"], [\"2019/01/01\", \"2020/12/31\"]</code> \
         </li></ul></li></ul>";
         }
         else if ('NEAREST' == axis.type.name)
@@ -734,7 +775,7 @@ var NCubeEditor = (function ($)
             inst[0].innerHTML = 'Unknown axis type';
         }
 
-        var axisList = axis.columns['@items'];
+        var axisList = axis.columns;
         _columnList.empty();
         _columnList.prop('model', axis);
         var displayOrder = 0;
@@ -843,18 +884,18 @@ var NCubeEditor = (function ($)
             return false;
         }
 
-        var result = nce.call("ncubeController.getAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.getAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
         var axis;
         if (result.status === true)
         {
             axis = result.data;
-            if (!axis.columns['@items'])
+            if (!axis.columns)
             {
-                axis.columns['@items'] = [];
+                axis.columns = [];
             }
             if (axis.defaultCol)
             {   // Remove actual Default Column object (not needed, we can infer it from Axis.defaultCol field being not null)
-                axis.columns["@items"].splice(axis.columns["@items"].length - 1, 1);
+                axis.columns.splice(axis.columns.length - 1, 1);
             }
         }
         else
@@ -875,7 +916,7 @@ var NCubeEditor = (function ($)
             $('#editColUp').hide();
             $('#editColDown').hide();
         }
-        $('#editColumnsLabel')[0].textContent = 'Edit ' + axisName;
+        $('#editColumnsLabel')[0].innerHTML = 'Edit ' + axisName;
         $('#editColumnsModal').modal();
     };
 
@@ -883,7 +924,7 @@ var NCubeEditor = (function ($)
     {
         if (axis.preferredOrder == 1)
         {
-            axis.columns['@items'].sort(function(a, b)
+            axis.columns.sort(function(a, b)
             {
                 return a.displayOrder - b.displayOrder;
             });
@@ -915,12 +956,12 @@ var NCubeEditor = (function ($)
 
         if (loc == -1 || axis.preferredOrder == 0)
         {
-            axis.columns['@items'].push(newCol);
+            axis.columns.push(newCol);
             loc = input.length - 1;
         }
         else
         {
-            axis.columns['@items'].splice(loc + 1, 0, newCol);
+            axis.columns.splice(loc + 1, 0, newCol);
         }
         loadColumns(axis);
 
@@ -933,7 +974,7 @@ var NCubeEditor = (function ($)
     {
         var axis = _columnList.prop('model');
         var input = $('.editColCheckBox');
-        var cols = axis.columns['@items'];
+        var cols = axis.columns;
         var colsToDelete = [];
         $.each(input, function (index, btn)
         {
@@ -955,7 +996,7 @@ var NCubeEditor = (function ($)
     var editColUp = function()
     {
         var axis = _columnList.prop('model');
-        var cols = axis.columns['@items'];
+        var cols = axis.columns;
         var input = $('.editColCheckBox');
 
         if (cols && cols.length > 0 && input[0].checked)
@@ -992,7 +1033,7 @@ var NCubeEditor = (function ($)
     var editColDown = function()
     {
         var axis = _columnList.prop('model');
-        var cols = axis.columns['@items'];
+        var cols = axis.columns;
         var input = $('.editColCheckBox');
 
         if (cols && cols.length > 0 && input[cols.length - 1].checked)
@@ -1036,24 +1077,25 @@ var NCubeEditor = (function ($)
         var axis = _columnList.prop('model');
         _columnList.find('input[data-type=cond]').each(function(index, elem)
         {
-            axis.columns['@items'][index].value = elem.value;
+            axis.columns[index].value = elem.value;
         });
         _columnList.find('input[data-type=name]').each(function(index, elem)
         {
-            var col = axis.columns['@items'][index];
+            var col = axis.columns[index];
             if (col.metaProp)
             {
                 col.metaProp.name = elem.value;
             }
         });
-        $('#editColumnsModal').modal('hide');
         axis.defaultCol = null;
-        var result = nce.call("ncubeController.updateAxisColumns", [nce.getAppId(), nce.getSelectedCubeName(), axis]);
+        var result = nce.call("ncubeController.updateAxisColumns", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axis.name, axis.columns]);
 
         if (result.status !== true)
         {
             nce.showNote("Unable to update columns for axis '" + axis.name + "':<hr class=\"hr-small\"/>" + result.data);
+            return;
         }
+        $('#editColumnsModal').modal('hide');
         nce.reloadCube();
     };
 
@@ -1084,7 +1126,7 @@ var NCubeEditor = (function ($)
             return;
         }
 
-        var result = nce.call("ncubeController.getCellNoExecute", [nce.getAppId(), nce.getSelectedCubeName(), _cellId]);
+        var result = nce.call("ncubeController.getCellNoExecute", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId]);
 
         if (result.status === false)
         {
@@ -1127,7 +1169,7 @@ var NCubeEditor = (function ($)
     var editCellClear = function()
     {
         _editCellModal.modal('hide');
-        var result = nce.call("ncubeController.updateCell", [nce.getAppId(), nce.getSelectedCubeName(), _cellId, null]);
+        var result = nce.call("ncubeController.updateCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId, null]);
 
         if (result.status === false)
         {
@@ -1150,13 +1192,13 @@ var NCubeEditor = (function ($)
     var editCellOK = function()
     {
         var cellInfo = {'@type':'com.cedarsoftware.ncube.CellInfo'};
-        cellInfo.isUrl = _editCellRadioURL.find('input').is(':checked');
+        cellInfo.isUrl = _editCellRadioURL.find('input').prop('checked');
         cellInfo.value = _editCellValue.val();
         cellInfo.dataType = cellInfo.isUrl ? _urlDropdown.val() : _valueDropdown.val();
-        cellInfo.isCached = _editCellCache.find('input').is(':checked');
+        cellInfo.isCached = _editCellCache.find('input').prop('checked');
         _editCellModal.modal('hide');
 
-        var result = nce.call("ncubeController.updateCell", [nce.getAppId(), nce.getSelectedCubeName(), _cellId, cellInfo]);
+        var result = nce.call("ncubeController.updateCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId, cellInfo]);
 
         if (result.status === false)
         {
@@ -1225,14 +1267,18 @@ var NCubeEditor = (function ($)
         return null;
     };
 
-    var editCutCopy = function(isCut)
+    var getDomCellId = function(cell)
     {
-        if (isCut && !nce.ensureModifiable('Cannot cut / copy cells.'))
+        var cellId = cell.getAttribute('data-id');
+        if (cellId)
         {
-            return;
+            return cellId.split("_");
         }
-        _focusedElement = $(':focus');
-        var cells = [];
+        return null;
+    };
+
+    var excelCopy = function()
+    {
         var lastRow = -1;
         var clipData = "";
 
@@ -1246,39 +1292,80 @@ var NCubeEditor = (function ($)
             }
             else
             {
-                if (lastRow != -1) clipData += '\n';
+                if (lastRow != -1)
+                {
+                    clipData += '\n';
+                }
                 lastRow = cellRow;
             }
-            clipData = clipData + cell[0].innerText;
+            var content = cell[0].textContent;
+
+            if (content.indexOf('\n') > -1)
+            {   // Must quote if newline (and double any quotes inside)
+                clipData = clipData + '"' + content.replace(/"/g, '""') + '"';
+            }
+            else
+            {
+                clipData = clipData + content;
+            }
+        });
+        clipData += '\n';
+        _clipboard.val(clipData);
+        _clipboard.focusin();
+        _clipboard.select();
+    };
+
+    var editCutCopy = function(isCut)
+    {
+        if (isCut && !nce.ensureModifiable('Cannot cut / copy cells.'))
+        {
+            return;
+        }
+
+        var cells = [];
+        var lastRow = -1;
+
+        $('td.cell-selected').each(function ()
+        {   // Visit selected cells in spreadsheet
+            var cell = $(this);
+            var cellRow = getRow(cell);
+            if (lastRow != cellRow)
+            {
+                if (lastRow != -1)
+                {
+                    cells.push(null);   // Mark end of line
+                }
+                lastRow = cellRow;
+            }
             var cellId = getCellId(cell);
             if (cellId)
             {
                 cells.push(cellId);
-            }
-            if (isCut)
-            {
-                cell.empty();
+                if (isCut)
+                {
+                    cell[0].textContent = '';
+                }
             }
         });
-        clipData += '\n';
-        // TODO: Talk to Ryan, see if there is a non-JQuery way to put the clipData in the text area
-        _clipboard.val(clipData);
+
+        // Get clipboard ready string + optionally clear cells from database
+        var result = nce.call("ncubeController.copyCells", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), cells, isCut]);
+        if (!result.status)
+        {
+            nce.showNote('Error copying/cutting cells:<hr class="hr-small"/>' + result.data);
+        }
+
+        var clipData = result.data;
+        _clipboard.val(CLIP_NCE + clipData);
         _clipboard.focusin();
         _clipboard.select();
-
-        // Clear cells from database
-        if (isCut)
-        {
-            var result = nce.call("ncubeController.clearCells", [nce.getAppId(), nce.getSelectedCubeName(), cells]);
-            if (!result.status)
-            {
-                nce.showNote('Error cutting cells:<hr class="hr-small"/>' + result.data);
-            }
-        }
     };
 
     var editPaste = function()
     {
+        _clipboard.val('');
+        _clipboard.focus();
+
         if (!nce.ensureModifiable('Cannot paste cells.'))
         {
             return;
@@ -1288,6 +1375,7 @@ var NCubeEditor = (function ($)
         {
             return;
         }
+
         var lastCell = $(firstCell[firstCell.length - 1]);
         firstCell = $(firstCell[0]);
 
@@ -1304,84 +1392,160 @@ var NCubeEditor = (function ($)
 
         var onlyOneCellSelected = row == lastRow && col == lastCol;
 
-        // Point focus to hidden text area so that it will receive the pasted content
-        _focusedElement = $(':focus');
-        _clipboard.focusin();
-        _clipboard.select();
-
-        var content = _clipboard.val();
-        if (!content || content == "")
-        {
-            return;
-        }
-
-        // Parse the clipboard content and build-up coordinates where this content will be pasted.
-        var values = [];
-        var coords = [];
-        var firstRow = row;
-        var lines = content.split('\n');
-
-        for (var i = 0; i < lines.length; i++)
-        {
-            if (lines[i] && lines[i] != "")
+        setTimeout(function() {
+            var content = _clipboard.val();
+            if (!content || content == "")
             {
-                var strValues = lines[i].split('\t');
-                values.push(strValues);
-                var rowCoords = [];
-                for (var j = 0; j < strValues.length; j++)
-                {
-                    var numTH = countTH(tableRows[row].cells);
-                    var colIdx = col + j + numTH;
-                    if (colIdx < tableRows[row].cells.length)
-                    {   // Do attempt to read past edge of 2D grid
-                        var domCell = tableRows[row].cells[colIdx]; // This is a DOM "TD" element
-                        var jqCell = $(domCell);                    // Now it's a jQuery object.
-                        rowCoords[j] = getCellId(jqCell);
+                return;
+            }
+
+            // Parse the clipboard content and build-up coordinates where this content will be pasted.
+            var values = [];
+            var firstRow = row;
+            var numTH, colIdx, domCell, result, r, c = null;
+
+            if (content.indexOf(CLIP_NCE) == 0)
+            {   // NCE clipboard data (allows us to handle all cell types)
+                content = content.slice(CLIP_NCE.length);
+                var clipboard = JSON.parse(content);
+                var colNum = 0;
+
+                if (onlyOneCellSelected)
+                {   // Paste full clipboard data to cube (if it fits, otherwise clip to edges)
+                    for (var line=0; line < clipboard.length; line++)
+                    {
+                        var cellInfo = clipboard[line];
+                        if (cellInfo == null)
+                        {
+                            row++;
+                            colNum = 0;
+                        }
+                        else
+                        {
+                            numTH = countTH(tableRows[row].cells);
+                            colIdx = col + colNum + numTH;
+                            if (colIdx < tableRows[row].cells.length)
+                            {   // Do attempt to read past edge of 2D grid
+                                domCell = tableRows[row].cells[colIdx]; // This is a DOM "TD" element
+                                cellInfo.push(getDomCellId(domCell));
+                            }
+                            colNum++;
+                        }
+                        if (row >= tableRows.length)
+                        {   // Do not go past bottom of grid
+                            break;
+                        }
                     }
                 }
-                coords.push(rowCoords);
-                row++;
+                else
+                {   // Repeat / Clip case: multiple cells are selected when PASTE invoked, clip pasting to selected
+                    // range. This is the 'fill-mode' of paste (repeating clipboard data to fill selected rectangle)
+                    var clipRect = [[]];  // 2D array
+                    var clipCol = 0;
+                    var clipRow = 0;
 
-                if (row >= tableRows.length)
-                {   // Do not go past bottom of grid
-                    break;
+                    // Refashion linear clipboard (with nulls as column boundaries) to 2D
+                    for (var k=0; k < clipboard.length; k++)
+                    {
+                        if (clipboard[k])
+                        {
+                            clipRect[clipRow][clipCol] = clipboard[k];
+                            clipCol++;
+                        }
+                        else
+                        {
+                            clipCol = 0;
+                            clipRow++;
+                            clipRect[clipRow] = [];
+                        }
+                    }
+                    clipRow++;  // count of rows (not 0 based), e.g. 4 for rows 0-3 (needed for modulo below)
+
+                    row = firstRow;
+                    var clipboard2 = [];
+
+                    for (r = firstRow; r <= lastRow; r++)
+                    {
+                        for (c = col; c <= lastCol; c++)
+                        {
+                            numTH = countTH(tableRows[row].cells);
+                            domCell = tableRows[row].cells[c + numTH]; // This is a DOM "TD" element
+                            var info = clipRect[(r - firstRow) % clipRow][(c - col) % clipCol];
+                            var cloneCellInfo = info.slice(0);
+                            cloneCellInfo.push(getDomCellId(domCell));
+                            clipboard2.push(cloneCellInfo);
+                        }
+                        row++;
+                    }
+                    clipboard = clipboard2;
                 }
+                // Paste cells from database
+                result = nce.call("ncubeController.pasteCellsNce", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), clipboard]);
             }
-        }
+            else
+            {   // Normal clipboard data, from Excel, for example
+                var lines = parseExcelClipboard(content);
+                var coords = [];
+                var rowCoords = [];
 
-        // If more than one cell is selected, create coords for all selected cells.
-        // Server will repeat values, properly throughout the selected 'clip' region.
-        if (!onlyOneCellSelected)
-        {
-            coords = [];
-            row = firstRow;
-            for (var r = firstRow; r <= lastRow; r++)
-            {
-                rowCoords = [];
-                for (var c = col; c <= lastCol; c++)
+                // If more than one cell is selected, create coords for all selected cells.
+                // Server will repeat values, properly throughout the selected 'clip' region.
+                for (var i = 0; i < lines.length; i++)
                 {
-                    numTH = countTH(tableRows[row].cells);
-                    domCell = tableRows[row].cells[c + numTH]; // This is a DOM "TD" element
-                    jqCell = $(domCell);                    // Now it's a jQuery object.
-                    rowCoords[c - col] = getCellId(jqCell);
+                    rowCoords = [];
+                    values.push(lines[i]);  // push a whole line of values at once.
+
+                    for (var j=0; j < lines[i].length; j++)
+                    {
+                        numTH = countTH(tableRows[row].cells);
+                        colIdx = col + j + numTH;
+                        if (colIdx < tableRows[row].cells.length)
+                        {   // Do attempt to read past edge of 2D grid
+                            domCell = tableRows[row].cells[colIdx]; // This is a DOM "TD" element
+                            rowCoords.push(getDomCellId(domCell));
+                        }
+                    }
+                    coords.push(rowCoords);
+                    row++;
+
+                    if (row >= tableRows.length)
+                    {   // Do not go past bottom of grid
+                        break;
+                    }
                 }
-                coords.push(rowCoords);
-                row++;
+
+                if (!onlyOneCellSelected)
+                {   // Multiple cells are selected when PASTE invoked, clip pasting to selected range.
+                    coords = [];
+                    row = firstRow;
+                    for (r = firstRow; r <= lastRow; r++)
+                    {
+                        rowCoords = [];
+                        for (c = col; c <= lastCol; c++)
+                        {
+                            numTH = countTH(tableRows[row].cells);
+                            domCell = tableRows[row].cells[c + numTH]; // This is a DOM "TD" element
+                            rowCoords.push(getDomCellId(domCell));
+                        }
+                        coords.push(rowCoords);
+                        row++;
+                    }
+                }
+
+                // Paste cells from database
+                result = nce.call("ncubeController.pasteCells", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), values, coords]);
             }
-        }
 
-        // Paste cells from database
-        var result = nce.call("ncubeController.pasteCells", [nce.getAppId(), nce.getSelectedCubeName(), values, coords]);
-
-        if (result.status)
-        {
-            nce.reloadCube();
-        }
-        else
-        {
-            nce.clearError();
-            nce.showNote('Error pasting cells:<hr class="hr-small"/>' + result.data);
-        }
+            if (result.status)
+            {
+                nce.reloadCube();
+            }
+            else
+            {
+                nce.clearError();
+                nce.showNote('Error pasting cells:<hr class="hr-small"/>' + result.data);
+            }
+        }, 100);
     };
 
     // =============================================== End Cell Editing ================================================
@@ -1395,7 +1559,11 @@ var NCubeEditor = (function ($)
     // The loading of all of the Javascript (deeply) is continuous on the main thread.
     // Therefore, the setTimeout(, 1) ensures that the main window (parent frame)
     // is called after all Javascript has been loaded.
-    setTimeout(function() { window.parent.frameLoaded(); }, 1);
+    if (window.parent.frameLoaded) {
+        setTimeout(function () {
+            window.parent.frameLoaded();
+        }, 1);
+    }
 
     // API
     return {

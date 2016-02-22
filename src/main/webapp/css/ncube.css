@@ -40,3 +40,189 @@ div#editColumnsModal div.panel-group
 .nc-anc {
     cursor: pointer;
 }
+
+#hot-container {
+    top: 20px;
+    position: fixed;
+}
+
+/* begin coord bar and HOT */
+
+#util-container-bar {
+    position: fixed;
+    height: 20px;
+}
+
+#coordinate-bar-text {
+    white-space: nowrap;
+    overflow-x: scroll;
+    cursor: default;
+    position: absolute;
+    left: 24px;
+}
+#coordinate-bar-text::-webkit-scrollbar {
+    display:none;
+}
+
+#coordinate-bar-move-left {
+    position: absolute;
+    left: 0px;
+    display: none;
+}
+
+#coordinate-bar-move-right {
+    position: absolute;
+    display: none;
+}
+
+#search-container {
+    width: 300px;
+    position: absolute;
+    max-height: 20px;
+    overflow: hidden;
+}
+
+#search-container input {
+    padding: 0;
+    width: 138px;
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+}
+
+#search-info {
+    color: #C7C7CD;
+    width: 84px;
+    height: 15px;
+    display: inline-block;
+    text-align: right;
+}
+
+#search-field {
+    outline: none;
+}
+
+.bg-white {
+    background-color: white;
+}
+
+.bg-off-white {
+    background-color: #F4F4F4;
+}
+
+.pos-fixed {
+    position: fixed;
+}
+
+.handsontable table.htCore {
+    background-color: #BEEEEF;
+}
+
+.handsonTableHeader.handsonCurrentRow {
+    background-color: rgba(146, 146, 146, 0.75) !important;
+}
+.handsontable .htCore td.searchResult {
+    background-color: #EFFB3C;
+    color: #583707;
+}
+
+.handsontable td.handsonTableHeader {
+    color: white;
+    background-color: #929292;
+}
+
+.handsontable .oddRow {
+    background-color: #E0E0E0;
+}
+
+.handsontable .htCore th, .handsontable .htCore td {
+    border-top: 1px solid #CCC;
+    border-bottom: none !important;
+}
+
+.handsontable.ht_clone_top_left_corner {
+    overflow: visible !important;
+}
+
+.handsontable .htCore th {
+    color: #D9D9D9;
+}
+
+.handsontable .tableDefault, .handsontable .tableDefault a {
+    color: #CCC;
+}
+
+.dropdown-menu {
+    position: fixed;
+}
+
+.indent-axis-buttons {
+    padding: 3px 20px;
+}
+
+.axis-menu-button {
+    margin-left: 2px !important;
+}
+
+.frozen-cols-input {
+    width: 30px;
+    height: inherit;
+    padding: 2px 5px;
+}
+
+#hot-container > div.ht_clone_top_left_corner.handsontable > div > div > div > table > tbody > tr:nth-child(2) > th {
+    font-size: x-small;
+    white-space: normal;
+    line-height: 15px;
+    color: #555;
+    padding: 0;
+}
+
+/* end coord bar and HOT */
+
+/* begin cell display */
+
+.rule-name  {
+    background:#555;
+    color:#e8e8e8;
+    border-radius:3px;
+    font-family: "arial","helvetica", sans-serif;
+    padding-left:5px;
+    padding-right:5px;
+    padding-top:1px;
+    padding-bottom:1px
+}
+
+.hr-rule {
+    margin:1px;
+    border-style:dashed;
+    border-color:darkgray;
+}
+
+.handsontable td.code {
+    white-space: pre-wrap;
+    font-family: menlo,"Lucida Console",monaco,monospace,courier;
+}
+
+/* end cell display */
+
+.axisTable {
+    display: table;
+    margin-bottom: 10px;
+    border-collapse: separate;
+    border-spacing: 10px;
+}
+
+.axisTableRow {
+    display: table-row;
+}
+
+.axisTableCellLeft {
+    display: table-cell;
+    font-weight: bold;
+}
+
+.axisTableCellRight {
+    display: table-cell;
+    width: 100%
+}

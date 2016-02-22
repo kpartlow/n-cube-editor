@@ -3,6 +3,137 @@
 https://github.com/josdejong/jsoneditor
 
 
+## 2016-01-21, version 5.1.2
+
+- Improvements in sanitizing invalid JSON.
+- Updated dependencies to the latest version.
+- Fixed clicking format/compact not triggering an onChange event.
+- Fixed #259: when having a JSONEditor inside an HTML form, clicking an entry
+  in the context menu did submit the form.
+- Fixed browserify build, see #260. Thanks @onip.
+
+
+## 2016-01-16, version 5.1.1
+
+- Fixed #257: Improving error messages for enum errors failed when the
+  schema contains references.
+- Fixed #255: Removed wrong console warning about the option `search`.
+- Fixed error thrown when option `search` is false (see #256). Thanks @MiroHibler.
+
+
+## 2016-01-14, version 5.1.0
+
+- Implemented support for JSON schema validation, powered by `ajv`.
+- Implemented #197: display an error in case of duplicate keys in an object.
+- Implemented #183: display a checkbox left from boolean values, so you can
+  easily switch between true/false.
+- Implemented debouncing of keyboard input, resulting in much less history
+  actions whilst typing.
+- Added a minimalist bundle to the `dist` folder, excluding `ace` and `ajv`.
+- Fixed #222: editor throwing `onChange` events when switching mode.
+- Fixed an error throw when switching to mode "code" via the menu.
+- Fixed interfering shortcut keys: changed quick keys to select multiple fields
+  from `Shift+Arrow Up/Down` to `Ctrl+Shift+Arrow Up/Down`.
+
+
+
+## 2015-12-31, version 5.0.1
+
+- Fixed a bug in positioning of the context menu for multiple selected nodes.
+- Fixed #130: option `onEditable` not available in mode `form`.
+- Fixed #202: removed `version` field from bower.json.
+
+
+## 2015-12-31, version 5.0.0
+
+- New design.
+- Implemented selection of multiple nodes, allowing to move/duplicate/remove
+  multiple nodes at once (See #106).
+- Implemented a new option `escapeUnicode`, which will show the hexadecimal 
+  unicode instead of the character itself. (See #93 and #230).
+- Implemented method `getMode`.
+- Implemented option `onModeChange(oldMode, newMode)`.
+- Implemented #203: Objects and arrays in mode `form` and `view` are now
+  expandable by clicking the field names too.
+- Replaced the PNG icon images with SVG. Thanks @1j01.
+- Renamed all CSS classes They now have prefixes `.jsoneditor-` to prevent
+  name collisions with css frameworks like bootstrap.
+- Renamed options `change`, `editable`, `error` to respectively `onChange`,
+  `onEditable`, and `onError`. Old options are still working and give a 
+  deprecation warning.
+- Colors of values are now customizable using CSS. 
+- JSONEditor new throws a warning in the console in case of unknown options.
+- Fixed #93 and #227: html codes like `&amp;` not escaped.
+- Fixed #149: Memory leak when switching mode from/to `code` mode, web worker
+  of Ace editor wasn't cleaned up.
+- Fixed #234: Remove dependency on a fork of the `jsonlint` project on github.
+- Fixed: disabled `Ctrl+L` quick key to go to a line, instead use the default
+  browser behavior of selecting the address bar.
+- Fixed #38: clear search results after a new JSON object is set.
+- Fixed #242: row stays highlighted when dragging outside editor.
+- Fixed quick-keys Shift+Alt+Arrows not registering actions in history.
+- Fixed #104: context menus are now positioned relative to the elements of the 
+  editor instead of an absolute position in the window.
+
+
+## 2015-06-13, version 4.2.1
+
+- Fixed #161: Cannot select text in Ace editor on systems using Chinese fonts.
+
+
+## 2015-05-14, version 4.2.0
+
+- Implemented option `theme`, allowing to set a custom theme for the Ace 
+  editor. Thanks @nfvs.
+- Implemented option `ace`, which allows to pass a custom instance of the Ace
+  instead of the embedded version.
+- Fixed #186: binding issue to `jsonlint.parse`.
+- Fixed `editor.get()` manipulating the code when containing an error.
+
+
+## 2015-03-15, version 4.1.1
+
+- Added missing file `index.js` to the bower package.
+  
+
+## 2015-03-15, version 4.1.0
+
+- Implemented a function `focus()` for modes tree, view, and form.
+- Added `./src` folder to the distributed package, needed for usage via
+  node.js/browserify.
+
+
+## 2015-02-28, version 4.0.0
+
+- Ace editor and jsonlint are now packed with jsoneditor.js by default.
+  This makes the library about 4 times larger. If Ace is not needed, a custom
+  build of the library can be done.
+- The distribution files are now moved from the root to the `/dist` folder.
+- Reworked the source code to CommonJS modules, using `brace` to load Ace.
+- JSONP is now automatically stripped from JSON. Thanks @yanivefraim.
+- Fixed bugs in the JSON sanitizer, no longer manipulating JSON-like structures
+  inside strings.
+
+
+## 2015-01-25, version 3.2.0
+
+- Implemented shortcut keys `Ctrl+\` to format and `Ctrl+Shift+\` to compact
+  JSON when in mode `text` or `code`.
+- Before an error is thrown because of invalid text, the editor first tries to
+  sanitize the text (replace JavaScript notation with JSON notation), and only
+  after that throws the error.
+- Fixed Node.path() not working for a JSON Object `""`. Thanks @tomalec.
+- Minor styling improvements.
+- Fixed configured indentation not being applied to Ace editor.
+
+
+## 2014-09-03, version 3.1.2
+
+- Some fixes/improvements in `parseJS` (to parse a JSON object from a JavaScript
+  object).
+- Fixed the lack of a semi colon at end of the bundled files.
+
+
 ## 2014-08-01, version 3.1.1
 
 - Replaced parsing of JavaScript objects into JSON from `eval` to a dedicated

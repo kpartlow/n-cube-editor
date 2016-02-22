@@ -7,12 +7,14 @@ import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.ReferenceAxisLoader
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
-
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 /**
  * RESTful Ajax/JSON API for editor application
  *
@@ -35,6 +37,8 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class NCubeService
 {
+    private static final Logger LOG = LogManager.getLogger(NCubeService.class)
+
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String contentMatching, Map options)
     {
         if (!cubeNamePattern.startsWith('*'))
@@ -49,9 +53,9 @@ class NCubeService
         return NCubeManager.search(appId, cubeNamePattern, contentMatching, options)
     }
 
-    void restoreCube(ApplicationID appId, Object[] cubeNames, String username)
+    void restoreCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
-        NCubeManager.restoreCube(appId, cubeNames, username)
+        NCubeManager.restoreCubes(appId, cubeNames, username)
     }
 
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName)
@@ -89,14 +93,19 @@ class NCubeService
         return NCubeManager.commitBranch(appId, infoDtos, username)
     }
 
-    int rollbackBranch(ApplicationID appId, Object[] infoDtos)
+    int rollbackCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
-        return NCubeManager.rollbackBranch(appId, infoDtos)
+        NCubeManager.rollbackCubes(appId, cubeNames, username)
     }
 
     Map<String, Object> updateBranch(ApplicationID appId, String username)
     {
         return NCubeManager.updateBranch(appId, username)
+    }
+
+    Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String sourceBranch, String username)
+    {
+        return NCubeManager.updateBranchCube(appId, cubeName, sourceBranch, username)
     }
 
     void deleteBranch(ApplicationID appId)
@@ -116,12 +125,22 @@ class NCubeService
 
     void createCube(ApplicationID appId, NCube ncube, String username)
     {
+        List<NCubeInfoDto> list = NCubeManager.search(appId, ncube.name, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
+        if (!list.isEmpty())
+        {
+            throw new IllegalArgumentException(ncube.name + ' exists.')
+        }
+        list = NCubeManager.search(appId, ncube.name, null, [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY):true])
+        if (!list.isEmpty())
+        {
+            throw new IllegalArgumentException(ncube.name + ' was previously deleted. Use restore instead.')
+        }
         NCubeManager.updateCube(appId, ncube, username)
     }
 
-    boolean deleteCube(ApplicationID appId, String cubeName, String username)
+    boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username)
     {
-        return NCubeManager.deleteCube(appId, cubeName, username)
+        return NCubeManager.deleteCubes(appId, cubeNames, username)
     }
 
     void duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName, String username)
@@ -165,6 +184,46 @@ class NCubeService
         Axis axis = new Axis(axisName, AxisType.valueOf(type), AxisValueType.valueOf(valueType), false, Axis.DISPLAY, maxId + 1)
         ncube.addAxis(axis)
         NCubeManager.updateCube(appId, ncube, username)
+    }
+
+    void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName, String username)
+    {
+        NCube nCube = NCubeManager.getCube(appId, cubeName)
+        if (nCube == null)
+        {
+            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
+        }
+
+        long maxId = -1
+        Iterator<Axis> i = nCube.getAxes().iterator()
+        while (i.hasNext())
+        {
+            Axis axis = i.next()
+            if (axis.id > maxId)
+            {
+                maxId = axis.id
+            }
+        }
+
+        Map args = [:]
+        args[ReferenceAxisLoader.REF_TENANT] = refAppId.tenant
+        args[ReferenceAxisLoader.REF_APP] = refAppId.app
+        args[ReferenceAxisLoader.REF_VERSION] = refAppId.version
+        args[ReferenceAxisLoader.REF_STATUS] = refAppId.status
+        args[ReferenceAxisLoader.REF_BRANCH] = refAppId.branch
+        args[ReferenceAxisLoader.REF_CUBE_NAME] = refCubeName  // cube name of the holder of the referring (pointing) axis
+        args[ReferenceAxisLoader.REF_AXIS_NAME] = refAxisName    // axis name of the referring axis (the variable that you had missing earlier)
+        args[ReferenceAxisLoader.TRANSFORM_APP] = transformAppId?.app	// Notice no target tenant.  User MUST stay within TENENT boundary
+        args[ReferenceAxisLoader.TRANSFORM_VERSION] = transformAppId?.version
+        args[ReferenceAxisLoader.TRANSFORM_STATUS] = transformAppId?.status
+        args[ReferenceAxisLoader.TRANSFORM_BRANCH] = transformAppId?.branch
+        args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = transformCubeName
+        args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = transformMethodName
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, args)
+
+        Axis axis = new Axis(axisName, maxId + 1, false, refAxisLoader)
+        nCube.addAxis(axis)
+        NCubeManager.updateCube(appId, nCube, username)
     }
 
     /**
@@ -228,6 +287,23 @@ class NCubeService
             axis.setColumnOrder(isSorted ? Axis.SORTED : Axis.DISPLAY)
         }
 
+        ncube.clearSha1();
+        NCubeManager.updateCube(appId, ncube, username)
+    }
+
+    /**
+     * Removes the reference from one axis to another.
+     */
+    void breakAxisReference(ApplicationID appId, String name, String axisName, String username)
+    {
+        NCube ncube = NCubeManager.getCube(appId, name)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Could not break reference for '" + axisName + "', NCube '" + name + "' not found for app: " + appId)
+        }
+
+        // Update default column setting (if changed)
+        ncube.breakAxisReference(axisName);
         NCubeManager.updateCube(appId, ncube, username)
     }
 
@@ -304,30 +380,16 @@ class NCubeService
 
         for (Object object : cubes)
         {
-            if (object instanceof NCube)
+            NCube ncube = (NCube) object
+            if (checkName)
             {
-                NCube ncube = (NCube) object
-                if (checkName)
+                if (!StringUtilities.equalsIgnoreCase(name, ncube.name))
                 {
-                    if (!StringUtilities.equalsIgnoreCase(name, ncube.name))
-                    {
-                        throw new IllegalArgumentException("The n-cube name cannot be different than selected n-cube.  Use Rename n-cube option from n-cube menu to rename the cube.")
-                    }
-                }
-
-                NCubeManager.updateCube(appId, ncube, username)
-            }
-            else
-            {
-                JsonObject map = (JsonObject) object
-                String cubeName = (String) map.ncube
-                String cmd = (String) map.action
-
-                if ("delete".equalsIgnoreCase(cmd))
-                {
-                    NCubeManager.deleteCube(appId, cubeName, username)
+                    throw new IllegalArgumentException("The n-cube name cannot be different than selected n-cube.  Use Rename n-cube option from n-cube menu to rename the cube.")
                 }
             }
+
+            NCubeManager.updateCube(appId, ncube, username)
         }
     }
 
@@ -359,12 +421,22 @@ class NCubeService
         return cube
     }
 
-    NCube getCubeRevision(ApplicationID appId, String name, long revision)
+    NCube loadCube(ApplicationID appId, String name)
     {
-        NCube cube = NCubeManager.getCubeRevision(appId, name, revision)
+        NCube cube = NCubeManager.loadCube(appId, name)
         if (cube == null)
         {
-            throw new IllegalArgumentException("Unable to load cube: " + name + ", app: " + appId + ", revision: " + revision)
+            throw new IllegalArgumentException("Unable to load cube: " + name + " for app: " + appId)
+        }
+        return cube
+    }
+
+    NCube loadCubeById(long id)
+    {
+        NCube cube = NCubeManager.loadCubeById(id)
+        if (cube == null)
+        {
+            throw new IllegalArgumentException('Unable to load cube by id: ' + id)
         }
         return cube
     }
@@ -419,5 +491,35 @@ class NCubeService
             String s = "Failed to load n-cubes from passed in JSON, last successful cube read: " + lastSuccessful
             throw new IllegalArgumentException(s, e)
         }
+    }
+
+    Object getUpToDateStatus(ApplicationID appId, String cubeName)
+    {
+        return true
+//        if (appId.isHead())
+//        {   // HEAD cube can never be out-of-date by definition.
+//            return true
+//        }
+//
+//        Map options = [(NCubeManager.SEARCH_EXACT_MATCH_NAME): true,
+//                       (NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true]
+//
+//        String realHeadSha1
+//        List<NCubeInfoDto> list = NCubeManager.search(appId.asHead(), cubeName, null, options)
+//        if (list.size() != 1)
+//        {   // New cube in your branch but not yet in HEAD branch
+//            return true
+//        }
+//
+//        NCubeInfoDto dto = list[0]
+//        realHeadSha1 = dto.sha1
+//
+//        list = NCubeManager.search(appId, cubeName, null, options)
+//        if (list.size() != 1)
+//        {   // Ignore when you can't find the cube that was requested
+//            return true
+//        }
+//        dto = list[0]
+//        return StringUtilities.equalsIgnoreCase(realHeadSha1, dto.headSha1)
     }
 }

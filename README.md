@@ -9,28 +9,40 @@ n-cube-editor is a web-based GUI editor for editing and managing n-cubes.
   <version>0.4.0</version>
 </dependency>
 ```
-Like **n-cube-editor** and find it useful? Donate some **Bitcoin**: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
+Like **n-cube-editor** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
 
 #### Licensing
-Copyright 2012-2015 Cedar Software, LLC
+Copyright 2012-2016 Cedar Software, LLC
 
 Licensed under the Apache License, Version 2.0
 
 ### Sponsors
-![Alt text](https://www.yourkit.com/images/yklogo.png "Yourkit")
+[![Alt text](https://www.yourkit.com/images/yklogo.png "YourKit")](https://www.yourkit.com/.net/profiler/index.jsp)
 
 YourKit supports open source projects with its full-featured Java Profiler.
 YourKit, LLC is the creator of <a href="https://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a>
 and <a href="https://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>,
 innovative and intelligent tools for profiling Java and .NET applications.
 
-![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")
+[![Alt text](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS-ZOCfy4ezfTmbGat9NYuyfe-aMwbo3Czx3-kUfKreRKche2f8fg "IntellijIDEA")](https://www.jetbrains.com/idea/)
 ___
 ### Version History
 * 0.5.0-SNAPSHOT
+ * Enhancement: cut / copy / paste now copy cells exact (e.g. GroovyExpression is not turned into a String).  Also, if the content to be copied contains newlines or quotes, that is handled properly as well.
+ * Enhancement: In order to copy from NCE to Excel, you can toggle the clipboard mode (Ctrl-K or Cmd-K on macs).  This will toggle the copy mode.  When toggle, the information on the clipboard with either be copied in NCE mode (with extra information about the cell type - maintains cell type) or in Excel mode (compatible with pasting into Excel). 
+ * Enhancement: Revision History now allows two cubes to be compared.
+ * Enhancement: Commit / Rollback modal now allows two cubes to be compared.
+ * Enhancement: Merge Conflicts modal now allows two cubes to be compared.
  * Enhancement: Added Alt-click to display coordinate of currently selected in pop-up window.
  * Enhancement: Added Server Info display to Data (Geek) menu
  * Enhancement: Added HTTP Header display to Data (Geek) menu
+ * Enhancement: Updated to use n-cube 3.4.8
+ * Enhancement: Hide columns
+ * Enhancement: Move Axis
+ * Enhancement: Frozen columns / headers
+ * Enhancement: Multiple n-cubes (tabs) open
+ * Enhancement: Revision history - Compare, Promote
+ * Enhancement: Search (find) within columns / cells
 * 0.4.0
  * 10x speed up in loading the cube HTML.  No longer sending String return values to resolveRefs (5x) and adding single listener to table instead of a listener-per-cell (5x).
  * Enhancement: 'Processing...' (toast) messages pop up now for menu items that generally take a bit of time to execute.  This allows the menu click to be processed, the 'toast' to be displayed, and then the toast clears and the appropriate modal displays. 

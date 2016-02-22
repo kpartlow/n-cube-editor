@@ -6,8 +6,8 @@
 
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-    typeof define === 'function' && define.amd ? define(factory) :
-    global.moment = factory()
+        typeof define === 'function' && define.amd ? define(factory) :
+            global.moment = factory()
 }(this, function () { 'use strict';
 
     var hookCallback;
@@ -263,7 +263,7 @@
         var oldLocale = null;
         // TODO: Find a better way to register and load all the locales in Node
         if (!locales[name] && typeof module !== 'undefined' &&
-                module && module.exports) {
+            module && module.exports) {
             try {
                 oldLocale = globalLocale._abbr;
                 require('./locale/' + name);
@@ -715,12 +715,12 @@
         if (a && getParsingFlags(m).overflow === -2) {
             overflow =
                 a[MONTH]       < 0 || a[MONTH]       > 11  ? MONTH :
-                a[DATE]        < 1 || a[DATE]        > daysInMonth(a[YEAR], a[MONTH]) ? DATE :
-                a[HOUR]        < 0 || a[HOUR]        > 24 || (a[HOUR] === 24 && (a[MINUTE] !== 0 || a[SECOND] !== 0 || a[MILLISECOND] !== 0)) ? HOUR :
-                a[MINUTE]      < 0 || a[MINUTE]      > 59  ? MINUTE :
-                a[SECOND]      < 0 || a[SECOND]      > 59  ? SECOND :
-                a[MILLISECOND] < 0 || a[MILLISECOND] > 999 ? MILLISECOND :
-                -1;
+                    a[DATE]        < 1 || a[DATE]        > daysInMonth(a[YEAR], a[MONTH]) ? DATE :
+                        a[HOUR]        < 0 || a[HOUR]        > 24 || (a[HOUR] === 24 && (a[MINUTE] !== 0 || a[SECOND] !== 0 || a[MILLISECOND] !== 0)) ? HOUR :
+                            a[MINUTE]      < 0 || a[MINUTE]      > 59  ? MINUTE :
+                                a[SECOND]      < 0 || a[SECOND]      > 59  ? SECOND :
+                                    a[MILLISECOND] < 0 || a[MILLISECOND] > 999 ? MILLISECOND :
+                                        -1;
 
             if (getParsingFlags(m)._overflowDayOfYear && (overflow < YEAR || overflow > DATE)) {
                 overflow = DATE;
@@ -1095,9 +1095,9 @@
 
         // Check for 24:00:00.000
         if (config._a[HOUR] === 24 &&
-                config._a[MINUTE] === 0 &&
-                config._a[SECOND] === 0 &&
-                config._a[MILLISECOND] === 0) {
+            config._a[MINUTE] === 0 &&
+            config._a[SECOND] === 0 &&
+            config._a[MILLISECOND] === 0) {
             config._nextDay = true;
             config._a[HOUR] = 0;
         }
@@ -1211,8 +1211,8 @@
 
         // clear _12h flag if hour is <= 12
         if (getParsingFlags(config).bigHour === true &&
-                config._a[HOUR] <= 12 &&
-                config._a[HOUR] > 0) {
+            config._a[HOUR] <= 12 &&
+            config._a[HOUR] > 0) {
             getParsingFlags(config).bigHour = undefined;
         }
         // handle meridiem
@@ -1390,12 +1390,12 @@
     }
 
     var prototypeMin = deprecate(
-         'moment().min is deprecated, use moment.min instead. https://github.com/moment/moment/issues/1548',
-         function () {
-             var other = local__createLocal.apply(null, arguments);
-             return other < this ? this : other;
-         }
-     );
+        'moment().min is deprecated, use moment.min instead. https://github.com/moment/moment/issues/1548',
+        function () {
+            var other = local__createLocal.apply(null, arguments);
+            return other < this ? this : other;
+        }
+    );
 
     var prototypeMax = deprecate(
         'moment().max is deprecated, use moment.max instead. https://github.com/moment/moment/issues/1548',
@@ -1684,7 +1684,7 @@
 
     function create__createDuration (input, key) {
         var duration = input,
-            // matching against regexp is expensive, do it on demand
+        // matching against regexp is expensive, do it on demand
             match = null,
             sign,
             ret,
@@ -1829,10 +1829,10 @@
             diff = this.diff(sod, 'days', true),
             format = diff < -6 ? 'sameElse' :
                 diff < -1 ? 'lastWeek' :
-                diff < 0 ? 'lastDay' :
-                diff < 1 ? 'sameDay' :
-                diff < 2 ? 'nextDay' :
-                diff < 7 ? 'nextWeek' : 'sameElse';
+                    diff < 0 ? 'lastDay' :
+                        diff < 1 ? 'sameDay' :
+                            diff < 2 ? 'nextDay' :
+                                diff < 7 ? 'nextWeek' : 'sameElse';
         return this.format(formats && formats[format] || this.localeData().calendar(format, this, local__createLocal(now)));
     }
 
@@ -1898,10 +1898,10 @@
             delta = this - that;
             output = units === 'second' ? delta / 1e3 : // 1000
                 units === 'minute' ? delta / 6e4 : // 1000 * 60
-                units === 'hour' ? delta / 36e5 : // 1000 * 60 * 60
-                units === 'day' ? (delta - zoneDelta) / 864e5 : // 1000 * 60 * 60 * 24, negate dst
-                units === 'week' ? (delta - zoneDelta) / 6048e5 : // 1000 * 60 * 60 * 24 * 7, negate dst
-                delta;
+                    units === 'hour' ? delta / 36e5 : // 1000 * 60 * 60
+                        units === 'day' ? (delta - zoneDelta) / 864e5 : // 1000 * 60 * 60 * 24, negate dst
+                            units === 'week' ? (delta - zoneDelta) / 6048e5 : // 1000 * 60 * 60 * 24 * 7, negate dst
+                                delta;
         }
         return asFloat ? output : absFloor(output);
     }
@@ -1909,7 +1909,7 @@
     function monthDiff (a, b) {
         // difference in months
         var wholeMonthDiff = ((b.year() - a.year()) * 12) + (b.month() - a.month()),
-            // b is in (anchor - 1 month, anchor + 1 month)
+        // b is in (anchor - 1 month, anchor + 1 month)
             anchor = a.clone().add(wholeMonthDiff, 'months'),
             anchor2, adjust;
 
@@ -2007,26 +2007,26 @@
         // the following switch intentionally omits break keywords
         // to utilize falling through the cases.
         switch (units) {
-        case 'year':
-            this.month(0);
+            case 'year':
+                this.month(0);
             /* falls through */
-        case 'quarter':
-        case 'month':
-            this.date(1);
+            case 'quarter':
+            case 'month':
+                this.date(1);
             /* falls through */
-        case 'week':
-        case 'isoWeek':
-        case 'day':
-            this.hours(0);
+            case 'week':
+            case 'isoWeek':
+            case 'day':
+                this.hours(0);
             /* falls through */
-        case 'hour':
-            this.minutes(0);
+            case 'hour':
+                this.minutes(0);
             /* falls through */
-        case 'minute':
-            this.seconds(0);
+            case 'minute':
+                this.seconds(0);
             /* falls through */
-        case 'second':
-            this.milliseconds(0);
+            case 'second':
+                this.milliseconds(0);
         }
 
         // weeks are a special case
@@ -2801,9 +2801,9 @@
         ordinal : function (number) {
             var b = number % 10,
                 output = (toInt(number % 100 / 10) === 1) ? 'th' :
-                (b === 1) ? 'st' :
-                (b === 2) ? 'nd' :
-                (b === 3) ? 'rd' : 'th';
+                    (b === 1) ? 'st' :
+                        (b === 2) ? 'nd' :
+                            (b === 3) ? 'rd' : 'th';
             return number + output;
         }
     });
@@ -2869,7 +2869,7 @@
         // if we have a mix of positive and negative values, bubble down first
         // check: https://github.com/moment/moment/issues/2166
         if (!((milliseconds >= 0 && days >= 0 && months >= 0) ||
-                (milliseconds <= 0 && days <= 0 && months <= 0))) {
+            (milliseconds <= 0 && days <= 0 && months <= 0))) {
             milliseconds += absCeil(monthsToDays(months) + days) * 864e5;
             days = 0;
             months = 0;
@@ -3016,15 +3016,15 @@
         var years    = round(duration.as('y'));
 
         var a = seconds < thresholds.s && ['s', seconds]  ||
-                minutes === 1          && ['m']           ||
-                minutes < thresholds.m && ['mm', minutes] ||
-                hours   === 1          && ['h']           ||
-                hours   < thresholds.h && ['hh', hours]   ||
-                days    === 1          && ['d']           ||
-                days    < thresholds.d && ['dd', days]    ||
-                months  === 1          && ['M']           ||
-                months  < thresholds.M && ['MM', months]  ||
-                years   === 1          && ['y']           || ['yy', years];
+            minutes === 1          && ['m']           ||
+            minutes < thresholds.m && ['mm', minutes] ||
+            hours   === 1          && ['h']           ||
+            hours   < thresholds.h && ['hh', hours]   ||
+            days    === 1          && ['d']           ||
+            days    < thresholds.d && ['dd', days]    ||
+            months  === 1          && ['M']           ||
+            months  < thresholds.M && ['MM', months]  ||
+            years   === 1          && ['y']           || ['yy', years];
 
         a[2] = withoutSuffix;
         a[3] = +posNegDuration > 0;
