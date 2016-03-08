@@ -9,23 +9,100 @@
     <meta name="description" content="n-cube visualizer">
     <meta name="author" content="Beata Heekin">
 
+    <link href="css/jquery-ui-1.11.0.min.css" rel="stylesheet"/>
+    <link href="css/jquery.layout-1.4.4.css" rel="stylesheet"/>
     <link href="css/bootstrap.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
     <link href="css/common.css" rel="stylesheet"/>
+    <link href="visjs/vis.css" rel="stylesheet"/>
+    <link href="css/jquery.gritter.css" rel="stylesheet"/>
     <link href="css/visualize.css" rel="stylesheet"/>
 
+    <script src="visjs/vis.js"></script>
 </head>
-<body class="noselect" id="mainBody">
 
-N-Cube Network View
-<script src="js/jquery-2.1.4.min.js"></script>
-<script src="js/bootstrap.min.js"></script>
-<script src="js/bootstrap-select.min.js"></script>
-<script src="js/mitDate.js"></script>
-<script src="js/constants.js"></script>
-<script src="js/common.js"></script>
-<script src="js/visualize.js"></script>
+<body class="noselect" id="visBody">
+
+    <div id="visLayoutCenter" class="pane ui-layout-center center-bkgnd">
+        <div id="visualize" class="tab-pane in active">
+
+            <div id="visualizer-error" style="display:none;"></div>
+            <div id="visualizer-content" style="overflow:visible">
+
+                <div id="scope-info">
+
+                    <div class="inline-block">
+                        <label>Scope: </label>
+                    </div>
+                    <div id="scope-div" class="inline-block">
+                        <div class="input-group input-group-sm col-width-large">
+                            <input id="scope" type="text" class="form-control" placeholder="Loading scope...">
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="visualizer-info">
+
+                    <div class="inline-block">
+                        <label>Levels: </label>
+                    </div>
+                    <div id="selectedLevel-div" class="inline-block">
+                        <div class="input-group input-group-sm">
+                            <select id="selectedLevel-list" class="form-control">
+                                <option>Loading levels...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="counts-div" class="inline-block">
+                        <span id="counts" class="badge">Loading counts...</span>
+                    </div>
+
+                    <div id="hierarchical-div" class="inline-block">
+                        <div class="input-group input-group-sm">
+                            <input id="hierarchical" type="checkbox"> Hierarchical
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="inline-block">
+                            <label>Include: </label>
+                        </div>
+                        <div id="availableGroupsAllLevels-div" class="inline-block" >
+                            <div>
+                                <div id="availableGroupsAllLevels" class="input-group input-group-sm">Loading included groups...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="visualizer-network">
+                    <div id="network">Loading network...</div>
+                </div>
+
+            </div>
+       </div>
+    </div>
+
+    <div id="visLayoutEast" class="pane ui-layout-east" title="Tests" aria-disabled="false">
+        <h3 id="nodeTitle"></h3>
+        <div id="nodeDesc"></div>
+    </div>
+
+    <script src="js/jquery-2.1.4.min.js"></script>
+    <script src="js/jquery-ui-1.11.0.min.js"></script>
+    <script src="js/jquery.layout-1.4.4.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/bootstrap-select.min.js"></script>
+    <script src="js/mitDate.js"></script>
+    <script src="js/constants.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/visualize.js"></script>
+    <script src="js/jquery.gritter.js"></script>
 
 </body>
 </html>

@@ -10,7 +10,9 @@ var OPEN_CUBES = NCE_PREFIX + 'OPEN_CUBES';
 var HIDDEN_COLUMNS = NCE_PREFIX + 'HIDDEN_COLUMNS';
 var AXIS_ORDER = NCE_PREFIX + 'AXIS_ORDER';
 var COLUMN_WIDTHS = NCE_PREFIX + 'COLUMN_WIDTHS';
+var ROW_HEIGHTS = NCE_PREFIX + 'ROW_HEIGHTS';
 var TEST_RESULTS = NCE_PREFIX + 'TEST_RESULTS';
+var FILTERS = NCE_PREFIX + 'FILTERS';
 var PROGRESS_DELAY = 300;
 var DIFF_SIDE_BY_SIDE = 0;
 var DIFF_INLINE = 1;
@@ -22,6 +24,8 @@ var TAB_SEPARATOR = '~';
 
 var MIN_COL_WIDTH = 50;
 var MAX_COL_WIDTH = 600;
+var FONT_HEIGHT = 22;
+var MIN_ROW_HEIGHT = FONT_HEIGHT + 1;
 var FONT_SIZE = '14px';
 var FONT_CELL = FONT_SIZE + ' Helvetica Neue';
 var FONT_CODE = FONT_SIZE + ' Lucida Console';
@@ -78,6 +82,7 @@ var STATUS = {
 var URL_ENABLED_LIST = ['string', 'binary', 'exp', 'method', 'template'];
 var CACHE_ENABLED_LIST = ['string', 'binary', 'exp', 'method', 'template'];
 var CODE_CELL_TYPE_LIST = ['exp', 'method'];
+var FILTER_COMPARATOR_LIST = ['=','!=','>','<','contains','excludes'];
 
 var KEY_CODES = {
     MOUSE_LEFT: 1,

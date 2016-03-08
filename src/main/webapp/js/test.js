@@ -1304,12 +1304,7 @@ var TestEditor = (function ($)
 
     var load = function()
     {
-        if (!nce.getCubeMap() || !nce.doesCubeExist())
-        {
-            return;
-        }
-
-        var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
+        var info = nce.getInfoDto();
         if (!info)
         {
             return;

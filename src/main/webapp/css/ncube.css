@@ -26,10 +26,24 @@
     opacity: 0;
 }
 
-div#editColumnsModal ul.list-group
+#topAxisBtn {
+    z-index: 999;
+    position: fixed;
+}
+
+ul.list-group
 {
     padding-left: 20px;
     padding-right: 20px;
+}
+
+#filterTable {
+    margin: 0 auto;
+}
+
+#filterTable td {
+    padding-right: 25px;
+    text-align: center;
 }
 
 div#editColumnsModal div.panel-group
@@ -84,7 +98,7 @@ div#editColumnsModal div.panel-group
 
 #search-container input {
     padding: 0;
-    width: 138px;
+    width: 135px;
     border-right: none;
     border-top: none;
     border-bottom: none;
@@ -118,9 +132,15 @@ div#editColumnsModal div.panel-group
     background-color: #BEEEEF;
 }
 
-.handsonTableHeader.handsonCurrentRow {
-    background-color: rgba(146, 146, 146, 0.75) !important;
+.handsontable .htCore td.handsonTableHeader.handsonCurrentRow {
+    background-color: rgba(146, 146, 146, 0.75);
 }
+
+.handsontable .htCore td.handsonTableHeader.searchResult.handsonCurrentRow {
+    background-color: rgba(239, 251, 60, 0.75);
+    color: #583707;
+}
+
 .handsontable .htCore td.searchResult {
     background-color: #EFFB3C;
     color: #583707;

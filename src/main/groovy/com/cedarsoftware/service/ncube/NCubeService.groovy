@@ -63,19 +63,24 @@ class NCubeService
         return NCubeManager.getRevisionHistory(appId, cubeName)
     }
 
-    List<String> getAppNames(String tenant, String status, String branch)
+    List<String> getAppNames(String tenant)
     {
-        return NCubeManager.getAppNames(tenant, status, branch)
+        return NCubeManager.getAppNames(tenant)
     }
 
-    List<String> getAppVersions(String tenant, String app, String status, String branch)
+    Map<String, List<String>> getVersions(String tenant, String app)
     {
-        return NCubeManager.getAppVersions(tenant, app, status, branch)
+        return NCubeManager.getVersions(tenant, app)
     }
 
     void createBranch(ApplicationID appId)
     {
         NCubeManager.createBranch(appId)
+    }
+
+    Set<String> getBranches(ApplicationID appId)
+    {
+        return NCubeManager.getBranches(appId)
     }
 
     Set<String> getBranches(String tenant)
@@ -463,8 +468,7 @@ class NCubeService
         String lastSuccessful = ""
         try
         {
-            JsonObject ncubes = (JsonObject) JsonReader.jsonToMaps(json)
-            Object[] cubes = ncubes.getArray()
+            Object[] cubes = (Object[]) JsonReader.jsonToJava(json)
             List cubeList = new ArrayList(cubes.length)
 
             for (Object cube : cubes)

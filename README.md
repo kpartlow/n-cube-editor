@@ -6,7 +6,7 @@ n-cube-editor is a web-based GUI editor for editing and managing n-cubes.
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
 </dependency>
 ```
 Like **n-cube-editor** and find it useful? **Tip** bitcoin: 1MeozsfDpUALpnu3DntHWXxoPJXvSAXmQA
@@ -28,6 +28,11 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ___
 ### Version History
 * 0.5.0-SNAPSHOT
+ * Enhancement: Visualize n-cube as connected network (graphs)
+ * Enhancement: Reference Axis support.  Cube axes can now point to 'reference' or 'definitional axes' so that if the referred to axis is modified, so to is the referring axis (data is not duplicated).
+ * Enhancement: Filter rows
+ * Enhancement: Single cube commit, update, and compare
+ * Enhancement: Tabs can be drag-n-dropped rearranged
  * Enhancement: cut / copy / paste now copy cells exact (e.g. GroovyExpression is not turned into a String).  Also, if the content to be copied contains newlines or quotes, that is handled properly as well.
  * Enhancement: In order to copy from NCE to Excel, you can toggle the clipboard mode (Ctrl-K or Cmd-K on macs).  This will toggle the copy mode.  When toggle, the information on the clipboard with either be copied in NCE mode (with extra information about the cell type - maintains cell type) or in Excel mode (compatible with pasting into Excel). 
  * Enhancement: Revision History now allows two cubes to be compared.

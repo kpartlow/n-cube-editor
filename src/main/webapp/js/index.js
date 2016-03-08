@@ -19,17 +19,6 @@
  *         limitations under the License.
  */
 
-(function($) {
-    $.fn.canvasMeasureWidth = function (font) {
-        if (!jQuery._cachedCanvas) {
-            var canvas = document.createElement('canvas');
-            jQuery._cachedCanvas = canvas.getContext('2d');
-        }
-        jQuery._cachedCanvas.font = font;
-        return jQuery._cachedCanvas.measureText(this[0].innerText).width;
-    };
-})(jQuery);
-
 var NCE = (function ($)
 {
     var head = 'HEAD';
@@ -102,8 +91,6 @@ var NCE = (function ($)
     var _tabDragIndicator = $('#tab-drag-indicator');
     var _appMenu = $('#AppMenu');
     var _versionMenu = $('#VersionMenu');
-    var _statusRelease = $('#status-release');
-    var _statusSnapshot = $('#status-snapshot');
 
     //  modal dialogs
     var _selectBranchModal = $('#selectBranchModal');
@@ -123,7 +110,6 @@ var NCE = (function ($)
             loadVersions();
             loadNCubes();
             loadAppListView();
-            loadStatusListView();
             loadVersionListView();
             buildMenu();
             clearSearch();
@@ -131,65 +117,12 @@ var NCE = (function ($)
             heartBeat();
             addListeners();
             addModalFilters();
+            modalsDraggable(true);
         }
         catch (e)
         {
             console.log(e);
         }
-    }
-
-    function addModalFilters() {
-        var delay = (function(){
-            var timer = 0;
-            return function(callback, ms){
-                clearTimeout(timer);
-                timer = setTimeout(callback, ms);
-            };
-        })();
-
-        $('.modal-filter').each(function() {
-            var contentDiv = $(this);
-            var list = contentDiv.find('.modal-body').find('ul');
-
-            var countSpan = $('<span/>');
-            countSpan.addClass('pull-left selected-count');
-            contentDiv.find('.select-none').after(countSpan);
-
-            var items = [];
-            var checkBoxes = [];
-            var checkedItems = [];
-            contentDiv.click(function() {
-                if (items.length === 0) {
-                    items = list.find('li');
-                    checkBoxes = items.find('input[type="checkbox"]');
-                }
-                checkedItems = checkBoxes.filter(function() {
-                    return $(this)[0].checked;
-                });
-                countSpan[0].innerHTML = checkedItems.length + ' of ' + items.length + ' Selected';
-            });
-
-            var div = $('<div/>');
-            var input = $('<input/>');
-            input.prop({'type':'text','placeholder':'Filter...'});
-            input.css({'width':'100%'});
-            input.keyup(function(e) {
-                delay(function() {
-                    var query = input.val().toLowerCase();
-                    if (query === '') {
-                        items.show();
-                    } else {
-                        items.hide();
-                        items.filter(function () {
-                            return $(this)[0].innerHTML.toLowerCase().indexOf(query) > -1;
-                        }).show();
-                    }
-                }, 200);
-            });
-
-            div.append(input);
-            contentDiv.find('.modal-header').after(div);
-        });
     }
 
     function setupMainSplitter() {
@@ -219,7 +152,9 @@ var NCE = (function ($)
             , stateManagement__enabled: false // automatic cookie load & save enabled by default
             , showDebugMessages: false // log and/or display messages from debugging & testing code
             , onresize_end: function() {
-                buildTabs();
+                delay(function() {
+                    buildTabs();
+                },PROGRESS_DELAY);
             }
         });
     }
@@ -230,7 +165,7 @@ var NCE = (function ($)
 
     function addCurrentCubeTab(insertIdx, cubeInfo, dto) {
         var cubeInfo = cubeInfo || [_selectedApp, _selectedVersion, _selectedStatus, _selectedBranch, _selectedCubeName, getActiveTabViewType()];
-        var newOpenCube = {cubeKey:getCubeInfoKey(cubeInfo),status:null,position:{},numFrozenCols:null,infoDto:dto||_cubeList[cubeInfo[CUBE_INFO.NAME].toLowerCase()]};
+        var newOpenCube = {cubeKey:getCubeInfoKey(cubeInfo),status:null,position:{},numFrozenCols:null,searchQuery:null,infoDto:dto||_cubeList[cubeInfo[CUBE_INFO.NAME].toLowerCase()]};
         if (insertIdx > -1) {
             _openCubes.splice(insertIdx, 0, newOpenCube);
         } else {
@@ -284,6 +219,14 @@ var NCE = (function ($)
         return getOpenCubeInfoValue('numFrozenCols');
     }
 
+    function getSearchQuery() {
+        return getOpenCubeInfoValue('searchQuery');
+    }
+
+    function saveSearchQuery(query) {
+        saveOpenCubeInfoValue('searchQuery', query);
+    }
+
     function getCubeInfoKey(cubeInfo)
     {
         return cubeInfo.join(TAB_SEPARATOR);
@@ -303,18 +246,11 @@ var NCE = (function ($)
         _openCubes.splice(getOpenCubeIndex(cubeInfo), 1);
         saveOpenCubeList();
 
-        if (_selectedApp === cubeInfo[CUBE_INFO.APP]
-            && _selectedVersion === cubeInfo[CUBE_INFO.VERSION]
-            && _selectedStatus === cubeInfo[CUBE_INFO.STATUS]
-            && _selectedBranch === cubeInfo[CUBE_INFO.BRANCH]
-            && _selectedCubeName === cubeInfo[CUBE_INFO.NAME]
-            && getActiveTabViewType() === cubeInfo[CUBE_INFO.TAB_VIEW]) {
-            if (_openCubes.length > 0) {
-                var newCubeInfo = getCubeInfo(_openCubes[0].cubeKey);
-                makeCubeInfoActive(newCubeInfo);
-            } else {
-                switchTabPane(null);
-            }
+        if (_openCubes.length > 0) {
+            var newCubeInfo = getCubeInfo(_openCubes[0].cubeKey);
+            makeCubeInfoActive(newCubeInfo);
+        } else {
+            switchTabPane(null);
         }
 
         buildTabs();
@@ -399,6 +335,15 @@ var NCE = (function ($)
             return $(this)[0].textContent.trim() === getActiveTabViewType().replace(PAGE_ID,'');
         }).addClass(CLASS_ACTIVE_VIEW);
 
+        var listCubeName = null;
+        if (cubeInfo[CUBE_INFO.APP] === _selectedApp
+            && cubeInfo[CUBE_INFO.VERSION] === _selectedVersion
+            && cubeInfo[CUBE_INFO.STATUS] === _selectedStatus
+            && cubeInfo[CUBE_INFO.BRANCH] === _selectedBranch) {
+            listCubeName = _selectedCubeName;
+        }
+        setListSelectedStatus(listCubeName, '#ncube-list');
+
         switchTabPane(getActiveTabViewType());
     }
 
@@ -480,9 +425,11 @@ var NCE = (function ($)
                         .tab('show');
                 }
 
-                makeCubeInfoActive(cubeInfo);
-                selectTab(cubeInfo);
-                saveState();
+                if (cubeInfo !== _selectedCubeInfo) {
+                    makeCubeInfoActive(cubeInfo);
+                    selectTab(cubeInfo);
+                    saveState();
+                }
             }
         });
 
@@ -520,7 +467,7 @@ var NCE = (function ($)
                             if (isCtrlKey) { // open new tab
                                 li.removeClass('open');
                                 li.tooltip('hide');
-                                addCurrentCubeTab(tabIdx, cubeInfo, getInfoDto());
+                                addCurrentCubeTab(tabIdx, ci2, getInfoDto());
                             } else { // use current tab
                                 cubeInfo[CUBE_INFO.TAB_VIEW] = getActiveTabViewType();
                                 _openCubes[tabIdx].cubeKey = cia2;
@@ -829,6 +776,7 @@ var NCE = (function ($)
                     if (cw.tabActivated !== undefined) {
                         cw.tabActivated(buildAppState());
                         localStorage[ACTIVE_TAB_VIEW_TYPE] = pageId;
+                        cw.focus();
                     }
                 }
             } catch (e) {
@@ -1036,6 +984,8 @@ var NCE = (function ($)
             getViewPosition: getViewPosition,
             getNumFrozenCols: getNumFrozenCols,
             saveNumFrozenCols: saveNumFrozenCols,
+            getSearchQuery: getSearchQuery,
+            saveSearchQuery: saveSearchQuery,
             selectCubeFromAppId: selectCubeFromAppId
         };
     }
@@ -1189,17 +1139,6 @@ var NCE = (function ($)
         _versionMenu[0].innerHTML = 'Version: Loading...';
     }
 
-    function changeStatus(value) {
-        _selectedStatus = value;
-        loadStatusListView();
-        loadVersions();
-        loadVersionListView();
-        loadNCubes();
-        loadNCubeListView();
-        runSearch();
-        buildMenu();
-    }
-
     function addListeners()
     {
         $('.select-all').click(function() {
@@ -1229,13 +1168,6 @@ var NCE = (function ($)
             var top = _openTabsPanel.outerHeight() - _tabDragIndicator.height() + _openTabsPanel.offset().top;
             _tabDragIndicator.css({left:left, top:top});
             _tabDragIndicator.show()
-        });
-
-        _statusRelease.click(function() {
-            changeStatus(STATUS.RELEASE);
-        });
-        _statusSnapshot.click(function() {
-            changeStatus(STATUS.SNAPSHOT);
         });
 
         // 'Close' for the Diff Modal
@@ -1311,7 +1243,6 @@ var NCE = (function ($)
                     loadVersions();
                     loadNCubes();
                     loadAppListView();
-                    loadStatusListView();
                     loadVersionListView();
                     selectCubeByName(_selectedCubeName);
                     buildMenu();
@@ -1361,27 +1292,27 @@ var NCE = (function ($)
         });
         $('#showRefsFromClose').click(function ()
         {
-            showRefsFromCubeClose()
+            showRefsFromCubeClose();
         });
         $('#showReqScopeClose').click(function ()
         {
-            showReqScopeClose()
+            showReqScopeClose();
         });
         $('#releaseCubesMenu').click(function ()
         {
-            releaseCubes()
+            releaseCubes();
         });
         $('#releaseCubesOk').click(function ()
         {
-            releaseCubesOk()
+            releaseCubesOk();
         });
         $('#changeVerMenu').click(function ()
         {
-            changeVersion()
+            changeVersion();
         });
         $('#changeVerOk').click(function ()
         {
-            changeVersionOk()
+            changeVersionOk();
         });
         $('#clearStorage').click(function()
         {
@@ -1474,16 +1405,6 @@ var NCE = (function ($)
             cube: _selectedCubeName}, title);
     }
 
-    function loadStatusListView() {
-        var isRelease = _selectedStatus === STATUS.RELEASE;
-        var selected = isRelease ? _statusRelease : _statusSnapshot;
-        var notSelected = isRelease ? _statusSnapshot : _statusRelease;
-        selected.addClass('active');
-        notSelected.removeClass('active');
-        selected.find('input').prop('checked','true');
-        notSelected.find('input').prop('checked','false');
-    }
-
     function loadVersionListView()
     {
         var ul = _versionMenu.parent().find('.dropdown-menu');
@@ -1491,13 +1412,18 @@ var NCE = (function ($)
 
         $.each(_versions, function (index, value)
         {
+            var arr = value.split('-');
+            var version = arr[0];
+            var status = arr[1];
             var li = $('<li/>');
             var an = $('<a/>');
             an.attr('href','#');
             an[0].innerHTML = value;
             an.click(function() {
-                localStorage[SELECTED_VERSION] = value;
-                _selectedVersion = value;
+                localStorage[SELECTED_VERSION] = version;
+                _selectedVersion = version;
+                localStorage[SELECTED_STATUS] = status;
+                _selectedStatus = status;
                 _versionMenu.find('button')[0].innerHTML = value + '&nbsp;<b class="caret"></b>';
 
                 setCubeListLoading();
@@ -1517,7 +1443,7 @@ var NCE = (function ($)
 
         if (_selectedVersion)
         {
-            _versionMenu[0].innerHTML = 'Version:&nbsp;<button class="btn-sm btn-primary">' + _selectedVersion + '&nbsp;<b class="caret"></b></button>';
+            _versionMenu[0].innerHTML = 'Version:&nbsp;<button class="btn-sm btn-primary">' + _selectedVersion + '-' + _selectedStatus + '&nbsp;<b class="caret"></b></button>';
         }
     }
 
@@ -1609,6 +1535,7 @@ var NCE = (function ($)
 
     function loadCube()
     {
+        console.log('fired');
         saveState();
         try
         {
@@ -1622,8 +1549,6 @@ var NCE = (function ($)
         {
             console.log(e);
         }
-
-        setListSelectedStatus(_selectedCubeName, '#ncube-list');
     }
 
     /**
@@ -1632,34 +1557,25 @@ var NCE = (function ($)
      */
     function setListSelectedStatus(itemName, listId)
     {
-        if (itemName == null)
-        {
+        var items = $(listId).find('li a');
+        items.filter('.ncube-selected').removeClass('ncube-selected').addClass('ncube-notselected');
+        if (itemName === null || itemName === undefined) {
             return;
         }
-        var items = $(listId).find('li a');
+
         var saveSelected = null;
         var loItemName = itemName.toLowerCase();
 
-        $.each(items, function (index, value)
-        {
-            var anchor = $(value);
+        items.filter(function() {
+            var anchor = $(this);
             var text = anchor[0].textContent;
             var elemName = anchor.attr('itemName');
-            if (loItemName == elemName || itemName == text)
-            {
-                saveSelected = anchor;
-                anchor.removeClass('ncube-notselected').addClass('ncube-selected');
+            if (loItemName === elemName || itemName === text) {
+                anchor.scrollintoview();
+                return true;
             }
-            else
-            {
-                anchor.removeClass('ncube-selected').addClass('ncube-notselected');
-            }
-        });
-
-        if (saveSelected)
-        {
-            saveSelected.scrollintoview();
-        }
+            return false;
+        }).removeClass('ncube-notselected').addClass('ncube-selected');
     }
 
     /**
@@ -1715,18 +1631,7 @@ var NCE = (function ($)
             showNote('Unable to load versions, no n-cube App selected.');
             return;
         }
-        if (!_selectedStatus)
-        {
-            showNote('Unable to load versions, no n-cube Status selected.');
-            return;
-        }
-        if (!_selectedBranch)
-        {
-            showNote('Unable to load versions, no branch selected.');
-            return;
-        }
-
-        var result = call("ncubeController.getAppVersions", [_selectedApp, _selectedStatus, _selectedBranch]);
+        var result = call("ncubeController.getVersions", [_selectedApp]);
         if (result.status === true)
         {
             $.each(result.data, function (index, value)
@@ -1738,17 +1643,26 @@ var NCE = (function ($)
         {
             showNote('Unable to load versions:<hr class="hr-small"/>' + result.data);
         }
-        if (!_selectedVersion || !doesVersionExist(_selectedVersion))
+        if (!_selectedVersion || !doesVersionExist(_selectedVersion, _selectedStatus))
         {
-            _selectedVersion = (_versions && _versions.length > 0) ? _versions[_versions.length - 1] : null;
+            var version = (_versions && _versions.length > 0) ? _versions[_versions.length - 1] : null;
+            if (version) {
+                var arr = version.split('-');
+                _selectedVersion = arr[0];
+                _selectedStatus = arr[1];
+            } else {
+                _selectedVersion = null;
+                _selectedStatus = null;
+            }
         }
     }
 
-    function doesVersionExist(selVer)
+    function doesVersionExist(selVer, selStatus)
     {
+        var chkVer = selVer + '-' + selStatus;
         for (var i=0; i < _versions.length; i++)
         {
-            if (_versions[i] == selVer)
+            if (_versions[i] == chkVer)
             {
                 return true;
             }
@@ -1802,22 +1716,22 @@ var NCE = (function ($)
         $('#newCubeName').val('');
         buildDropDown('#newCubeAppList', '#newCubeAppName', _apps, function (app)
         {
-            var result = call("ncubeController.getAppVersions", [getAppId()]);
-            if (result.status === true)
-            {
-                buildDropDown('#existVersionList', '#newCubeVersion', result.data, function ()
-                {
-                });
-            }
-            else
-            {
-                showNote('Failed to load App versions:<hr class="hr-small"/>' + result.data);
-            }
+            buildVersionsDropdown('#existVersionList', '#newCubeVersion');
         });
-        buildDropDown('#existVersionList', '#newCubeVersion', _versions, function ()
-        {
-        });
+        buildVersionsDropdown('#existVersionList', '#newCubeVersion');
         $('#newCubeModal').modal();
+    }
+
+    function buildVersionsDropdown(listId, inputId) {
+        var result = call("ncubeController.getAppVersions", [_selectedApp, _selectedStatus, _selectedBranch]);
+        if (result.status === true)
+        {
+            buildDropDown(listId, inputId, result.data, function(){});
+        }
+        else
+        {
+            showNote('Failed to load App versions:<hr class="hr-small"/>' + result.data);
+        }
     }
 
     function newCubeSave()
@@ -1828,7 +1742,7 @@ var NCE = (function ($)
         var version = $('#newCubeVersion').val();
         if (!version)
         {
-            showNote("Note", "Version must be x.y.z")
+            showNote("Note", "Version must be x.y.z");
             return;
         }
         var appId = getAppId();
@@ -1843,7 +1757,6 @@ var NCE = (function ($)
             loadNCubes();
             loadVersions();
             loadAppListView();
-            loadStatusListView();
             loadVersionListView();
             loadNCubeListView();
             clearSearch();
@@ -2259,7 +2172,7 @@ var NCE = (function ($)
             saveOpenCubeList();
             _selectedCubeName = newName;
             localStorage[SELECTED_CUBE] = _selectedCubeName;
-            buildTabs();
+            buildTabs(newCubeInfo);
             loadCube();
             if (appIdsEqual(getSelectedTabAppId(), getAppId())) {
                 loadNCubes();
@@ -2291,26 +2204,9 @@ var NCE = (function ($)
         $('#dupeCubeLabel')[0].textContent = 'Duplicate: ' + _selectedCubeName + ' ?';
         buildDropDown('#dupeCubeAppList', '#dupeCubeAppName', _apps, function (app)
         {
-            var appId = {
-                'app':app,
-                'status':STATUS.SNAPSHOT,
-                'branch':_selectedBranch
-            };
-            var result = call("ncubeController.getAppVersions", [_selectedApp, _selectedStatus, _selectedBranch]);
-            if (result.status === true)
-            {
-                buildDropDown('#dupeCubeVersionList', '#dupeCubeVersion', result.data, function ()
-                {
-                });
-            }
-            else
-            {
-                showNote('Unable to load App versions:<hr class="hr-small"/>' + result.data);
-            }
+            buildVersionsDropdown('#dupeCubeVersionList', '#dupeCubeVersion');
         });
-        buildDropDown('#dupeCubeVersionList', '#dupeCubeVersion', _versions, function ()
-        {
-        });
+        buildVersionsDropdown('#dupeCubeVersionList', '#dupeCubeVersion');
         $('#dupeCubeModal').modal();
     }
 
@@ -2333,7 +2229,6 @@ var NCE = (function ($)
             _selectedApp = newApp;
             loadAppListView();
             _selectedStatus = STATUS.SNAPSHOT;
-            loadStatusListView();
             loadVersions();
             _selectedVersion = newVersion;
             loadVersionListView();
@@ -2413,8 +2308,7 @@ var NCE = (function ($)
     function releaseCubes()
     {
         clearError();
-        if (!isHeadSelected())
-        {
+        if (_selectedBranch !== head) {
             showNote('HEAD branch must be selected to release a version.');
             return;
         }
@@ -2434,7 +2328,6 @@ var NCE = (function ($)
             {
                 var saveSelectedVersion = _selectedVersion;
                 loadVersions();
-                _selectedVersion = doesItemExist(saveSelectedVersion, _versions) ? saveSelectedVersion : _selectedVersion;
                 loadVersionListView();
                 loadNCubes();
                 loadNCubeListView();
@@ -2672,10 +2565,13 @@ var NCE = (function ($)
         $('#BranchMenu')[0].innerHTML = 'Branch:&nbsp;<button class="btn-sm btn-primary">&nbsp;' + (_selectedBranch || head) + '&nbsp;<b class="caret"></b></button>';
     }
 
-    function getBranchNames(refresh) {
-        if (refresh || _branchNames.length === 0) {
-            var result = call("ncubeController.getBranches", []);
-            if (!result.status) {
+    function getBranchNames(refresh)
+    {
+        if (refresh || _branchNames.length === 0)
+        {
+            var result = call("ncubeController.getBranches", [getAppId()]);
+            if (!result.status)
+            {
                 showNote('Unable to get branches:<hr class="hr-small"/>' + result.data);
                 return [];
             }
@@ -2765,7 +2661,6 @@ var NCE = (function ($)
             loadVersions();
             loadNCubes();
             loadAppListView();
-            loadStatusListView();
             loadVersionListView();
             loadNCubeListView();
             runSearch();

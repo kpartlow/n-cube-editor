@@ -23,6 +23,8 @@
 </head>
 <body class="noselect" id="mainBody">
 
+<div id="topAxisBtn"></div>
+
 <div id="ncube" class="tab-pane in active">
     <div id="ncube-error" style="display:none;"></div>
     <div id="ncube-content" style="overflow:visible">
@@ -423,7 +425,7 @@
 <div id="hideColumnsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="hideColumnsLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="hideColumnsLabel" class="modal-title"></h3>
@@ -450,6 +452,42 @@
                 <button id="hideColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
                 <button id="hideColumnsCancel" class="btn btn-default btn-sm">Cancel</button>
                 <button id="hideColumnsSave" class="btn btn-primary btn-sm">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div id="filterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="filterLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="filterLabel" class="modal-title">Filter Data</h3>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;height:500px">
+                <div class="panel-group" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="filterHeadingOne">
+                            <h4 class="panel-title">
+                                <a id="filterInstTitle" data-toggle="collapse" data-parent="#accordion" href="#filterCollapseOne"
+                                   aria-expanded="true" aria-controls="filterCollapseOne"></a>
+                            </h4>
+                        </div>
+                        <div id="filterCollapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="filterHeadingOne">
+                            <div id="filterInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
+                <table id="filterTable">
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button id="filterAdd" class="btn btn-default btn-sm">Add Filter</button>
+                <button id="filterClear" class="btn btn-danger btn-sm">Clear Filters</button>
+                <button id="filterCancel" class="btn btn-default btn-sm">Cancel</button>
+                <button id="filterSave" class="btn btn-primary btn-sm">Save</button>
             </div>
         </div>
     </div>
@@ -524,6 +562,7 @@
 </div>
 
 <script src="js/jquery-2.1.4.min.js"></script>
+<script src="js/jquery-ui-1.11.0.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/bootstrap-select.min.js"></script>
 <script src="js/mitDate.js"></script>
