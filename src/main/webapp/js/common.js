@@ -215,23 +215,57 @@ var delay = (function(){
     };
 })();
 
+function selectAll() {
+    checkAll(true, 'input[type="checkbox"]');
+}
+
+function selectNone() {
+    checkAll(false, 'input[type="checkbox"]');
+}
+
+function addSelectAllNoneListeners() {
+    $('.select-all').click(function() {
+        selectAll();
+    });
+    $('.select-none').click(function() {
+        selectNone();
+    });
+}
+
 function addModalFilters() {
     $('.modal-filter').each(function() {
         var contentDiv = $(this);
         var list = contentDiv.find('.modal-body').find('ul');
 
+        var refreshItems = function() {
+            input.val('');
+            input.focus();
+            items = list.find('li');
+            items.on('remove', function() {
+                delay(function() {
+                    refreshItems();
+                }, 50);
+            });
+            checkBoxes = items.find('input[type="checkbox"]');
+            refreshCount();
+        };
+
+        var refreshCount = function() {
+            checkedItems = checkBoxes.filter(function() {
+                return $(this)[0].checked;
+            });
+            countSpan[0].innerHTML = checkedItems.length + ' of ' + items.length + ' Selected';
+        };
+
         var countSpan = $('<span/>');
         countSpan.addClass('pull-left selected-count');
-        contentDiv.find('.select-none').after(countSpan);
+        contentDiv.find('.btn.pull-left:last').after(countSpan);
 
         var items = [];
         var checkBoxes = [];
         var checkedItems = [];
         contentDiv.click(function() {
-            checkedItems = checkBoxes.filter(function() {
-                return $(this)[0].checked;
-            });
-            countSpan[0].innerHTML = checkedItems.length + ' of ' + items.length + ' Selected';
+            refreshCount();
         });
 
         var div = $('<div/>');
@@ -262,12 +296,9 @@ function addModalFilters() {
         div.append(input);
         contentDiv.find('.modal-header').after(div);
 
-        contentDiv.parent().parent().on('shown.bs.modal', function () {
-            input.val('');
-            input.focus();
-            items = list.find('li');
-            checkBoxes = items.find('input[type="checkbox"]');
-        })
+        contentDiv.parent().parent().on('shown.bs.modal', function(){
+            refreshItems();
+        });
     });
 }
 
@@ -295,6 +326,14 @@ function modalsDraggable(shouldBeDraggable) {
         modal.draggable(shouldBeDraggable ? 'enable' : 'disable');
     });
 }
+
+function saveOrDeleteValue(obj, storageKey) {
+    if (obj && Object.keys(obj).length > 0) {
+        localStorage[storageKey] = JSON.stringify(obj);
+    } else {
+        delete localStorage[storageKey];
+    }
+};
 
 (function($) {
     $.fn.hasScrollBar = function() {

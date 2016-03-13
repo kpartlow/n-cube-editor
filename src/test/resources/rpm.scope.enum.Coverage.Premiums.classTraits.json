@@ -1,0 +1,105 @@
+{
+  "ncube": "rpm.scope.enum.Coverage.Premiums.classTraits",
+  "defaultCellValueType": "string",
+  "defaultCellValue": "#NOT_DEFINED",
+  "axes": [
+    {
+      "name": "coverage",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000042,
+          "type": "string",
+          "value": "MockCoverage1"
+        },
+        {
+          "id": 1000000000043,
+          "type": "string",
+          "value": "MockCoverage2"
+        },
+        {
+          "id": 1000000000041,
+          "type": "string",
+          "value": "MockCoverage3"
+        },
+        {
+          "id": 1000000000044,
+          "type": "string",
+          "value": "MockCoverage4"
+        }
+      ]
+    },
+    {
+      "name": "sourceFieldName",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000000000001,
+          "type": "string",
+          "value": "Premiums"
+        }
+      ]
+    },
+    {
+      "name": "trait",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 3000000000001,
+          "type": "string",
+          "value": "r:scopedName"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000041,
+        2000000000001,
+        3000000000001
+      ],
+      "type": "string",
+      "value": "MockCoverage3_Premiums"
+    },
+    {
+      "id": [
+        1000000000042,
+        2000000000001,
+        3000000000001
+      ],
+      "type": "string",
+      "value": "MockCoverage1_Premiums"
+    },
+    {
+      "id": [
+        1000000000043,
+        2000000000001,
+        3000000000001
+      ],
+      "type": "string",
+      "value": "MockCoverage2_Premiums"
+    },
+    {
+      "id": [
+        1000000000044,
+        2000000000001,
+        3000000000001
+      ],
+      "type": "string",
+      "value": "MockCoverage4_Premiums"
+    }
+  ]
+}

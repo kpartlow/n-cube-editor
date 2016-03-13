@@ -1,0 +1,257 @@
+{
+  "ncube": "rpm.enum.Coverage.Limits",
+  "defaultCellValueType": "exp",
+  "defaultCellValue": "@rpm.scope.enum.Coverage.Limits.traits[:]",
+  "axes": [
+    {
+      "name": "name",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "string",
+          "value": "CLASS_TRAITS"
+        },
+        {
+          "id": 1000000000002,
+          "type": "string",
+          "value": "DiseaseAggregate"
+        },
+        {
+          "id": 1000000000007,
+          "type": "string",
+          "value": "DiseaseEachEmployee"
+        },
+        {
+          "id": 1000000000003,
+          "type": "string",
+          "value": "EachAccident"
+        }
+      ]
+    },
+    {
+      "name": "trait",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000000000005,
+          "type": "string",
+          "value": "r:changeable"
+        },
+        {
+          "id": 2000000000001,
+          "type": "string",
+          "value": "r:desc"
+        },
+        {
+          "id": 2000000000002,
+          "type": "string",
+          "value": "r:exists"
+        },
+        {
+          "id": 2000000000006,
+          "type": "string",
+          "value": "r:name"
+        },
+        {
+          "id": 2000000000003,
+          "type": "string",
+          "value": "r:ordinal"
+        },
+        {
+          "id": 2000000000007,
+          "type": "string",
+          "value": "r:origin"
+        },
+        {
+          "id": 2000000000004,
+          "type": "string",
+          "value": "r:scopedName"
+        },
+        {
+          "id": 2000000000008,
+          "type": "string",
+          "value": "ui:LookupChild"
+        },
+        {
+          "id": 2000000000009,
+          "type": "string",
+          "value": "ui:LookupParent"
+        },
+        {
+          "id": 2000000000010,
+          "type": "string",
+          "value": "ui:group.PolicyCoverage"
+        },
+        {
+          "id": 2000000000011,
+          "type": "string",
+          "value": "ui:group.RatingWorksheet"
+        },
+        {
+          "id": 2000000000012,
+          "type": "string",
+          "value": "ui:order"
+        },
+        {
+          "id": 2000000000016,
+          "type": "string",
+          "value": "ui:type"
+        },
+        {
+          "id": 2000000000013,
+          "type": "string",
+          "value": "v:max"
+        },
+        {
+          "id": 2000000000014,
+          "type": "string",
+          "value": "v:min"
+        },
+        {
+          "id": 2000000000015,
+          "type": "string",
+          "value": "v:selectable"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001,
+        2000000000001
+      ],
+      "type": "string",
+      "value": "Class Traits"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000002
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000003
+      ],
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000004
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000005
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000008
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000009
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000010
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000011
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000012
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000016
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000013
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000014
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000015
+      ],
+      "type": "exp",
+      "value": "@rpm.scope.enum.Coverage.Limits.classTraits[:]"
+    }
+  ]
+}

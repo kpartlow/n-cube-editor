@@ -28,6 +28,7 @@ innovative and intelligent tools for profiling Java and .NET applications.
 ___
 ### Version History
 * 0.5.0-SNAPSHOT
+ * Enhancement: Scope-build on Visualizer page.  Allows user to set up input Map to be used for Visualizer display.
  * Enhancement: Visualize n-cube as connected network (graphs)
  * Enhancement: Reference Axis support.  Cube axes can now point to 'reference' or 'definitional axes' so that if the referred to axis is modified, so to is the referring axis (data is not duplicated).
  * Enhancement: Filter rows

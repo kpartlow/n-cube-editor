@@ -1,0 +1,21 @@
+{
+  "ncube": "sys.classpath",
+  "axes": [
+    {
+      "name": "env",
+      "hasDefault": true,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": []
+    }
+  ],
+  "cells": [
+    {
+      "id": [],
+      "type": "exp",
+      "value": "return new CdnClassLoader([])"
+    }
+  ]
+}

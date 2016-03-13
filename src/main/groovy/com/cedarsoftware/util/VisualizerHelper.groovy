@@ -279,11 +279,6 @@ public class VisualizerHelper extends NCubeGroovyController {
 			{
 				traits.put(traitName, traitValue);
 			}
-
-			if(!isTraitMetaDefined(traitName))
-			{
-				invalidTraits.add("Trait [" + traitName + "] is not defined in the appropriate rpm.meta definition.");
-			}
 		}
 
 		for(String msg : invalidTraits)
@@ -293,37 +288,6 @@ public class VisualizerHelper extends NCubeGroovyController {
 		}
 		return traitCells;
 	}
-
-	/**
-	 *
-	 * @param trait
-	 * @return
-	 * COPIED: Copied from Dynamis
-	 */
-	private boolean isTraitMetaDefined(String traitt)
-	{
-		//MODIFIED: Change name of trait parameter to traitt.
-
-		int colon = traitt.indexOf(':');
-		String category = traitt.substring(0, colon);
-		String traitName = traitt.substring(colon + 1);
-
-		NCube cube = NCubeManager.getCube(applicationID, RPM_META + '.' + category);
-		if(cube != null)
-		{
-			Axis traitAxis = cube.getAxis("trait");
-			List<Column> columns = traitAxis.getColumns();
-			for(Column column : columns)
-			{
-				if(traitName.equals(column.getValue()))
-				{
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
 
 	/**
 	 * Returns the nCube for the specified class (or enum)
@@ -358,7 +322,7 @@ public class VisualizerHelper extends NCubeGroovyController {
 	 * parses the value of the r:extends trait and adds all mixins to the list of classes to process
 	 * COPIED: Copied from Dynamis
 	 */
-	private void processClassMixins(String className, String mixins, LinkedList<String> classesToProcess) {
+	private static void processClassMixins(String className, String mixins, LinkedList<String> classesToProcess) {
 		Matcher matcher = PATTERN_CLASS_EXTENDS_TRAIT.matcher(mixins);
 		if (StringUtilities.isEmpty(mixins) || !matcher.find())
 		{

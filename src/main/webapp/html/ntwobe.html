@@ -408,14 +408,17 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="editColSelectAll" type="button" class="btn btn-info btn-sm pull-left">Select All</button>
-                <button id="editColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
-                <button id="editColUp" type="button" class="btn btn-info btn-sm pull-left">Up</button>
-                <button id="editColDown" type="button" class="btn btn-info btn-sm pull-left">Down</button>
-                <button id="editColAdd" type="button" class="btn btn-success btn-sm">Add</button>
-                <button id="editColDelete" type="button" class="btn btn-danger btn-sm">Delete</button>
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
+                <button id="editColUp" class="btn btn-info btn-sm pull-left">Up</button>
+                <button id="editColDown" class="btn btn-info btn-sm pull-left">Down</button>
+                <button id="editColAdd" class="btn btn-success btn-sm">Add</button>
+                <button id="editColDelete" class="btn btn-danger btn-sm">Delete</button>
                 <button id="editColumnsCancel" class="btn btn-default btn-sm">Don't save</button>
                 <button id="editColumnsSave" class="btn btn-primary btn-sm">Save</button>
+            </div>
+            <div class="nce-clipboard-container">
+                <textarea id="edit-columns-clipboard"></textarea>
             </div>
         </div>
     </div>
@@ -448,8 +451,8 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="hideColSelectAll" type="button" class="btn btn-info btn-sm pull-left">Select All</button>
-                <button id="hideColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
                 <button id="hideColumnsCancel" class="btn btn-default btn-sm">Cancel</button>
                 <button id="hideColumnsSave" class="btn btn-primary btn-sm">Apply</button>
             </div>
@@ -557,7 +560,7 @@
     </div>
 </div>
 
-<div id="nce-clipboard-container">
+<div class="nce-clipboard-container">
     <textarea id="cell-clipboard"></textarea>
 </div>
 

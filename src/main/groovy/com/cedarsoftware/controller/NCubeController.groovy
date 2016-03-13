@@ -38,7 +38,6 @@ import com.cedarsoftware.util.ThreadAwarePrintStreamErr
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import com.google.common.util.concurrent.AtomicDouble
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -48,7 +47,6 @@ import javax.management.ObjectName
 import javax.servlet.http.HttpServletRequest
 import java.lang.management.ManagementFactory
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.regex.Pattern
 
@@ -92,11 +90,6 @@ class NCubeController extends BaseController
     // TODO: Verify all places that can create a cube are clearing the appVersionsCache
     private static final Map<String, List<String>> appVersions = new ConcurrentHashMap<>()
     private static final Object versionsLock = new Object()
-
-    // Bind to ConcurrentLinkedHashMap because some plugins will need it.
-    private ConcurrentMap<String, Object> futureCache = new ConcurrentLinkedHashMap.Builder<String, Object>()
-            .maximumWeightedCapacity(100)
-            .build()
 
     NCubeController(NCubeService service)
     {
@@ -292,18 +285,23 @@ class NCubeController extends BaseController
         }
     }
 
-    String getVisualizerJson(ApplicationID appId, Map options)
+    Map getVisualizerJson(ApplicationID appId, Map options)
     {
         try
         {
             String cubeName = options.startCubeName
+            if (!cubeName.startsWith(Visualizer.RPM_CLASS))
+            {
+                throw new IllegalArgumentException('n-cube name must begin with rpm.class, n-cube: ' + cubeName + ', app: ' + appId)
+            }
             appId = addTenant(appId)
             isAllowed(appId, cubeName, null)
 
             Visualizer vis = new Visualizer()
             vis.input = [options:options]
+            vis.output = [:]
             vis.ncube = nCubeService.getCube(appId, cubeName)
-            return vis.run()
+            return vis.buildGraph()
         }
         catch (Exception e)
         {
@@ -1227,7 +1225,11 @@ class NCubeController extends BaseController
         {
             appId = addTenant(appId)
             isAllowed(appId, null, null)
-            String absUrl = nCubeService.resolveRelativeUrl(appId, relativeUrl)
+            URL absUrl = nCubeService.resolveRelativeUrl(appId, relativeUrl)
+            if (absUrl == null)
+            {
+                throw new IllegalStateException('Unable to resolve the relative URL (' + relativeUrl + ') to a physical URL, app: ' + appId)
+            }
             return absUrl
         }
         catch (Exception e)
@@ -1456,31 +1458,39 @@ class NCubeController extends BaseController
         }
     }
 
-    void acceptTheirs(ApplicationID appId, String cubeName, String branchSha1)
+    int acceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1)
     {
         try
         {
             appId = addTenant(appId)
-            isAllowed(appId, cubeName, Delta.Type.UPDATE)
-            nCubeService.acceptTheirs(appId, cubeName, branchSha1, getUserForDatabase())
+            for (int i = 0; i < cubeNames.length; i++)
+            {
+                isAllowed(appId, (String)cubeNames[i], Delta.Type.UPDATE)
+            }
+            return nCubeService.acceptTheirs(appId, cubeNames, branchSha1, getUserForDatabase())
         }
         catch (Exception e)
         {
             fail(e)
+            return 0
         }
     }
 
-    void acceptMine(ApplicationID appId, String cubeName, String headSha1)
+    int acceptMine(ApplicationID appId, Object[] cubeNames, Object[] headSha1)
     {
         try
         {
             appId = addTenant(appId)
-            isAllowed(appId, cubeName, Delta.Type.UPDATE)
-            nCubeService.acceptMine(appId, cubeName, getUserForDatabase())
+            for (int i = 0; i < cubeNames.length; i++)
+            {
+                isAllowed(appId, (String)cubeNames[i], Delta.Type.UPDATE)
+            }
+            return nCubeService.acceptMine(appId, cubeNames, getUserForDatabase())
         }
         catch (Exception e)
         {
             fail(e)
+            return 0
         }
     }
 
@@ -1579,7 +1589,8 @@ class NCubeController extends BaseController
                     'n-cube-old':[html:'html/ncube.html',img:'img/letter-o.png'],
                     'JSON':[html:'html/jsonEditor.html',img:'img/letter-j.png'],
                     'Details':[html:'html/details.html',img:'img/letter-d.png'],
-                    'Test':[html:'html/test.html',img:'img/letter-t.png']
+                    'Test':[html:'html/test.html',img:'img/letter-t.png'],
+                    'Visualizer':[html:'html/visualize.html', img:'img/letter-v.png']
             ]
         }
     }
@@ -2213,7 +2224,7 @@ class NCubeController extends BaseController
             Map col = columnToMap(actualCol)
             CellInfo cellInfo = new CellInfo(actualCol.getValue())
             String value = cellInfo.value
-            if (axis.valueType == AxisValueType.DATE && axis.type != AxisType.SET)
+            if (axis.valueType == AxisValueType.DATE && axis.type != AxisType.SET && value != null)
             {
                 value = NO_QUOTES_REGEX.matcher(value).replaceAll("")
             }

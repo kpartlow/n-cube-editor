@@ -23,7 +23,6 @@ var Visualizer = (function ($) {
     var _network = null;
     var _nce = null;
     var _loadedCubeName = null;
-    var _reloadJson = false;
     var _nodesAllLevels = null;
     var _edgesAllLevels = null;
     var _nodesAtLevel = null;
@@ -42,7 +41,6 @@ var Visualizer = (function ($) {
     var _nodeCount = null;
     var _groupSuffix = null;
     var _startCube = null;
-    var _networkOptions = null;
     var _hierarchical = false;
     var _selectedLevel = null;
     var _visualizerInfo = null;
@@ -53,6 +51,10 @@ var Visualizer = (function ($) {
     var _nodeTitle = null;
     var _nodeDesc = null;
     var _layout = null;
+    var _scopeBuilderTable = null;
+    var _scopeBuilderModal = null;
+    var _savedScope = null;
+    var _scopeInput = null;
 
     var init = function (info) {
         if (!_nce) {
@@ -82,6 +84,11 @@ var Visualizer = (function ($) {
             _visualizerNetwork = $('#visualizer-network');
             _nodeTitle = $('#nodeTitle');
             _nodeDesc = $('#nodeDesc');
+            _scopeBuilderTable = $('#scopeBuilderTable');
+            _scopeBuilderModal = $('#scopeBuilderModal');
+            _scopeInput = $('#scope');
+
+            addScopeBuilderListeners();
 
             $(window).resize(function() {
                 if (_network) {
@@ -90,34 +97,47 @@ var Visualizer = (function ($) {
             });
 
             $('#selectedLevel-list').change(function () {
-                reLoad($('#selectedLevel-list').val());
+                reload($('#selectedLevel-list').val());
             });
 
-            $('input:checkbox').change(function () {
-                if ('hierarchical' === this.id) {
-                    _hierarchical = this.checked;
-                    draw();
-                }
+            $('#hierarchical').change(function () {
+                _hierarchical = this.checked;
+                draw();
             });
 
-            $('input:text').change(function () {
-                if (this.id === 'scope') {
-                    var scopeString = this.value;
-                    var newScope = {};
-                    var splitComma = scopeString.split(',');
-                    for (var i = 0; i < splitComma.length; i++) {
-                        var splitColon = splitComma[i].split(':');
-                        newScope[splitColon[0].trim()] = splitColon[1].trim();
-                    }
-                    _scope = newScope;
-                    _reloadJson = true;
-                    load();
-                }
+            _scopeInput.change(function () {
+                _scope = buildScopeFromText(this.value);
+                load(true);
             });
         }
     };
 
-    var reLoad = function (level) {
+    function buildScopeFromText(scopeString) {
+        var newScope = {};
+        var tuples = scopeString.split(',');
+        for (var i = 0, iLen = tuples.length; i < iLen; i++) {
+            var tuple = tuples[i].split(':');
+            var key = tuple[0].trim();
+            var value = tuple[1].trim();
+            newScope[key] = value;
+            var shouldInsertNewExpression = true;
+            for (var j = 0, jLen = _savedScope.length; j < jLen; j++) {
+                var expression = _savedScope[j];
+                if (expression.isApplied && expression.key === key) {
+                    expression.value = value;
+                    shouldInsertNewExpression = false;
+                    break;
+                }
+            }
+            if (shouldInsertNewExpression) {
+                _savedScope.push = {isApplied: true, key: key, value: value};
+            }
+        }
+        saveScope();
+        return newScope;
+    }
+
+    var reload = function (level) {
         trimNetworkData(level);
         draw();
         loadSelectedLevelListView();
@@ -127,14 +147,11 @@ var Visualizer = (function ($) {
         _visualizerNetwork.show();
     };
 
-    var load = function ()
+    var load = function (reloadJson)
     {
         var differentCube = _nce.getSelectedCubeName() !== _loadedCubeName;
 
-        if (_reloadJson || differentCube) {
-
-            _reloadJson = false;
-
+        if (reloadJson || differentCube) {
             _nce.clearError();
 
             var info = _nce.getInfoDto();
@@ -149,7 +166,7 @@ var Visualizer = (function ($) {
                 //TODO: Save off settings to local storage so they can be retrieved here and used in load of different cube.
                 _selectedLevel = null;
                 _selectedGroups = null;
-                _scope = null;
+                _scope = buildScopeFromText(buildScopeText());
                 _hierarchical = false;
                 _network = null;
             }
@@ -163,14 +180,13 @@ var Visualizer = (function ($) {
             };
 
 
-            var result = _nce.call('ncubeController.getVisualizerJson', [_nce.getSelectedTabAppId(), options], {noResolveRefs: true});
+            var result = _nce.call('ncubeController.getVisualizerJson', [_nce.getSelectedTabAppId(), options]);
             if (result.status === false) {
-                _visualizerContent.hide();
                 _nce.showNote('Failed to load visualizer: ' + TWO_LINE_BREAKS + result.data);
                 return;
             }
 
-            var json = JSON.parse(result.data);
+            var json = result.data;
 
             if (json.status === 'success') {
                 if (json.message !== null) {
@@ -215,7 +231,7 @@ var Visualizer = (function ($) {
 
     function loadScopeView() {
         delete _scope['@type'];
-        $('#scope').val(getScopeString());
+        _scopeInput.val(getScopeString());
     }
 
     function loadAvailableGroupsView()
@@ -285,7 +301,7 @@ var Visualizer = (function ($) {
         }
 
         if (groupCurrentlyAvailable(group)){
-            reLoad(_selectedLevel);
+            reload(_selectedLevel);
         }
     }
 
@@ -461,9 +477,8 @@ var Visualizer = (function ($) {
         _groupSuffix = jsonMap.groups.groupSuffix;
         _scope = jsonMap.scope;
         _startCube = jsonMap.startCube.substring(jsonMap.startCube.lastIndexOf('.') + 1);
-        _nodeCount = jsonMap.levels.nodeCount.value;
-        _networkOptions = jsonMap.networkOptions;
-        _maxLevel = jsonMap.levels.maxLevel.value;
+        _nodeCount = jsonMap.levels.nodeCount;
+        _maxLevel = jsonMap.levels.maxLevel;
         _nodesAllLevels = jsonMap.nodes;
         _edgesAllLevels = jsonMap.edges;
     }
@@ -517,36 +532,130 @@ var Visualizer = (function ($) {
         _network.openCluster(clusterNodeId)
     }
 
-    function formatNetworkOptionsMap(map)
-    {
-        for (var key in map) {
-            var value = map[key];
-            if (value === Object(value)) {
-                if (typeof value['value'] !== 'undefined') {
-                    map[key] = value['value'];
-                }
-                else {
-                    formatNetworkOptionsMap(value);
-                }
-            }
-        }
-        delete map['@type'];
-    }
-
     function draw()
     {
         var container = document.getElementById('network');
-        var options = _networkOptions;
-        formatNetworkOptionsMap(options);
-        options.height = getVisNetworkHeight();
-        options.layout.hierarchical = _hierarchical;
-        options.interaction = {
-            navigationButtons: true,
-            keyboard: {
-                enabled: true,
-                speed: {x: 5, y: 5, zoom: 0.02}
+        var options = {
+            height: getVisNetworkHeight(),
+            interaction: {
+                navigationButtons: true,
+                keyboard: {
+                    enabled: false,
+                    speed: {x: 5, y: 5, zoom: 0.02}
+                },
+                zoomView: true
             },
-            zoomView: true
+            nodes: {
+                scaling: {
+                    min: 16,
+                    max: 32
+                }
+            },
+            edges: {
+                arrows: 'to',
+                color: 'gray',
+                smooth: true,
+                hoverWidth: 3
+            },
+            physics: {
+                barnesHut: {gravitationalConstant: -30000},
+                stabilization: {iterations: 2500}
+            },
+            layout: {
+                hierarchical: _hierarchical,
+                improvedLayout : true,
+                randomSeed:2
+            },
+            groups: {  //TODO: Add other bus types
+                PRODUCT: {
+                    shape: 'box',
+                    color: '#FF9900' // orange
+                },
+                RISK: {
+                    shape: 'square',
+                    color: "#5A1E5C" // purple
+                },
+                COVERAGE: {
+                    shape: 'star',
+                    color: "#dbe92b" // yellow
+                },
+                CONTAINER: {
+                    shape: 'star',
+                    color: "#731d1d" // dark red
+                },
+                LIMIT: {
+                    shape: 'diamond',
+                    color: "#C5000B" // red
+                },
+                DEDUCTIBLE: {
+                    shape: 'diamond',
+                    color: "#ffc0cb " // pink
+                },
+                PREMIUM: {
+                    shape: 'ellipse',
+                    color: "#2be998" // green
+                },
+                RATE: {
+                    shape: 'ellipse',
+                    color: "#2B7CE9" // blue
+                },
+                RATEFACTOR: {
+                    shape: 'ellipse',
+                    color: "#2bdbe9" // light blue
+                },
+                PARTY: {
+                    shape: 'box',
+                    color: '#004000' // dark green
+                },
+                PLACE: {
+                    shape: 'box',
+                    color: '#481849' // dark purple
+                },
+                PRODUCT_ENUM : {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                RISK_ENUM : {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                COVERAGE_ENUM : {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                LIMIT_ENUM : {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                PREMIUM_ENUM : {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                RATE_ENUM : {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                RATEFACTOR_ENUM : {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                CONTAINER_ENUM: {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                DEDUCTIBLE_ENUM: {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                PARTY_ENUM: {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                },
+                PLACE_ENUM: {
+                    shape: 'dot',
+                    color: 'gray'   // gray
+                }
+            }
         };
 
         if (_network) { // clean up memory
@@ -687,6 +796,139 @@ var Visualizer = (function ($) {
         network.clusterDescendants = function () {
             return this.clustering.clusterDescendants.apply(this.clustering, arguments);
         };
+    }
+
+    /*================================= BEGIN SCOPE BUILDER ==========================================================*/
+
+    function addScopeBuilderListeners() {
+        $('#scopeBuilderInstTitle')[0].textContent = 'Instructions - Scope Builder';
+        $('#scopeBuilderInstructions')[0].innerHTML = 'Add scoping for visualization.';
+        var tr = $('<tr/>');
+        tr.append($('<td/>').html('Apply'));
+        tr.append($('<td/>').html('Key'));
+        tr.append($('<td/>').html('Value'));
+        tr.append($('<td/>'));
+        _scopeBuilderTable.append(tr);
+
+        $('#scopeBuilderAdd').click(function() {
+            addScope();
+        });
+        $('#scopeBuilderClear').click(function () {
+            scopeBuilderClear();
+        });
+        $('#scopeBuilderCancel').click(function () {
+            scopeBuilderClose();
+        });
+        $('#scopeBuilderSave').click(function () {
+            scopeBuilderSave();
+        });
+
+        $('#scopeBuilderOpen').click(function() {
+            scopeBuilderOpen();
+        });
+    }
+
+    function scopeBuilderSave() {
+        _savedScope = [];
+        var trs = _scopeBuilderTable.find('tr.scope-expression');
+        for (var trIdx = 0, trLen = trs.length; trIdx < trLen; trIdx++) {
+            var tr = $(trs[trIdx]);
+            var scopeExpression = {};
+            scopeExpression.isApplied = tr.find('.isApplied').prop('checked');
+            scopeExpression.key = tr.find('.expressionKey').val();
+            scopeExpression.value = tr.find('.expressionValue').val();
+            _savedScope.push(scopeExpression);
+        }
+
+        saveScope();
+        scopeBuilderClose();
+        reload();
+    }
+
+    function addScope() {
+        var tr = addNewScopeBuilderTableRow();
+        tr.find('.isApplied').prop('checked','true');
+    }
+
+    function scopeBuilderClear() {
+        _scopeBuilderTable.find('tr.scope-expression').remove();
+    }
+
+    function scopeBuilderClose() {
+        var newScope = buildScopeText();
+        _scopeInput.val(newScope);
+        _scope = buildScopeFromText(newScope);
+        load(true);
+        $(_scopeBuilderModal).modal('hide');
+    }
+
+    // TODO - extract to cube
+    var availableScopeKeys = ['context','action','state','date','product','coverage','risk','classCode','programType','lob','businessUnit','producer','policyControlDate','quoteDate','LocationState'];
+    function addNewScopeBuilderTableRow() {
+        var tr = $('<tr/>').prop('class','scope-expression');
+        var appliedCheckbox = $('<input/>').prop({type:'checkbox', class:'isApplied'});
+        var expressionSelect = $('<select/>').prop('class','expressionKey');
+        var expressionInput = $('<input/>').prop({type:'text', class:'expressionValue'});
+        var closeBtn = $('<span/>').prop({class:'glyphicon glyphicon-remove tab-close-icon', 'aria-hidden':'true'});
+
+        availableScopeKeys.sort();
+        for (var i = 0, len = availableScopeKeys.length; i < len; i++) {
+            var scopeKey = availableScopeKeys[i];
+            var opt = $('<option/>');
+            opt.text(scopeKey);
+            expressionSelect.append(opt);
+        }
+
+        closeBtn.click(function() {
+            tr.remove();
+        });
+
+        tr.append($('<td/>').append(appliedCheckbox));
+        tr.append($('<td/>').append(expressionSelect));
+        tr.append($('<td/>').append(expressionInput));
+        tr.append($('<td/>').append(closeBtn));
+        _scopeBuilderTable.append(tr);
+        return tr;
+    }
+
+    function scopeBuilderOpen() {
+        scopeBuilderClear();
+        for (var i = 0, len = _savedScope.length; i < len; i++) {
+            var expression = _savedScope[i];
+            var tr = addNewScopeBuilderTableRow();
+            tr.find('.isApplied').prop('checked', expression.isApplied);
+            tr.find('.expressionKey').val(expression.key);
+            tr.find('.expressionValue').val(expression.value);
+        }
+        _scopeBuilderModal.modal();
+    }
+
+    function getSavedScope() {
+        var scopeMap = localStorage[getStorageKey(SCOPE_MAP)];
+        return scopeMap ? JSON.parse(scopeMap) : DEFAULT_SCOPE;
+    }
+
+    function saveScope() {
+        saveOrDeleteValue(_savedScope, getStorageKey(SCOPE_MAP));
+    }
+
+    function buildScopeText() {
+        _savedScope = getSavedScope();
+        var scopeText = '';
+        for (var i = 0, len = _savedScope.length; i < len; i++) {
+            var expression = _savedScope[i];
+            if (expression.isApplied) {
+                scopeText += expression.key + ':' + expression.value + ', ';
+            }
+        }
+        scopeText = scopeText.substring(0, scopeText.length - 2);
+        return scopeText;
+    }
+
+    /*================================= END SCOPE BUILDER ============================================================*/
+
+    function getStorageKey(prefix) {
+        return prefix + ':' + _nce.getSelectedTabAppId().app.toLowerCase() + ':' + _nce.getSelectedCubeName().toLowerCase();
     }
 
 // Let parent (main frame) know that the child window has loaded.

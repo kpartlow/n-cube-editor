@@ -16,6 +16,10 @@ div.inline-block {
     padding:0;
 }
 
+#scope {
+    width: 90%;
+}
+
 div.col-width-large {
     width: 580px
 }
@@ -51,4 +55,13 @@ div.col-width-large {
     -moz-user-select: initial;
     -ms-user-select: initial;
     user-select: initial;
+}
+
+#scopeBuilderTable {
+    margin: 0 auto;
+}
+
+#scopeBuilderTable td {
+    padding-right: 25px;
+    text-align: center;
 }

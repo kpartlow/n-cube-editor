@@ -118,14 +118,14 @@ class NCubeService
         NCubeManager.deleteBranch(appId);
     }
 
-    void acceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
+    int acceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1, String username)
     {
-        NCubeManager.mergeAcceptTheirs(appId, cubeName, branchSha1, username)
+        NCubeManager.mergeAcceptTheirs(appId, cubeNames, branchSha1, username)
     }
 
-    void acceptMine(ApplicationID appId, String cubeName, String username)
+    int acceptMine(ApplicationID appId, Object[] cubeNames, String username)
     {
-        NCubeManager.mergeAcceptMine(appId, cubeName, username)
+        NCubeManager.mergeAcceptMine(appId, cubeNames, username)
     }
 
     void createCube(ApplicationID appId, NCube ncube, String username)
@@ -197,6 +197,11 @@ class NCubeService
         if (nCube == null)
         {
             throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
+        }
+
+        if (StringUtilities.isEmpty(axisName))
+        {
+            axisName = refAxisName
         }
 
         long maxId = -1
@@ -451,9 +456,9 @@ class NCubeService
         NCubeManager.getReferencedCubeNames(appId, cubeName, references)
     }
 
-    String resolveRelativeUrl(ApplicationID appId, String relativeUrl)
+    URL resolveRelativeUrl(ApplicationID appId, String relativeUrl)
     {
-        return NCubeManager.resolveRelativeUrl(appId, relativeUrl)
+        return NCubeManager.getActualUrl(appId, relativeUrl, [:]);
     }
 
     void clearCache(ApplicationID appId)

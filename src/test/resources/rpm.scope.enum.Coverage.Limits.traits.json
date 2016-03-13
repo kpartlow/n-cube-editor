@@ -1,0 +1,884 @@
+{
+  "ncube": "rpm.scope.enum.Coverage.Limits.traits",
+  "defaultCellValueType": "string",
+  "defaultCellValue": "#NOT_DEFINED",
+  "axes": [
+    {
+      "name": "name",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000001,
+          "type": "string",
+          "value": "DiseaseAggregate"
+        },
+        {
+          "id": 1000000000006,
+          "type": "string",
+          "value": "DiseaseEachEmployee"
+        },
+        {
+          "id": 1000000000002,
+          "type": "string",
+          "value": "EachAccident"
+        }
+      ]
+    },
+    {
+      "name": "coverage",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000000000006,
+          "type": "string",
+          "value": "MockCoverage1"
+        },
+        {
+          "id": 2000000000007,
+          "type": "string",
+          "value": "MockCoverage2"
+        }
+      ]
+    },
+    {
+      "name": "sourceFieldName",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 3000000000001,
+          "type": "string",
+          "value": "Limits"
+        }
+      ]
+    },
+    {
+      "name": "trait",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 4000000000001,
+          "type": "string",
+          "value": "r:changeable"
+        },
+        {
+          "id": 4000000000002,
+          "type": "string",
+          "value": "r:desc"
+        },
+        {
+          "id": 4000000000003,
+          "type": "string",
+          "value": "r:exists"
+        },
+        {
+          "id": 4000000000004,
+          "type": "string",
+          "value": "r:name"
+        },
+        {
+          "id": 4000000000005,
+          "type": "string",
+          "value": "r:ordinal"
+        },
+        {
+          "id": 4000000000006,
+          "type": "string",
+          "value": "r:origin"
+        },
+        {
+          "id": 4000000000007,
+          "type": "string",
+          "value": "ui:LookupChild"
+        },
+        {
+          "id": 4000000000008,
+          "type": "string",
+          "value": "ui:LookupParent"
+        },
+        {
+          "id": 4000000000009,
+          "type": "string",
+          "value": "ui:group.PolicyCoverage"
+        },
+        {
+          "id": 4000000000010,
+          "type": "string",
+          "value": "ui:group.RatingWorksheet"
+        },
+        {
+          "id": 4000000000011,
+          "type": "string",
+          "value": "ui:order"
+        },
+        {
+          "id": 4000000000015,
+          "type": "string",
+          "value": "ui:type"
+        },
+        {
+          "id": 4000000000012,
+          "type": "string",
+          "value": "v:max"
+        },
+        {
+          "id": 4000000000013,
+          "type": "string",
+          "value": "v:min"
+        },
+        {
+          "id": 4000000000014,
+          "type": "string",
+          "value": "v:selectable"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000001
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000002
+      ],
+      "type": "string",
+      "value": "Bodily Injury by Disease (policy limit)"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000003
+      ],
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000004
+      ],
+      "type": "string",
+      "value": "DiseaseAggregate"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000005
+      ],
+      "type": "string",
+      "value": "2"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000006
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000007
+      ],
+      "type": "string",
+      "value": "Limit"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000008
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Limits"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000009
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'020',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000010
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'020',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000011
+      ],
+      "type": "string",
+      "value": "020"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000012
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000013
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000006,
+        3000000000001,
+        4000000000014
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000001
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000002
+      ],
+      "type": "string",
+      "value": "Bodily Injury by Accident (each accident)"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000003
+      ],
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000004
+      ],
+      "type": "string",
+      "value": "EachAccident"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000005
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000006
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000007
+      ],
+      "type": "string",
+      "value": "Limit"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000008
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Limits"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000009
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'010',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000010
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'010',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000011
+      ],
+      "type": "string",
+      "value": "010"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000012
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000013
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000006,
+        3000000000001,
+        4000000000014
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000001
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000002
+      ],
+      "type": "string",
+      "value": "Bodily Injury by Disease (policy limit)"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000003
+      ],
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000004
+      ],
+      "type": "string",
+      "value": "DiseaseAggregate"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000005
+      ],
+      "type": "string",
+      "value": "3"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000006
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000007
+      ],
+      "type": "string",
+      "value": "Limit"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000008
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Limits"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000009
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'004',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000010
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'004',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000011
+      ],
+      "type": "string",
+      "value": "004"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000015
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000012
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000013
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000001,
+        2000000000007,
+        3000000000001,
+        4000000000014
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000001
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000002
+      ],
+      "type": "string",
+      "value": "Bodily Injury by Disease (each employee)"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000003
+      ],
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000004
+      ],
+      "type": "string",
+      "value": "DiseaseEachEmployee"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000005
+      ],
+      "type": "string",
+      "value": "2"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000006
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000007
+      ],
+      "type": "string",
+      "value": "Limit"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000008
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Limits"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000009
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'003',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000010
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'003',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000011
+      ],
+      "type": "string",
+      "value": "003"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000015
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000012
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000013
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000006,
+        2000000000007,
+        3000000000001,
+        4000000000014
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000001
+      ],
+      "type": "string",
+      "value": "true"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000002
+      ],
+      "type": "string",
+      "value": "Bodily Injury by Accident (each accident)"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000003
+      ],
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000004
+      ],
+      "type": "string",
+      "value": "EachAccident"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000005
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000006
+      ],
+      "type": "string",
+      "value": "user"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000007
+      ],
+      "type": "string",
+      "value": "Limit"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000008
+      ],
+      "type": "string",
+      "value": "rpm.enum.Coverage.Limits"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000009
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'002',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'true',]"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000010
+      ],
+      "type": "exp",
+      "value": "[group:'view.PolicyCoverageLimits',order:'002',widget:'OPTIONS_BUTTONS',changeable:'true',relevant:'true',render:'true',actionable:'false',]"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000011
+      ],
+      "type": "string",
+      "value": "002"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000015
+      ],
+      "type": "string",
+      "value": "OPTIONS_BUTTONS"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000012
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000013
+      ],
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "id": [
+        1000000000002,
+        2000000000007,
+        3000000000001,
+        4000000000014
+      ],
+      "type": "string",
+      "value": "true"
+    }
+  ]
+}

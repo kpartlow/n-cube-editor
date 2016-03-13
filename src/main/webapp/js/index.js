@@ -76,9 +76,6 @@ var NCE = (function ($)
     var _openTabsPanel = $('#ncube-tabs');
     var _openTabList = _openTabsPanel.find('ul');
     var _diffOutput = $('#diffOutput');
-    var _mergeCubeName = null;
-    var _mergeSha1 = null;
-    var _mergeHeadSha1 = null;
     var _searchLastKeyTime = Date.now();
     var _searchKeyPressed = false;
     var _diffLastResult = null;
@@ -87,6 +84,7 @@ var NCE = (function ($)
     var _menuOptions = [];
     var _tabOverflow = $('#tab-overflow');
     var _branchNames = [];
+    var _conflictMap = [];
     var _draggingTabCubeInfo = null;
     var _tabDragIndicator = $('#tab-drag-indicator');
     var _appMenu = $('#AppMenu');
@@ -838,6 +836,8 @@ var NCE = (function ($)
                 buildTabOverflow(maxTabs, len);
             }
             selectTab(cubeInfo);
+        } else {
+            switchTabPane(null);
         }
     }
 
@@ -1141,13 +1141,6 @@ var NCE = (function ($)
 
     function addListeners()
     {
-        $('.select-all').click(function() {
-            checkAll(true, 'input[type="checkbox"]')
-        });
-        $('.select-none').click(function() {
-            checkAll(false, 'input[type="checkbox"]')
-        });
-
         _openTabsPanel.on('drop dragdrop', function(e) {
             $('.tooltip').hide();
             _tabDragIndicator.hide();
@@ -1535,7 +1528,6 @@ var NCE = (function ($)
 
     function loadCube()
     {
-        console.log('fired');
         saveState();
         try
         {
@@ -2940,7 +2932,7 @@ var NCE = (function ($)
         var map = result.data;
         var updateMap = map['updates'];
         var mergeMap = map['merges'];
-        var conflictMap = map['conflicts'];
+        _conflictMap = map['conflicts'];
         var updates = 0;
         var merges = 0;
         var conflicts = 0;
@@ -2953,10 +2945,10 @@ var NCE = (function ($)
         {
             merges = mergeMap['@items'].length;
         }
-        if (conflictMap)
+        if (_conflictMap)
         {
-            delete conflictMap['@type'];
-            conflicts = countKeys(conflictMap);
+            delete _conflictMap['@type'];
+            conflicts = countKeys(_conflictMap);
         }
 
         var note = '<b>Branch Updated:</b><hr class="hr-small"/>' + updates + ' cubes <b>updated</b><br>' + merges + ' cubes <b>merged</b><br>' + conflicts + ' cubes in <b>conflict</b>';
@@ -2994,7 +2986,7 @@ var NCE = (function ($)
         if (conflicts > 0)
         {
             note += '<hr class="hr-small"/><b style="color:#F08080">Cubes in conflict:</b><br>';
-            var names = Object.keys(conflictMap);
+            var names = Object.keys(_conflictMap);
             names.sort(function(a, b)
             {   // sort case-insensitively, use client-side CPU
                 var lowA = a.toLowerCase();
@@ -3010,7 +3002,7 @@ var NCE = (function ($)
 
         if (conflicts > 0)
         {
-            mergeBranch(conflictMap);
+            mergeBranch(_conflictMap);
             return;
         }
 
@@ -3068,14 +3060,7 @@ var NCE = (function ($)
         {
             var li = $('<li style="border:none"/>').prop({class: 'list-group-item skinny-lr'});
             var div = $('<div/>').prop({class:'container-fluid'});
-            var checkbox = $('<input>').prop({type:'radio'});
-            checkbox.click(function ()
-            {
-                markMutuallyExclusive(checkbox);
-                _mergeCubeName = cubeName;
-                _mergeSha1 = conflictMap[cubeName].sha1;
-                _mergeHeadSha1 = conflictMap[cubeName].headSha1;
-            });
+            var checkbox = $('<input>').prop({type:'checkbox'});
             var label = $('<label/>').prop({class: 'radio no-margins'});
             label[0].textContent = cubeName;
             checkbox.prependTo(label); // <=== create input without the closing tag
@@ -3086,30 +3071,43 @@ var NCE = (function ($)
         $('#mergeBranchModal').modal('show');
     }
 
-    function markMutuallyExclusive(checkbox)
-    {
-        var inputs = $('#mergeList').find('input');
-        $.each(inputs, function (key, value)
-        {
-            $(value).prop('checked', false);
-        });
-        checkbox.prop('checked', true );
-    }
-
-    function getSelectedConflict()
-    {
+    function getSingleSelectedConflict() {
         var checkedInput = $('#mergeList').find('input:checked');
-        if (checkedInput.length == 0)
-        {
+        if (checkedInput.length === 0) {
             showNote('Select a cube', 'Note', 3000);
+            return null;
+        }
+        if (checkedInput.length > 1) {
+            showNote('Select only one cube', 'Note', 3000);
             return null;
         }
         return checkedInput.parent()[0].textContent;
     }
 
+    function getAllSelectedConflicts() {
+        var checkedInput = $('#mergeList').find('input:checked');
+        if (checkedInput.length === 0) {
+            showNote('Select a cube', 'Note', 3000);
+            return null;
+        }
+
+        var results = {
+            cubeNames: [],
+            branchSha1: [],
+            headSha1: []
+        };
+        for (var i = 0, len = checkedInput.length; i < len; i++) {
+            var cubeName = $(checkedInput[i]).parent()[0].textContent;
+            results.cubeNames.push(cubeName);
+            results.branchSha1.push(_conflictMap[cubeName].sha1);
+            results.headSha1.push(_conflictMap[cubeName].headSha1);
+        }
+        return results;
+    }
+
     function diffConflicts()
     {
-        var conflictedCube = getSelectedConflict();
+        var conflictedCube = getSingleSelectedConflict();
         if (!conflictedCube)
         {
             return;
@@ -3129,48 +3127,42 @@ var NCE = (function ($)
 
     function acceptTheirs()
     {
-        var conflictedCube = getSelectedConflict();
-        if (!conflictedCube)
+        var conflictedCubes = getAllSelectedConflicts();
+        if (!conflictedCubes)
         {
             return;
         }
 
-        var result = call('ncubeController.acceptTheirs', [getAppId(), _mergeCubeName, _mergeSha1]);
+        var result = call('ncubeController.acceptTheirs', [getAppId(), conflictedCubes.cubeNames, conflictedCubes.branchSha1]);
         if (result.status === true)
         {
-            showNote('Cube: ' + _mergeCubeName + ' updated in your branch with cube from HEAD', 'Note', 5000);
+            showNote(result.data.value + ' cubes updated in your branch with cube from HEAD', 'Note', 5000);
             $('#mergeList').find('input:checked').parent().parent().parent().remove();
         }
         else
         {
-            showNote('Unable to update your branch cube: ' + _mergeCubeName + ' with cube from HEAD:<hr class="hr-small"/>' + result.data);
+            showNote('Unable to update your branch cubes from HEAD:<hr class="hr-small"/>');
         }
-        _mergeCubeName = null;
-        _mergeSha1 = null;
-        _mergeHeadSha1 = null;
     }
 
     function acceptMine()
     {
-        var conflictedCube = getSelectedConflict();
-        if (!conflictedCube)
+        var conflictedCubes = getAllSelectedConflicts();
+        if (!conflictedCubes)
         {
             return;
         }
 
-        var result = call('ncubeController.acceptMine', [getAppId(), _mergeCubeName, _mergeHeadSha1]);
+        var result = call('ncubeController.acceptMine', [getAppId(), conflictedCubes.cubeNames, conflictedCubes.headSha1]);
         if (result.status === true)
         {
-            showNote('Cube: ' + _mergeCubeName + ' updated to overwrite-on-commit.', 'Note', 5000);
+            showNote(result.data.value + ' cubes updated to overwrite-on-commit.', 'Note', 5000);
             $('#mergeList').find('input:checked').parent().parent().parent().remove();
         }
         else
         {
-            showNote('Unable to update your branch cube: ' + _mergeCubeName + ' to overwrite-on-commit:<hr class="hr-small"/>' + result.data);
+            showNote('Unable to update your branch cubes to overwrite-on-commit:<hr class="hr-small"/>');
         }
-        _mergeCubeName = null;
-        _mergeSha1 = null;
-        _mergeHeadSha1 = null;
     }
 
     // =============================================== End Branching ===================================================
