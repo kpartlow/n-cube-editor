@@ -44,7 +44,7 @@ var RpmEditor = (function($)
 
     var loadTraitMetaInfo = function()
     {
-        var result = nce.exec('RpmController.getTraitCategoriesDeep', [nce.getAppId(), {}]);
+        var result = nce.exec('RpmController.getTraitCategoriesDeep', [nce.getSelectedTabAppId(), {}]);
         if (result.status === false || !result.data.return)
         {
             showRpmError('Unable to fetch trait categories for all traits.  The rpm.meta.traits cubes are not loading:<hr class="hr-small"/>' + result.data);
@@ -58,7 +58,7 @@ var RpmEditor = (function($)
     {
         var div = $('#traitFilter');
         div.empty();
-        var result = nce.exec('RpmController.getTraitCategories', [nce.getAppId(), {}]);
+        var result = nce.exec('RpmController.getTraitCategories', [nce.getSelectedTabAppId(), {}]);
         if (result.status === false)
         {
             showRpmError('Unable to fetch rpm.meta.traits n-cube.');
@@ -202,13 +202,7 @@ var RpmEditor = (function($)
             hot = null;
         }
 
-        if (!nce.getCubeMap() || !nce.doesCubeExist())
-        {
-            showRpmError('No cubes available.');
-            return;
-        }
-
-        var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
+        var info = nce.getInfoDto();
         if (!info)
         {
             showRpmError('No cube selected.');
@@ -223,7 +217,7 @@ var RpmEditor = (function($)
             return;
         }
 
-        var result = nce.exec('RpmController.getFields', [nce.getAppId(), {'cube':nce.getSelectedCubeName()}]);
+        var result = nce.exec('RpmController.getFields', [nce.getSelectedTabAppId(), {'cube':nce.getSelectedCubeName()}]);
         if (result.status === false || !result.data.return || !result.data.return['@items'])
         {
             showRpmError('<b>' + info.name + '</b> is not an RPM Class:<hr class="hr-small"/>It has no fields');

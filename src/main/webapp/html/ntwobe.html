@@ -23,6 +23,8 @@
 </head>
 <body class="noselect" id="mainBody">
 
+<div id="topAxisBtn"></div>
+
 <div id="ncube" class="tab-pane in active">
     <div id="ncube-error" style="display:none;"></div>
     <div id="ncube-content" style="overflow:visible">
@@ -36,7 +38,7 @@
             </button>
             <div id="search-container" class="bg-off-white">
                 <input id="search-field" type="search" placeholder="Search" />
-                <div id="search-info">&nbsp;</div>
+                <div id="search-info"></div>
                 <div class="btn-group btn-group-xs" role="group">
                     <button type="button" id="search-btn-up" class="btn btn-default">
                         <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
@@ -71,6 +73,100 @@
                     <div class="form-group">
                         <label for="addAxisName">Axis name</label>
                         <input class="form-control" type="text" placeholder="Axis name" id="addAxisName"/>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label>
+                                <input id="isRefAxis" type="checkbox"> Reference Axis
+                            </label>
+                        </div>
+                    </div>
+                    <div id="refAxisGroup" style="display:none;">
+                        <div class="axisTable">
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Application:</div>
+                                <div class="axisTableCellRight">
+                                    <select id="refAxisApp" class="form-control input-sm"></select>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Version:</div>
+                                <div class="axisTableCellRight">
+                                    <select id="refAxisVersion" class="form-control input-sm"></select>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Status:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisStatus" type="text" value="RELEASE" class="form-control input-sm" readonly/>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Branch:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisBranch" type="text" value="HEAD" class="form-control input-sm" readonly/>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Cube:</div>
+                                <div class="axisTableCellRight">
+                                    <select id="refAxisCube" class="form-control input-sm"></select>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Axis:</div>
+                                <div class="axisTableCellRight">
+                                    <select id="refAxisAxis" class="form-control input-sm"></select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="checkbox">
+                                <label>
+                                    <input id="hasRefFilter" type="checkbox"> Filter
+                                </label>
+                            </div>
+                        </div>
+                        <div id="refFilterGroup" style="display:none;">
+                            <div class="axisTable">
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Application:</div>
+                                    <div class="axisTableCellRight">
+                                        <select id="refFilterApp" class="form-control input-sm"></select>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Version:</div>
+                                    <div class="axisTableCellRight">
+                                        <select id="refFilterVersion" class="form-control input-sm"></select>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Status:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterStatus" type="text" value="RELEASE" class="form-control input-sm" readonly/>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Branch:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterBranch" type="text" value="HEAD" class="form-control input-sm" readonly/>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Cube:</div>
+                                    <div class="axisTableCellRight">
+                                        <select id="refFilterCube" class="form-control input-sm"></select>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Method:</div>
+                                    <div class="axisTableCellRight">
+                                        <select id="refFilterMethod" class="form-control input-sm"></select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="addAxisTypeList">Axis type (Discrete, Range, Set, Nearest, Rule)</label>
@@ -151,6 +247,101 @@
                         <label for="updateAxisName">Axis name</label>
                         <input id="updateAxisName" type="text" class="form-control">
                     </div>
+                    <div id="refAxisGroupUpdate" style="display:none;">
+                        <div class="form-group">
+                            <div class="checkbox">
+                                <label>
+                                    <input id="isRefAxisUpdate" type="checkbox" disabled="true"> Reference Axis
+                                </label>
+                            </div>
+                        </div>
+                        <div class="axisTable">
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Application:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisAppUpdate" type="text" class="form-control input-sm" readonly>
+
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Branch:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisBranchUpdate" type="text" value="HEAD" class="form-control input-sm" readonly/>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Status:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisStatusUpdate" type="text" value="RELEASE" class="form-control input-sm" readonly/>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Version:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisVersionUpdate" type="text" class="form-control input-sm" readonly>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Cube:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisCubeUpdate" type="text" class="form-control input-sm" readonly>
+                                </div>
+                            </div>
+                            <div class="axisTableRow">
+                                <div class="axisTableCellLeft">Axis:</div>
+                                <div class="axisTableCellRight">
+                                    <input id="refAxisAxisUpdate" type="text" class="form-control input-sm" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="refFilterGroupUpdate" style="display:none;">
+                            <div class="form-group">
+                                <div class="checkbox">
+                                    <label>
+                                        <input id="hasRefFilterUpdate" type="checkbox" disabled="true"> Filter
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="axisTable">
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Application:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterAppUpdate" type="text" class="form-control input-sm" readonly>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Branch:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterBranchUpdate" type="text" value="HEAD" class="form-control input-sm" readonly/>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Status:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterStatusUpdate" type="text" value="RELEASE" class="form-control input-sm" readonly/>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Version:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterVersionUpdate" type="text" class="form-control input-sm" readonly>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Cube:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterCubeUpdate" type="text" class="form-control input-sm" readonly>
+                                    </div>
+                                </div>
+                                <div class="axisTableRow">
+                                    <div class="axisTableCellLeft">Method:</div>
+                                    <div class="axisTableCellRight">
+                                        <input id="refFilterMethodUpdate" type="text" class="form-control input-sm" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="updateAxisTypeName">Axis type (Discrete, Range, Set, Nearest, Rule)</label>
                         <input id="updateAxisTypeName" type="text" class="form-control" readonly>
@@ -217,14 +408,17 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="editColSelectAll" type="button" class="btn btn-info btn-sm pull-left">Select All</button>
-                <button id="editColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
-                <button id="editColUp" type="button" class="btn btn-info btn-sm pull-left">Up</button>
-                <button id="editColDown" type="button" class="btn btn-info btn-sm pull-left">Down</button>
-                <button id="editColAdd" type="button" class="btn btn-success btn-sm">Add</button>
-                <button id="editColDelete" type="button" class="btn btn-danger btn-sm">Delete</button>
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
+                <button id="editColUp" class="btn btn-info btn-sm pull-left">Up</button>
+                <button id="editColDown" class="btn btn-info btn-sm pull-left">Down</button>
+                <button id="editColAdd" class="btn btn-success btn-sm">Add</button>
+                <button id="editColDelete" class="btn btn-danger btn-sm">Delete</button>
                 <button id="editColumnsCancel" class="btn btn-default btn-sm">Don't save</button>
                 <button id="editColumnsSave" class="btn btn-primary btn-sm">Save</button>
+            </div>
+            <div class="nce-clipboard-container">
+                <textarea id="edit-columns-clipboard"></textarea>
             </div>
         </div>
     </div>
@@ -234,7 +428,7 @@
 <div id="hideColumnsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="hideColumnsLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="hideColumnsLabel" class="modal-title"></h3>
@@ -257,10 +451,46 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="hideColSelectAll" type="button" class="btn btn-info btn-sm pull-left">Select All</button>
-                <button id="hideColSelectNone" type="button" class="btn btn-info btn-sm pull-left">Select None</button>
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
                 <button id="hideColumnsCancel" class="btn btn-default btn-sm">Cancel</button>
                 <button id="hideColumnsSave" class="btn btn-primary btn-sm">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div id="filterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="filterLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="filterLabel" class="modal-title">Filter Data</h3>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;height:500px">
+                <div class="panel-group" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="filterHeadingOne">
+                            <h4 class="panel-title">
+                                <a id="filterInstTitle" data-toggle="collapse" data-parent="#accordion" href="#filterCollapseOne"
+                                   aria-expanded="true" aria-controls="filterCollapseOne"></a>
+                            </h4>
+                        </div>
+                        <div id="filterCollapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="filterHeadingOne">
+                            <div id="filterInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
+                <table id="filterTable">
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button id="filterAdd" class="btn btn-default btn-sm">Add Filter</button>
+                <button id="filterClear" class="btn btn-danger btn-sm">Clear Filters</button>
+                <button id="filterCancel" class="btn btn-default btn-sm">Cancel</button>
+                <button id="filterSave" class="btn btn-primary btn-sm">Save</button>
             </div>
         </div>
     </div>
@@ -330,11 +560,12 @@
     </div>
 </div>
 
-<div id="nce-clipboard-container">
+<div class="nce-clipboard-container">
     <textarea id="cell-clipboard"></textarea>
 </div>
 
 <script src="js/jquery-2.1.4.min.js"></script>
+<script src="js/jquery-ui-1.11.0.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/bootstrap-select.min.js"></script>
 <script src="js/mitDate.js"></script>

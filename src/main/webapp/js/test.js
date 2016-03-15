@@ -264,7 +264,7 @@ var TestEditor = (function ($)
 
         enableTestItems();
 
-        var testListResult = nce.call(funcName, [nce.getAppId(), nce.getSelectedCubeName()]);
+        var testListResult = nce.call(funcName, [nce.getSelectedTabAppId(), nce.getSelectedCubeName()]);
 
         if (testListResult.status === true)
         {
@@ -795,7 +795,7 @@ var TestEditor = (function ($)
                 var test = getActiveTest();
                 _testData[_testSelectionAnchor] = test;
 
-                var result = nce.call("ncubeController.runTest", [nce.getAppId(), nce.getSelectedCubeName(), test]);
+                var result = nce.call("ncubeController.runTest", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), test]);
                 saveAllTests(true);
 
                 if (result.status != true)
@@ -848,7 +848,7 @@ var TestEditor = (function ($)
             }
         }
 
-        var result = nce.call("ncubeController.saveTests", [nce.getAppId(), nce.getSelectedCubeName(), _testData]);
+        var result = nce.call("ncubeController.saveTests", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _testData]);
 
         if (!result.status)
         {
@@ -1079,7 +1079,7 @@ var TestEditor = (function ($)
             return;
         }
 
-        var result = nce.call("ncubeController.createNewTest", [nce.getAppId(), nce.getSelectedCubeName(), newName]);
+        var result = nce.call("ncubeController.createNewTest", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), newName]);
 
         if (result.status === true)
         {
@@ -1304,12 +1304,7 @@ var TestEditor = (function ($)
 
     var load = function()
     {
-        if (!nce.getCubeMap() || !nce.doesCubeExist())
-        {
-            return;
-        }
-
-        var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
+        var info = nce.getInfoDto();
         if (!info)
         {
             return;

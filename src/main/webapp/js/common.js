@@ -92,7 +92,7 @@ function escapeRegExp(string)
  */
 function checkAll(state, queryStr)
 {
-    var input = $(queryStr);
+    var input = $(queryStr).filter(':visible');
     $.each(input, function (index, btn)
     {
         $(this).prop('checked', state);
@@ -206,3 +206,146 @@ function parseExcelClipboard(str)
 
     return arr;
 }
+
+var delay = (function(){
+    var timer = 0;
+    return function(callback, ms){
+        clearTimeout(timer);
+        timer = setTimeout(callback, ms);
+    };
+})();
+
+function selectAll() {
+    checkAll(true, 'input[type="checkbox"]');
+}
+
+function selectNone() {
+    checkAll(false, 'input[type="checkbox"]');
+}
+
+function addSelectAllNoneListeners() {
+    $('.select-all').click(function() {
+        selectAll();
+    });
+    $('.select-none').click(function() {
+        selectNone();
+    });
+}
+
+function addModalFilters() {
+    $('.modal-filter').each(function() {
+        var contentDiv = $(this);
+        var list = contentDiv.find('.modal-body').find('ul');
+
+        var refreshItems = function() {
+            input.val('');
+            input.focus();
+            items = list.find('li');
+            items.on('remove', function() {
+                delay(function() {
+                    refreshItems();
+                }, 50);
+            });
+            checkBoxes = items.find('input[type="checkbox"]');
+            refreshCount();
+        };
+
+        var refreshCount = function() {
+            checkedItems = checkBoxes.filter(function() {
+                return $(this)[0].checked;
+            });
+            countSpan[0].innerHTML = checkedItems.length + ' of ' + items.length + ' Selected';
+        };
+
+        var countSpan = $('<span/>');
+        countSpan.addClass('pull-left selected-count');
+        contentDiv.find('.btn.pull-left:last').after(countSpan);
+
+        var items = [];
+        var checkBoxes = [];
+        var checkedItems = [];
+        contentDiv.click(function() {
+            refreshCount();
+        });
+
+        var div = $('<div/>');
+        var input = $('<input/>');
+        input.addClass('modal-filter-input');
+        input.prop({'type':'text','placeholder':'Filter...'});
+        input.css({'width':'100%'});
+        input.keyup(function(e) {
+            delay(function() {
+                var query = input.val().toLowerCase();
+                if (query === '') {
+                    items.show();
+                } else {
+                    items.hide();
+                    items.filter(function () {
+                        var li = $(this);
+                        var cb = li.find('input[type="checkbox"]');
+                        var el = li;
+                        if (cb.length > 0) {
+                            el = cb.parent();
+                        }
+                        return el[0].textContent.toLowerCase().indexOf(query) > -1;
+                    }).show();
+                }
+            }, e.keyCode === KEY_CODES.ENTER ? 0 : 200);
+        });
+
+        div.append(input);
+        contentDiv.find('.modal-header').after(div);
+
+        contentDiv.parent().parent().on('shown.bs.modal', function(){
+            refreshItems();
+        });
+    });
+}
+
+function modalsDraggable(shouldBeDraggable) {
+    $('.modal').each(function() {
+        var modal = $(this);
+        var maxX = modal.width() / 2;
+        var maxY = modal.height() / 2;
+        var prevX = 0;
+        var prevY = 0;
+        modal.draggable({
+            handle: '.modal-header',
+            drag: function(e) {
+                var offset = modal.offset();
+                var posX = offset.left;
+                var posY = offset.top;
+                if ((posX > maxX && posX > prevX) || (posY > maxY && posY > prevY)) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+                prevX = posX;
+                prevY = posY;
+            }
+        });
+        modal.draggable(shouldBeDraggable ? 'enable' : 'disable');
+    });
+}
+
+function saveOrDeleteValue(obj, storageKey) {
+    if (obj && Object.keys(obj).length > 0) {
+        localStorage[storageKey] = JSON.stringify(obj);
+    } else {
+        delete localStorage[storageKey];
+    }
+};
+
+(function($) {
+    $.fn.hasScrollBar = function() {
+        return this.get(0).scrollWidth > this.width();
+    };
+
+    $.fn.canvasMeasureWidth = function (font) {
+        if (!jQuery._cachedCanvas) {
+            var canvas = document.createElement('canvas');
+            jQuery._cachedCanvas = canvas.getContext('2d');
+        }
+        jQuery._cachedCanvas.font = font;
+        return jQuery._cachedCanvas.measureText(this[0].innerText).width;
+    };
+})(jQuery);

@@ -1,0 +1,77 @@
+{
+  "ncube": "rpm.scope.enum.Coverage.Limits.classTraits",
+  "defaultCellValueType": "string",
+  "defaultCellValue": "#NOT_DEFINED",
+  "axes": [
+    {
+      "name": "coverage",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 1000000000006,
+          "type": "string",
+          "value": "MockCoverage1"
+        },
+        {
+          "id": 1000000000007,
+          "type": "string",
+          "value": "MockCoverage2"
+        }
+      ]
+    },
+    {
+      "name": "sourceFieldName",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 1,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 2000000000001,
+          "type": "string",
+          "value": "Limits"
+        }
+      ]
+    },
+    {
+      "name": "trait",
+      "hasDefault": false,
+      "type": "DISCRETE",
+      "valueType": "STRING",
+      "preferredOrder": 0,
+      "fireAll": true,
+      "columns": [
+        {
+          "id": 3000000000001,
+          "type": "string",
+          "value": "r:scopedName"
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": [
+        1000000000006,
+        2000000000001,
+        3000000000001
+      ],
+      "type": "string",
+      "value": "MockCoverage1_Limits"
+    },
+    {
+      "id": [
+        1000000000007,
+        2000000000001,
+        3000000000001
+      ],
+      "type": "string",
+      "value": "MockCoverage2_Limits"
+    }
+  ]
+}

@@ -2,11 +2,13 @@ package com.cedarsoftware.service.ncube
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.AxisRef
 import com.cedarsoftware.ncube.AxisType
 import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.ReferenceAxisLoader
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
@@ -62,19 +64,24 @@ class NCubeService
         return NCubeManager.getRevisionHistory(appId, cubeName)
     }
 
-    List<String> getAppNames(String tenant, String status, String branch)
+    List<String> getAppNames(String tenant)
     {
-        return NCubeManager.getAppNames(tenant, status, branch)
+        return NCubeManager.getAppNames(tenant)
     }
 
-    List<String> getAppVersions(String tenant, String app, String status, String branch)
+    Map<String, List<String>> getVersions(String tenant, String app)
     {
-        return NCubeManager.getAppVersions(tenant, app, status, branch)
+        return NCubeManager.getVersions(tenant, app)
     }
 
     void createBranch(ApplicationID appId)
     {
         NCubeManager.createBranch(appId)
+    }
+
+    Set<String> getBranches(ApplicationID appId)
+    {
+        return NCubeManager.getBranches(appId)
     }
 
     Set<String> getBranches(String tenant)
@@ -112,14 +119,14 @@ class NCubeService
         NCubeManager.deleteBranch(appId);
     }
 
-    void acceptTheirs(ApplicationID appId, String cubeName, String branchSha1, String username)
+    int acceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1, String username)
     {
-        NCubeManager.mergeAcceptTheirs(appId, cubeName, branchSha1, username)
+        NCubeManager.mergeAcceptTheirs(appId, cubeNames, branchSha1, username)
     }
 
-    void acceptMine(ApplicationID appId, String cubeName, String username)
+    int acceptMine(ApplicationID appId, Object[] cubeNames, String username)
     {
-        NCubeManager.mergeAcceptMine(appId, cubeName, username)
+        NCubeManager.mergeAcceptMine(appId, cubeNames, username)
     }
 
     void createCube(ApplicationID appId, NCube ncube, String username)
@@ -185,6 +192,51 @@ class NCubeService
         NCubeManager.updateCube(appId, ncube, username)
     }
 
+    void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName, String username)
+    {
+        NCube nCube = NCubeManager.getCube(appId, cubeName)
+        if (nCube == null)
+        {
+            throw new IllegalArgumentException("Could not add axis '" + axisName + "', NCube '" + cubeName + "' not found for app: " + appId)
+        }
+
+        if (StringUtilities.isEmpty(axisName))
+        {
+            axisName = refAxisName
+        }
+
+        long maxId = -1
+        Iterator<Axis> i = nCube.getAxes().iterator()
+        while (i.hasNext())
+        {
+            Axis axis = i.next()
+            if (axis.id > maxId)
+            {
+                maxId = axis.id
+            }
+        }
+
+        Map args = [:]
+        args[ReferenceAxisLoader.REF_TENANT] = refAppId.tenant
+        args[ReferenceAxisLoader.REF_APP] = refAppId.app
+        args[ReferenceAxisLoader.REF_VERSION] = refAppId.version
+        args[ReferenceAxisLoader.REF_STATUS] = refAppId.status
+        args[ReferenceAxisLoader.REF_BRANCH] = refAppId.branch
+        args[ReferenceAxisLoader.REF_CUBE_NAME] = refCubeName  // cube name of the holder of the referring (pointing) axis
+        args[ReferenceAxisLoader.REF_AXIS_NAME] = refAxisName    // axis name of the referring axis (the variable that you had missing earlier)
+        args[ReferenceAxisLoader.TRANSFORM_APP] = transformAppId?.app	// Notice no target tenant.  User MUST stay within TENENT boundary
+        args[ReferenceAxisLoader.TRANSFORM_VERSION] = transformAppId?.version
+        args[ReferenceAxisLoader.TRANSFORM_STATUS] = transformAppId?.status
+        args[ReferenceAxisLoader.TRANSFORM_BRANCH] = transformAppId?.branch
+        args[ReferenceAxisLoader.TRANSFORM_CUBE_NAME] = transformCubeName
+        args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = transformMethodName
+        ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, args)
+
+        Axis axis = new Axis(axisName, maxId + 1, false, refAxisLoader)
+        nCube.addAxis(axis)
+        NCubeManager.updateCube(appId, nCube, username)
+    }
+
     /**
      * Delete the specified axis.
      */
@@ -247,6 +299,22 @@ class NCubeService
         }
 
         ncube.clearSha1();
+        NCubeManager.updateCube(appId, ncube, username)
+    }
+
+    /**
+     * Removes the reference from one axis to another.
+     */
+    void breakAxisReference(ApplicationID appId, String name, String axisName, String username)
+    {
+        NCube ncube = NCubeManager.getCube(appId, name)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("Could not break reference for '" + axisName + "', NCube '" + name + "' not found for app: " + appId)
+        }
+
+        // Update default column setting (if changed)
+        ncube.breakAxisReference(axisName);
         NCubeManager.updateCube(appId, ncube, username)
     }
 
@@ -389,14 +457,19 @@ class NCubeService
         NCubeManager.getReferencedCubeNames(appId, cubeName, references)
     }
 
-    String resolveRelativeUrl(ApplicationID appId, String relativeUrl)
+    URL resolveRelativeUrl(ApplicationID appId, String relativeUrl)
     {
-        return NCubeManager.resolveRelativeUrl(appId, relativeUrl)
+        return NCubeManager.getActualUrl(appId, relativeUrl, [:]);
     }
 
     void clearCache(ApplicationID appId)
     {
         NCubeManager.clearCache(appId)
+    }
+
+    List<AxisRef> getReferenceAxes(ApplicationID appId)
+    {
+        return NCubeManager.getReferenceAxes(appId)
     }
 
     // =========================================== Helper methods ======================================================
@@ -406,8 +479,7 @@ class NCubeService
         String lastSuccessful = ""
         try
         {
-            JsonObject ncubes = (JsonObject) JsonReader.jsonToMaps(json)
-            Object[] cubes = ncubes.getArray()
+            Object[] cubes = (Object[]) JsonReader.jsonToJava(json)
             List cubeList = new ArrayList(cubes.length)
 
             for (Object cube : cubes)

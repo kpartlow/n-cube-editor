@@ -149,19 +149,6 @@ var NCubeEditor = (function ($)
 
     var load = function()
     {
-        if (!nce.getCubeMap() || !nce.doesCubeExist())
-        {
-            $('#ncube-content')[0].innerHTML = '';
-            return;
-        }
-
-        var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
-        if (!info)
-        {
-            $('#ncube-content')[0].innerHTML = '';
-            return;
-        }
-
         loadCubeHtml();
 
         $('.dropdown-toggle').click(function () {
@@ -183,13 +170,7 @@ var NCubeEditor = (function ($)
 
     var loadCubeHtml = function()
     {
-        if (!nce.getSelectedCubeName() || !nce.getSelectedApp() || !nce.getSelectedVersion() || !nce.getSelectedStatus())
-        {
-            $('#ncube-content')[0].innerHTML = 'No n-cubes to load';
-            return;
-        }
-
-        var result = nce.call("ncubeController.getHtml", [nce.getAppId(), nce.getSelectedCubeName()], {noResolveRefs:true});
+        var result = nce.call("ncubeController.getHtml", [nce.getSelectedTabAppId(), nce.getSelectedCubeName()], {noResolveRefs:true});
         if (result.status === true)
         {
             document.getElementById('ncube-content').innerHTML = result.data;
@@ -267,7 +248,7 @@ var NCubeEditor = (function ($)
                 }
                 else
                 {
-                    var result = nce.call("ncubeController.resolveRelativeUrl", [nce.getAppId(), link], {noResolveRefs:true});
+                    var result = nce.call("ncubeController.resolveRelativeUrl", [nce.getSelectedTabAppId(), link], {noResolveRefs:true});
                     if (result.status === true && result.data)
                     {
                         link = result.data;
@@ -338,7 +319,7 @@ var NCubeEditor = (function ($)
             {
                 _uiCellId = $(e.target);
                 _cellId = _uiCellId.attr('data-id').split("_");
-                var result = nce.call("ncubeController.getCellCoordinate", [nce.getAppId(), nce.getSelectedCubeName(), _cellId]);
+                var result = nce.call("ncubeController.getCellCoordinate", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId]);
                 if (result.status === true)
                 {
                     nce.clearError();
@@ -567,7 +548,7 @@ var NCubeEditor = (function ($)
         var axisName = $('#addAxisName').val();
         var axisType = $('#addAxisTypeName').val();
         var axisValueType = $('#addAxisValueTypeName').val();
-        var result = nce.call("ncubeController.addAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName, axisType, axisValueType]);
+        var result = nce.call("ncubeController.addAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName, axisType, axisValueType]);
         if (result.status === true)
         {
             nce.loadCube();
@@ -593,7 +574,7 @@ var NCubeEditor = (function ($)
     {
         $('#deleteAxisModal').modal('hide');
         var axisName = $('#deleteAxisName').val();
-        var result = nce.call("ncubeController.deleteAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.deleteAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
         if (result.status === true)
         {
             nce.loadCube();
@@ -611,7 +592,7 @@ var NCubeEditor = (function ($)
             return false;
         }
 
-        var result = nce.call("ncubeController.getAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.getAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
         var axis;
         if (result.status === true)
         {
@@ -693,7 +674,7 @@ var NCubeEditor = (function ($)
         var hasDefault = $('#updateAxisDefaultCol').prop('checked');
         var sortOrder = $('#updateAxisSortOrder').prop('checked');
         var fireAll = $('#updateAxisFireAll').prop('checked');
-        var result = nce.call("ncubeController.updateAxis", [nce.getAppId(), nce.getSelectedCubeName(), _axisName, axisName, hasDefault, sortOrder, fireAll]);
+        var result = nce.call("ncubeController.updateAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _axisName, axisName, hasDefault, sortOrder, fireAll]);
         if (result.status === true)
         {
             nce.loadCube();
@@ -903,7 +884,7 @@ var NCubeEditor = (function ($)
             return false;
         }
 
-        var result = nce.call("ncubeController.getAxis", [nce.getAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.getAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
         var axis;
         if (result.status === true)
         {
@@ -1107,7 +1088,7 @@ var NCubeEditor = (function ($)
             }
         });
         axis.defaultCol = null;
-        var result = nce.call("ncubeController.updateAxisColumns", [nce.getAppId(), nce.getSelectedCubeName(), axis.name, axis.columns]);
+        var result = nce.call("ncubeController.updateAxisColumns", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axis.name, axis.columns]);
 
         if (result.status !== true)
         {
@@ -1145,7 +1126,7 @@ var NCubeEditor = (function ($)
             return;
         }
 
-        var result = nce.call("ncubeController.getCellNoExecute", [nce.getAppId(), nce.getSelectedCubeName(), _cellId]);
+        var result = nce.call("ncubeController.getCellNoExecute", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId]);
 
         if (result.status === false)
         {
@@ -1188,7 +1169,7 @@ var NCubeEditor = (function ($)
     var editCellClear = function()
     {
         _editCellModal.modal('hide');
-        var result = nce.call("ncubeController.updateCell", [nce.getAppId(), nce.getSelectedCubeName(), _cellId, null]);
+        var result = nce.call("ncubeController.updateCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId, null]);
 
         if (result.status === false)
         {
@@ -1217,7 +1198,7 @@ var NCubeEditor = (function ($)
         cellInfo.isCached = _editCellCache.find('input').prop('checked');
         _editCellModal.modal('hide');
 
-        var result = nce.call("ncubeController.updateCell", [nce.getAppId(), nce.getSelectedCubeName(), _cellId, cellInfo]);
+        var result = nce.call("ncubeController.updateCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId, cellInfo]);
 
         if (result.status === false)
         {
@@ -1368,7 +1349,7 @@ var NCubeEditor = (function ($)
         });
 
         // Get clipboard ready string + optionally clear cells from database
-        var result = nce.call("ncubeController.copyCells", [nce.getAppId(), nce.getSelectedCubeName(), cells, isCut]);
+        var result = nce.call("ncubeController.copyCells", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), cells, isCut]);
         if (!result.status)
         {
             nce.showNote('Error copying/cutting cells:<hr class="hr-small"/>' + result.data);
@@ -1499,7 +1480,7 @@ var NCubeEditor = (function ($)
                     clipboard = clipboard2;
                 }
                 // Paste cells from database
-                result = nce.call("ncubeController.pasteCellsNce", [nce.getAppId(), nce.getSelectedCubeName(), clipboard]);
+                result = nce.call("ncubeController.pasteCellsNce", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), clipboard]);
             }
             else
             {   // Normal clipboard data, from Excel, for example
@@ -1552,7 +1533,7 @@ var NCubeEditor = (function ($)
                 }
 
                 // Paste cells from database
-                result = nce.call("ncubeController.pasteCells", [nce.getAppId(), nce.getSelectedCubeName(), values, coords]);
+                result = nce.call("ncubeController.pasteCells", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), values, coords]);
             }
 
             if (result.status)
@@ -1578,7 +1559,11 @@ var NCubeEditor = (function ($)
     // The loading of all of the Javascript (deeply) is continuous on the main thread.
     // Therefore, the setTimeout(, 1) ensures that the main window (parent frame)
     // is called after all Javascript has been loaded.
-    setTimeout(function() { window.parent.frameLoaded(); }, 1);
+    if (window.parent.frameLoaded) {
+        setTimeout(function () {
+            window.parent.frameLoaded();
+        }, 1);
+    }
 
     // API
     return {

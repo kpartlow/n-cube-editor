@@ -90,7 +90,7 @@ class ProxyRouter
 
     private ApplicationID buildAppId(Map<String, String[]> requestParams)
     {
-        Map<String, String> appParam = JsonReader.jsonToMaps(requestParams.appId[0])
+        Map appParam = (Map) JsonReader.jsonToJava(requestParams.appId[0], [(JsonReader.USE_MAPS):true] as Map)
         new ApplicationID(ApplicationID.DEFAULT_TENANT, (String) appParam.app, (String) appParam.version, (String) appParam.status, (String) appParam.branch)
     }
 }

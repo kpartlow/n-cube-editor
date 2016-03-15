@@ -15,7 +15,7 @@
     padding: 0;
 }
 
-#nce-clipboard-container {
+.nce-clipboard-container {
     position: fixed;
     left: 0;
     top: 0;
@@ -26,10 +26,24 @@
     opacity: 0;
 }
 
-div#editColumnsModal ul.list-group
+#topAxisBtn {
+    z-index: 999;
+    position: fixed;
+}
+
+ul.list-group
 {
     padding-left: 20px;
     padding-right: 20px;
+}
+
+#filterTable {
+    margin: 0 auto;
+}
+
+#filterTable td {
+    padding-right: 25px;
+    text-align: center;
 }
 
 div#editColumnsModal div.panel-group
@@ -84,7 +98,7 @@ div#editColumnsModal div.panel-group
 
 #search-container input {
     padding: 0;
-    width: 138px;
+    width: 135px;
     border-right: none;
     border-top: none;
     border-bottom: none;
@@ -93,6 +107,7 @@ div#editColumnsModal div.panel-group
 #search-info {
     color: #C7C7CD;
     width: 84px;
+    height: 15px;
     display: inline-block;
     text-align: right;
 }
@@ -117,9 +132,15 @@ div#editColumnsModal div.panel-group
     background-color: #BEEEEF;
 }
 
-.handsontable th.handsonCurrentRow, .handsonTableHeader.handsonCurrentRow {
-    background-color: rgba(146, 146, 146, 0.75) !important;
+.handsontable .htCore td.handsonTableHeader.handsonCurrentRow {
+    background-color: rgba(146, 146, 146, 0.75);
 }
+
+.handsontable .htCore td.handsonTableHeader.searchResult.handsonCurrentRow {
+    background-color: rgba(239, 251, 60, 0.75);
+    color: #583707;
+}
+
 .handsontable .htCore td.searchResult {
     background-color: #EFFB3C;
     color: #583707;
@@ -147,7 +168,7 @@ div#editColumnsModal div.panel-group
     color: #D9D9D9;
 }
 
-.handsontable .tableDefault {
+.handsontable .tableDefault, .handsontable .tableDefault a {
     color: #CCC;
 }
 
@@ -159,6 +180,9 @@ div#editColumnsModal div.panel-group
     padding: 3px 20px;
 }
 
+.axis-menu-button {
+    margin-left: 2px !important;
+}
 
 .frozen-cols-input {
     width: 30px;
@@ -201,3 +225,24 @@ div#editColumnsModal div.panel-group
 }
 
 /* end cell display */
+
+.axisTable {
+    display: table;
+    margin-bottom: 10px;
+    border-collapse: separate;
+    border-spacing: 10px;
+}
+
+.axisTableRow {
+    display: table-row;
+}
+
+.axisTableCellLeft {
+    display: table-cell;
+    font-weight: bold;
+}
+
+.axisTableCellRight {
+    display: table-cell;
+    width: 100%
+}

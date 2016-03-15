@@ -30,13 +30,14 @@ import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.Converter
+import com.cedarsoftware.util.Visualizer
 import com.cedarsoftware.util.InetAddressUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.ThreadAwarePrintStream
 import com.cedarsoftware.util.ThreadAwarePrintStreamErr
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap
+import com.google.common.util.concurrent.AtomicDouble
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -45,8 +46,10 @@ import javax.management.MBeanServer
 import javax.management.ObjectName
 import javax.servlet.http.HttpServletRequest
 import java.lang.management.ManagementFactory
-import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentSkipListSet
 import java.util.regex.Pattern
+
 /**
  * NCubeController API.
  *
@@ -76,11 +79,17 @@ class NCubeController extends BaseController
     private NCubeService nCubeService;
     private static String servletHostname = null
     private static String inetHostname = null
+    private static AtomicDouble processLoadPeak = new AtomicDouble(0.0d)
+    private static AtomicDouble systemLoadPeak = new AtomicDouble(0.0d)
 
-    // Bind to ConcurrentLinkedHashMap because some plugins will need it.
-    private ConcurrentMap<String, Object> futureCache = new ConcurrentLinkedHashMap.Builder<String, Object>()
-            .maximumWeightedCapacity(100)
-            .build()
+    // TODO: Temporary until we have n_cube_app table
+    // TODO: Verify all places that can create a cube are clearing the appCache
+    private static final Set<String> appCache = new ConcurrentSkipListSet<>()
+
+    // TODO: Temporary until we have n_cube_app_versions table
+    // TODO: Verify all places that can create a cube are clearing the appVersionsCache
+    private static final Map<String, List<String>> appVersions = new ConcurrentHashMap<>()
+    private static final Object versionsLock = new Object()
 
     NCubeController(NCubeService service)
     {
@@ -276,17 +285,56 @@ class NCubeController extends BaseController
         }
     }
 
-    Object[] getAppNames(String status, String branch)
+    Map getVisualizerJson(ApplicationID appId, Map options)
     {
         try
         {
-            String tenant = getTenant()
+            String cubeName = options.startCubeName
+            if (!cubeName.startsWith(Visualizer.RPM_CLASS))
+            {
+                throw new IllegalArgumentException('n-cube name must begin with rpm.class, n-cube: ' + cubeName + ', app: ' + appId)
+            }
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, null)
+
+            Visualizer vis = new Visualizer()
+            vis.input = [options:options]
+            vis.output = [:]
+            vis.ncube = nCubeService.getCube(appId, cubeName)
+            return vis.buildGraph()
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
+    // @Deprecated
+    // TODO: Remove
+    Object[] getAppNames(String unused1, String unused2)
+    {
+        return getAppNames()
+    }
+
+    // TODO: Filter APP names by Access Control List data
+    Object[] getAppNames()
+    {
+        try
+        {
+            // TODO: Snag tenant based on authentication
+            String tenant = "NONE";
+
             ApplicationID.validateTenant(tenant)
-            ApplicationID.validateStatus(status)
-            ApplicationID.validateBranch(branch)
-            // TODO: Filter APP names
-            List<String> appNames = nCubeService.getAppNames(tenant, status, branch)
-            Object[] appNameArray = appNames.toArray()
+
+            // TODO: Remove app name cache when we have n_cube_app table
+            Object[] appNameArray = appCache.toArray()
+            if (appNameArray.length == 0)
+            {
+                List<String> appNames = nCubeService.getAppNames(tenant)
+                appCache.addAll(appNames)
+                appNameArray = appNames.toArray()
+            }
             caseInsensitiveSort(appNameArray)
             return appNameArray
         }
@@ -301,43 +349,101 @@ class NCubeController extends BaseController
     {
         try
         {
-            String tenant = getTenant()
-            ApplicationID.validateTenant(tenant)
-            ApplicationID.validateApp(app)
-            ApplicationID.validateStatus(status)
-            ApplicationID.validateBranch(branchName)
-            // TODO: Custom isAllowed() may be needed
-            List<String> appVersions = nCubeService.getAppVersions(tenant, app, status, branchName)
+            Object[] vers = getVersions(app)
+            if (ArrayUtilities.isEmpty(vers))
+            {
+                return vers
+            }
 
-            // Sort by version number (1.1.0, 1.2.0, 1.12.0, ...) not String order (1.1.0, 1.12.0, 1.2.0, ...)
-            Collections.sort(appVersions, new Comparator<Object>() {
-                public int compare(Object o1, Object o2)
-                {
-                    String s1 = (String) o1
-                    String s2 = (String) o2
-                    return getVersionValue(s1) - getVersionValue(s2)
-                }
-
-                int getVersionValue(String v)
-                {
-                    String[] pieces = VERSION_REGEX.split(v)
-                    if (pieces.length != 3)
-                    {
-                        return 0
-                    }
-                    int major = Integer.valueOf(pieces[0]) * 1000 * 1000
-                    int minor = Integer.valueOf(pieces[1]) * 1000
-                    int rev = Integer.valueOf(pieces[2])
-                    return major + minor + rev
-                }
-            })
-            return appVersions.toArray()
+            // Filter out duplicates, remove trailing '-SNAPSHOT' and '-RELEASE'
+            Set<String> versions = new LinkedHashSet<>()
+            for (int i=vers.length - 1; i >=0; i--)
+            {
+                String mvnVer = vers[i]
+                versions.add(mvnVer.split('-')[0])
+            }
+            return versions.toArray()
         }
         catch (Exception e)
         {
             fail(e)
             return null
         }
+    }
+
+    Object[] getVersions(String app)
+    {
+        try
+        {
+            String tenant = getTenant()
+
+            // TODO: Pull from cache (temporary)
+            List<String> appVers = appVersions[app]
+            if (appVers != null && appVers.size() > 0)
+            {
+                return appVers.toArray()
+            }
+
+            synchronized(versionsLock)
+            {
+                appVers = appVersions[app]
+                if (appVers != null && appVers.size() > 0)
+                {   // Locked thread 2+
+                    return appVers.toArray()
+                }
+
+                Map<String, List<String>> versionMap = nCubeService.getVersions(tenant, app)
+
+                List<String> releaseVersions = versionMap.RELEASE
+                List<String> snapshotversions = versionMap.SNAPSHOT
+
+                // Sort by version number (1.1.0, 1.2.0, 1.12.0, ...) not String order (1.1.0, 1.12.0, 1.2.0, ...)
+                sortVersions(releaseVersions)
+                sortVersions(snapshotversions)
+                List<String> combined = new ArrayList()
+                for (String relVer : releaseVersions)
+                {
+                    combined.add(relVer + '-RELEASE')
+                }
+                for (String relVer : snapshotversions)
+                {
+                    combined.add(relVer + '-SNAPSHOT')
+                }
+                sortVersions(combined)
+                appVersions[app] = combined
+                return combined.toArray()
+            }
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
+    private void sortVersions(List<String> versions)
+    {
+        Collections.sort(versions, new Comparator<Object>() {
+            public int compare(Object o1, Object o2)
+            {
+                String s1 = (String) o1
+                String s2 = (String) o2
+                return getVersionValue(s1) - getVersionValue(s2)
+            }
+
+            int getVersionValue(String v)
+            {
+                String[] pieces = VERSION_REGEX.split(v)
+                if (pieces.length != 3)
+                {
+                    return 0
+                }
+                int major = Integer.valueOf(pieces[0]) * 1000 * 1000
+                int minor = Integer.valueOf(pieces[1]) * 1000
+                int rev = Integer.valueOf(pieces[2].split('-')[0])
+                return major + minor + rev
+            }
+        })
     }
 
     /**
@@ -349,6 +455,10 @@ class NCubeController extends BaseController
         {
             appId = addTenant(appId)
             isAllowed(appId, cubeName, Delta.Type.ADD)
+
+            // TODO: Remove when n_cube_app table added
+            appCache.add(appId.app)
+            addVersionToCache(appId)
 
             NCube ncube = new NCube(cubeName)
             Axis cols = new Axis("Column", AxisType.DISCRETE, AxisValueType.STRING, false, Axis.DISPLAY, 1)
@@ -475,6 +585,13 @@ class NCubeController extends BaseController
             destAppId = addTenant(destAppId)
             isAllowed(appId, cubeName, null)
             isAllowed(destAppId, newName, Delta.Type.ADD)
+
+            // TODO: Remove when n_cube_app table added
+            appCache.add(appId.app)
+            appCache.add(destAppId.app)
+            addVersionToCache(appId)
+            addVersionToCache(destAppId)
+
             nCubeService.duplicateCube(appId, destAppId, cubeName, newName, getUserForDatabase())
         }
         catch (Exception e)
@@ -529,6 +646,23 @@ class NCubeController extends BaseController
             appId = addTenant(appId)
             isAllowed(appId, cubeName, Delta.Type.ADD)
             nCubeService.addAxis(appId, cubeName, axisName, type, valueType, getUserForDatabase())
+        }
+        catch (Exception e)
+        {
+            fail(e)
+        }
+    }
+
+    /**
+     * Add axis to an existing SNAPSHOT n-cube that is a reference to an axis in another cube.
+     */
+    void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, Delta.Type.ADD)
+            nCubeService.addAxis(appId, cubeName, axisName, refAppId, refCubeName, refAxisName, transformAppId, transformCubeName, transformMethodName, getUserForDatabase())
         }
         catch (Exception e)
         {
@@ -623,6 +757,20 @@ class NCubeController extends BaseController
             NCube ncube = nCubeService.loadCube(appId, cubeName)
             ncube.updateColumns(axisName, columns)
             nCubeService.updateNCube(ncube, getUserForDatabase())
+        }
+        catch (Exception e)
+        {
+            fail(e)
+        }
+    }
+
+    void breakAxisReference(ApplicationID appId, String cubeName, String axisName)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, Delta.Type.UPDATE)
+            nCubeService.breakAxisReference(appId, cubeName, axisName, getUserForDatabase())
         }
         catch (Exception e)
         {
@@ -1077,7 +1225,11 @@ class NCubeController extends BaseController
         {
             appId = addTenant(appId)
             isAllowed(appId, null, null)
-            String absUrl = nCubeService.resolveRelativeUrl(appId, relativeUrl)
+            URL absUrl = nCubeService.resolveRelativeUrl(appId, relativeUrl)
+            if (absUrl == null)
+            {
+                throw new IllegalStateException('Unable to resolve the relative URL (' + relativeUrl + ') to a physical URL, app: ' + appId)
+            }
             return absUrl
         }
         catch (Exception e)
@@ -1087,6 +1239,26 @@ class NCubeController extends BaseController
         }
     }
 
+    // TODO: Remove this cache once the database performance issue is worked out for getAppVersions() / getVersions()
+    void addVersionToCache(ApplicationID appId)
+    {
+        List<String> verList = appVersions[appId.app]
+        if (verList == null)
+        {
+            return
+        }
+
+        String combined = appId.version + '-' + appId.status
+        for (String ver : verList)
+        {
+            if (ver.equalsIgnoreCase(combined))
+            {
+                return
+            }
+        }
+        verList.add(combined)
+    }
+
     void clearCache(ApplicationID appId)
     {
         try
@@ -1094,6 +1266,7 @@ class NCubeController extends BaseController
             appId = addTenant(appId)
             isAllowed(appId, null, null)
             nCubeService.clearCache(appId)
+            appCache.clear()
         }
         catch (Exception e)
         {
@@ -1115,6 +1288,32 @@ class NCubeController extends BaseController
         }
     }
 
+    Object[] getBranches(ApplicationID appId)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, null, null)
+
+            Set<String> branches = nCubeService.getBranches(appId)
+            if (branches == null && branches.isEmpty())
+            {
+                return [ApplicationID.HEAD] as Object[]
+            }
+            branches.remove(ApplicationID.HEAD)
+            Object[] branchNames = branches.toArray()
+            caseInsensitiveSort(branchNames)
+            def head = ['HEAD'] as Object[]
+            return head.plus(branchNames)
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
+    // TODO: Remove this API
     Object[] getBranches()
     {
         try
@@ -1260,31 +1459,39 @@ class NCubeController extends BaseController
         }
     }
 
-    void acceptTheirs(ApplicationID appId, String cubeName, String branchSha1)
+    int acceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1)
     {
         try
         {
             appId = addTenant(appId)
-            isAllowed(appId, cubeName, Delta.Type.UPDATE)
-            nCubeService.acceptTheirs(appId, cubeName, branchSha1, getUserForDatabase())
+            for (int i = 0; i < cubeNames.length; i++)
+            {
+                isAllowed(appId, (String)cubeNames[i], Delta.Type.UPDATE)
+            }
+            return nCubeService.acceptTheirs(appId, cubeNames, branchSha1, getUserForDatabase())
         }
         catch (Exception e)
         {
             fail(e)
+            return 0
         }
     }
 
-    void acceptMine(ApplicationID appId, String cubeName, String headSha1)
+    int acceptMine(ApplicationID appId, Object[] cubeNames, Object[] headSha1)
     {
         try
         {
             appId = addTenant(appId)
-            isAllowed(appId, cubeName, Delta.Type.UPDATE)
-            nCubeService.acceptMine(appId, cubeName, getUserForDatabase())
+            for (int i = 0; i < cubeNames.length; i++)
+            {
+                isAllowed(appId, (String)cubeNames[i], Delta.Type.UPDATE)
+            }
+            return nCubeService.acceptMine(appId, cubeNames, getUserForDatabase())
         }
         catch (Exception e)
         {
             fail(e)
+            return 0
         }
     }
 
@@ -1377,13 +1584,14 @@ class NCubeController extends BaseController
         }
         catch (Exception e)
         {
-            LOG.info("Unable to load sys.menu (sys.menu cube likely not in appId: " + appId.toString() + ", exception: " + e.getMessage(), e)
+            LOG.info("Unable to load sys.menu (sys.menu cube likely not in appId: " + appId.toString() + ", exception: " + e.getMessage())
             return ['~Title':'Configuration Editor',
                     'n-cube':[html:'html/ntwobe.html',img:'img/letter-n.png'],
                     'n-cube-old':[html:'html/ncube.html',img:'img/letter-o.png'],
                     'JSON':[html:'html/jsonEditor.html',img:'img/letter-j.png'],
                     'Details':[html:'html/details.html',img:'img/letter-d.png'],
-                    'Test':[html:'html/test.html',img:'img/letter-t.png']
+                    'Test':[html:'html/test.html',img:'img/letter-t.png'],
+                    'Visualizer':[html:'html/visualize.html', img:'img/letter-v.png']
             ]
         }
     }
@@ -1549,6 +1757,22 @@ class NCubeController extends BaseController
         JsonWriter.formatJson(json).readLines()
     }
 
+    Object[] getReferenceAxes(ApplicationID appId)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, null, null)
+            List refAxes = nCubeService.getReferenceAxes(appId)
+            return refAxes as Object[]
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return [] as Object[]
+        }
+    }
+
     Map heartBeat(Map openCubes)
     {
         // If remotely accessing server, use the following to get the MBeanServerConnection...
@@ -1600,8 +1824,20 @@ class NCubeController extends BaseController
         putIfNotNull(serverStats, 'OS', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Name'))
         putIfNotNull(serverStats, 'OS version', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Version'))
         putIfNotNull(serverStats, 'CPU', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'Arch'))
-        putIfNotNull(serverStats, 'CPU Process Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'ProcessCpuLoad'))
-        putIfNotNull(serverStats, 'CPU System Load', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'SystemCpuLoad'))
+        double processLoad = getAttribute(mbs, 'java.lang:type=OperatingSystem', 'ProcessCpuLoad') as Double
+        if (processLoad > processLoadPeak.get())
+        {
+            processLoadPeak.set(processLoad)
+        }
+        double systemLoad = getAttribute(mbs, 'java.lang:type=OperatingSystem', 'SystemCpuLoad') as Double
+        if (systemLoad > systemLoadPeak.get())
+        {
+            systemLoadPeak.set(systemLoad)
+        }
+        putIfNotNull(serverStats, 'Process CPU Load', processLoad)
+        putIfNotNull(serverStats, 'System CPU Load', systemLoad)
+        putIfNotNull(serverStats, 'Peak Process CPU Load', processLoadPeak.get())
+        putIfNotNull(serverStats, 'Peak System CPU Load', systemLoadPeak.get())
         putIfNotNull(serverStats, 'CPU Cores', getAttribute(mbs, 'java.lang:type=OperatingSystem', 'AvailableProcessors'))
         double machMem = (long) getAttribute(mbs, 'java.lang:type=OperatingSystem', 'TotalPhysicalMemorySize')
         long K = 1024L
@@ -1679,7 +1915,7 @@ class NCubeController extends BaseController
     {
         if (value != null)
         {
-            if (value instanceof Number)
+            if (value instanceof Integer)
             {
                 value = value.longValue()
             }
@@ -1717,7 +1953,7 @@ class NCubeController extends BaseController
         }
         else
         {
-            LOG.warn("error occurred", e)
+            LOG.info("error occurred", e)
         }
     }
 
@@ -1822,72 +2058,6 @@ class NCubeController extends BaseController
         }
         return false
     }
-
-//    private void printStackTrace(Throwable t, StringBuilder s) {
-//        // Guard against malicious overrides of Throwable.equals by
-//        // using a Set with identity equality semantics.
-//        Set<Throwable> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>())
-//        dejaVu.add(t)
-//
-//        synchronized (s) {
-//            // Print our stack trace
-//            s.println(this);
-//            StackTraceElement[] trace = getOurStackTrace();
-//            for (StackTraceElement traceElement : trace)
-//                s.println("\tat " + traceElement);
-//
-//            // Print suppressed exceptions, if any
-//            for (Throwable se : getSuppressed())
-//                se.printEnclosedStackTrace(s, trace, SUPPRESSED_CAPTION, "\t", dejaVu);
-//
-//            // Print cause, if any
-//            Throwable ourCause = getCause();
-//            if (ourCause != null)
-//                ourCause.printEnclosedStackTrace(s, trace, CAUSE_CAPTION, "", dejaVu);
-//        }
-//    }
-//
-//    /**
-//     * Print our stack trace as an enclosed exception for the specified
-//     * stack trace.
-//     */
-//    private void printEnclosedStackTrace(PrintStreamOrWriter s,
-//                                         StackTraceElement[] enclosingTrace,
-//                                         String caption,
-//                                         String prefix,
-//                                         Set<Throwable> dejaVu) {
-//        assert Thread.holdsLock(s.lock());
-//        if (dejaVu.contains(this)) {
-//            s.println("\t[CIRCULAR REFERENCE:" + this + "]");
-//        } else {
-//            dejaVu.add(this);
-//            // Compute number of frames in common between this and enclosing trace
-//            StackTraceElement[] trace = getOurStackTrace();
-//            int m = trace.length - 1;
-//            int n = enclosingTrace.length - 1;
-//            while (m >= 0 && n >=0 && trace[m].equals(enclosingTrace[n])) {
-//                m--; n--;
-//            }
-//            int framesInCommon = trace.length - 1 - m;
-//
-//            // Print our stack trace
-//            s.println(prefix + caption + this);
-//            for (int i = 0; i <= m; i++)
-//                s.println(prefix + "\tat " + trace[i]);
-//            if (framesInCommon != 0)
-//                s.println(prefix + "\t... " + framesInCommon + " more");
-//
-//            // Print suppressed exceptions, if any
-//            for (Throwable se : getSuppressed())
-//                se.printEnclosedStackTrace(s, trace, SUPPRESSED_CAPTION,
-//                        prefix +"\t", dejaVu);
-//
-//            // Print cause, if any
-//            Throwable ourCause = getCause();
-//            if (ourCause != null)
-//                ourCause.printEnclosedStackTrace(s, trace, CAUSE_CAPTION, prefix, dejaVu);
-//        }
-//    }
 
     private static String getCauses(Throwable t)
     {
@@ -1994,19 +2164,18 @@ class NCubeController extends BaseController
     static Map convertAxis(Axis axis) throws IOException
     {
         String json = JsonWriter.objectToJson(axis, [(JsonWriter.TYPE): false] as Map)
-        Map axisConverted = JsonReader.jsonToMaps(json)
+        Map axisConverted = (Map) JsonReader.jsonToJava(json, [(JsonReader.USE_MAPS):true] as Map)
         axisConverted.'@type' = axis.getClass().getName()
-        Object[] cols = (Object[]) axisConverted.columns
+        Object[] cols = axis.getColumns() as Object[]
+        axisConverted.remove('idToCol')
 
-        for (Object item : cols)
+        for (int i = 0; i < cols.length; i++)
         {
-            Map col = (Map) item
-            col.'@type' = Column.class.getName()
-            Column actualCol = axis.getColumnById((Long)col.id)
-            col.id = String.valueOf(col.id) // Stringify Long ID (Javascript safe if quoted)
+            Column actualCol = (Column) cols[i]
+            Map col = columnToMap(actualCol)
             CellInfo cellInfo = new CellInfo(actualCol.getValue())
             String value = cellInfo.value
-            if (axis.valueType == AxisValueType.DATE && axis.type != AxisType.SET)
+            if (axis.valueType == AxisValueType.DATE && axis.type != AxisType.SET && value != null)
             {
                 value = NO_QUOTES_REGEX.matcher(value).replaceAll("")
             }
@@ -2014,8 +2183,27 @@ class NCubeController extends BaseController
             col.isUrl = cellInfo.isUrl
             col.dataType = cellInfo.dataType
             col.isCached = cellInfo.isCached
+            cols[i] = col
         }
+        axisConverted.columns = cols
         return axisConverted
+    }
+
+    private static Map columnToMap(Column col)
+    {
+        Map map = [:]
+        map.id = Converter.convert(col.id, String.class)  // Stringify Long ID (Javascript safe if quoted)
+        map.'@type' = Column.class.getName()
+        if (col.getMetaProperties().size() > 0)
+        {
+            map.metaProps = [:]
+        }
+        for (Map.Entry<String, Object> entry : col.getMetaProperties())
+        {
+            map.metaProps[entry.key] = entry.value == null ? 'null' : entry.value.toString()
+        }
+        map.displayOrder = col.displayOrder as long
+        return map
     }
 
     public static boolean isNumeric(String str)

@@ -4,12 +4,17 @@ var SELECTED_VERSION = NCE_PREFIX + 'SELECTED_VERSION';
 var SELECTED_STATUS = NCE_PREFIX + 'SELECTED_STATUS';
 var SELECTED_CUBE = NCE_PREFIX + 'SELECTED_CUBE';
 var SELECTED_BRANCH = NCE_PREFIX + 'SELECTED_BRANCH';
+var SELECTED_CUBE_INFO = NCE_PREFIX + 'SELECTED_CUBE_INFO';
 var ACTIVE_TAB_VIEW_TYPE = NCE_PREFIX + 'ACTIVE_TAB_VIEW_TYPE';
 var OPEN_CUBES = NCE_PREFIX + 'OPEN_CUBES';
 var HIDDEN_COLUMNS = NCE_PREFIX + 'HIDDEN_COLUMNS';
 var AXIS_ORDER = NCE_PREFIX + 'AXIS_ORDER';
 var COLUMN_WIDTHS = NCE_PREFIX + 'COLUMN_WIDTHS';
+var ROW_HEIGHTS = NCE_PREFIX + 'ROW_HEIGHTS';
 var TEST_RESULTS = NCE_PREFIX + 'TEST_RESULTS';
+var FILTERS = NCE_PREFIX + 'FILTERS';
+var SCOPE_MAP = NCE_PREFIX + 'SCOPE_MAP';
+
 var PROGRESS_DELAY = 300;
 var DIFF_SIDE_BY_SIDE = 0;
 var DIFF_INLINE = 1;
@@ -21,10 +26,13 @@ var TAB_SEPARATOR = '~';
 
 var MIN_COL_WIDTH = 50;
 var MAX_COL_WIDTH = 600;
+var FONT_HEIGHT = 22;
+var MIN_ROW_HEIGHT = FONT_HEIGHT + 1;
 var FONT_SIZE = '14px';
 var FONT_CELL = FONT_SIZE + ' Helvetica Neue';
 var FONT_CODE = FONT_SIZE + ' Lucida Console';
 var CALC_WIDTH_AXIS_BUTTON_MOD = 45;
+var CALC_WIDTH_REF_AX_BUTTON_MOD = 55;
 var CALC_WIDTH_BASE_MOD = 30;
 var CALC_WIDTH_TAB_OVERFLOW_MOD = 45;
 
@@ -76,6 +84,20 @@ var STATUS = {
 var URL_ENABLED_LIST = ['string', 'binary', 'exp', 'method', 'template'];
 var CACHE_ENABLED_LIST = ['string', 'binary', 'exp', 'method', 'template'];
 var CODE_CELL_TYPE_LIST = ['exp', 'method'];
+var FILTER_COMPARATOR_LIST = ['=','!=','>','<','contains','excludes'];
+
+var DEFAULT_SCOPE = [
+    {
+        isApplied: 'true',
+        key: 'context',
+        value: 'Edit'
+    },
+    {
+        isApplied: 'true',
+        key: 'action',
+        value: 'Edit'
+    }
+];
 
 var KEY_CODES = {
     MOUSE_LEFT: 1,

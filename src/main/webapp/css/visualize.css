@@ -1,5 +1,67 @@
-.visualize-div {
-    height: 100%;
+div.inline-block {
+    display: inline-block;
+    vertical-align:middle;
+    padding:7px;
+}
+
+#visualizer-info{
+    color:black;
+    background:#D1C5B7;
+    padding:0
+}
+
+#scope-info{
+    color:black;
+    background:#D1C5B7;
+    padding:0;
+}
+
+#scope {
+    width: 90%;
+}
+
+div.col-width-large {
+    width: 580px
+}
+
+.nc-anc {
+    cursor: pointer;
+}
+
+#visLayoutCenter {
+    overflow: auto !important;
+    /*background:transparent;*/
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
+
+#visLayoutEast {
+    height:100%;
     width: 100%;
-    overflow: hidden !important;
+    text-align: left;
+    font-family: arial,helvetica,sans-serif;
+    font-size: small;
+    font-weight: normal;
+    margin: 0;
+    padding: 5px;
+    background: white;
+    border: none;
+    border-radius: 0;
+
+    -webkit-touch-callout: initial;
+    -webkit-user-select: initial;
+    -khtml-user-select: initial;
+    -moz-user-select: initial;
+    -ms-user-select: initial;
+    user-select: initial;
+}
+
+#scopeBuilderTable {
+    margin: 0 auto;
+}
+
+#scopeBuilderTable td {
+    padding-right: 25px;
+    text-align: center;
 }

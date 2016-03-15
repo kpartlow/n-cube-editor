@@ -74,7 +74,7 @@ var NCubeJsonEditor = (function ($)
 
             clearDirtyStatus();
             updateDirtyStatus();
-            var result = nce.call("ncubeController.saveJson", [nce.getAppId(), nce.getSelectedCubeName(), _editor.getText()]);
+            var result = nce.call("ncubeController.saveJson", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _editor.getText()]);
             if (result.status !== true)
             {
                 nce.showNote('Error saving JSON n-cube:<hr class="hr-small"/>' + result.data);
@@ -120,14 +120,7 @@ var NCubeJsonEditor = (function ($)
 
     var load = function()
     {
-        if (!nce.getSelectedCubeName() || !nce.getSelectedApp() || !nce.getSelectedVersion() || !nce.getSelectedStatus())
-        {
-            _editor.setText('No n-cube to load');
-            clearDirtyStatus();
-            updateDirtyStatus();
-            return;
-        }
-        var result = nce.call("ncubeController.getJson", [nce.getAppId(), nce.getSelectedCubeName(), {mode:"json"}], {noResolveRefs:true});
+        var result = nce.call("ncubeController.getJson", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), {mode:"json"}], {noResolveRefs:true});
         if (result.status === true)
         {
             try {

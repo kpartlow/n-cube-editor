@@ -57,29 +57,23 @@
         </ul>
         <ul class="nav navbar-nav navbar-right">
             <li class="dropdown">
-                <a id="AppMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Application: </a>
-                <ul class="dropdown-menu">
-                </ul>
-            </li>
-            <li class="dropdown">
-                <a id="VersionMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Version: </a>
-                <ul class="dropdown-menu">
-                </ul>
-            </li>
-            <li>
-                <a href="#">Status:
-                    <div class="btn-group btn-group-sm" data-toggle="buttons">
-                        <label id="status-release" class="btn btn-primary">
-                            <input type="radio" name="options" autocomplete="off"> RELEASE
-                        </label>
-                        <label id="status-snapshot" class="btn btn-primary">
-                            <input type="radio" name="options" autocomplete="off"> SNAPSHOT
-                        </label>
-                    </div>
+                <a id="AppMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    Application: &nbsp;<button class="btn-sm btn-primary">&nbsp;<b class="caret"></b></button>
                 </a>
+                <ul class="dropdown-menu">
+                </ul>
             </li>
             <li class="dropdown">
-                <a id="BranchMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">Branch: </a>
+                <a id="VersionMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    Version: &nbsp;<button class="btn-sm btn-primary">&nbsp;<b class="caret"></b></button>
+                </a>
+                <ul class="dropdown-menu">
+                </ul>
+            </li>
+            <li class="dropdown">
+                <a id="BranchMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    Branch: &nbsp;<button class="btn-sm btn-primary">&nbsp;<b class="caret"></b></button>
+                </a>
                 <ul class="dropdown-menu">
                     <li><a id="branchSelect" href="#">Select/Create Branch...</a></li>
                     <li><a id="branchUpdate" href="#">Update Branch</a></li>
@@ -215,7 +209,7 @@
 <div id="deleteCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteCubeLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="deleteCubeLabel" class="modal-title"></h3>
@@ -225,8 +219,8 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="deleteSelectAll" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select All</button>
-                <button id="deleteSelectNone" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select None</button>
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
                 <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Don't delete</button>
                 <button id="deleteCubeOk" class="btn btn-primary btn-sm">Delete</button>
             </div>
@@ -238,7 +232,7 @@
 <div id="restoreCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="restoreCubeLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="restoreCubeLabel" class="modal-title"></h3>
@@ -248,8 +242,8 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="restoreSelectAll" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select All</button>
-                <button id="restoreSelectNone" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select None</button>
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
                 <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Don't restore</button>
                 <button id="restoreCubeOk" class="btn btn-primary btn-sm">Restore</button>
             </div>
@@ -284,7 +278,7 @@
 <div id="commitRollbackModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="commitRollbackLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="commitRollbackLabel" class="modal-title"></h3>
@@ -294,8 +288,8 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="commitRollbackSelectAll" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select All</button>
-                <button id="commitRollbackSelectNone" class="btn btn-info btn-sm pull-left" aria-hidden="true">Select None</button>
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
                 <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Cancel</button>
                 <button id="commitOk" class="btn btn-primary btn-sm">Commit</button>
                 <button id="rollbackOk" class="btn btn-primary btn-sm">Rollback</button>
@@ -308,7 +302,7 @@
 <div id="selectBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="chooseBranchLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="chooseBranchLabel" class="modal-title">Select or Create Branch</h3>
@@ -379,7 +373,7 @@
 <div id="mergeBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="mergeBranchLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id=mergeBranchLabel" class="modal-title">Merge Branch</h3>
@@ -402,6 +396,8 @@
 
             </div>
             <div class="modal-footer">
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
                 <button id="compareCubes" class="btn btn-primary btn-sm pull-left">Compare</button>
                 <button id="acceptMine" class="btn btn-primary btn-sm pull-left">Accept Mine</button>
                 <button id="acceptTheirs" class="btn btn-primary btn-sm pull-left">Accept Theirs</button>
@@ -471,7 +467,7 @@
 <div id="showRefsToCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="showRefsToLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="showRefsToLabel" class="modal-title"></h3>
@@ -491,7 +487,7 @@
 <div id="showRefsFromCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="showRefsFromLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="showRefsFromLabel" class="modal-title"></h3>
@@ -511,7 +507,7 @@
 <div id="showReqScopeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="showReqScopeLabel"
      aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content modal-filter">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h3 id="showReqScopeLabel" class="modal-title"></h3>

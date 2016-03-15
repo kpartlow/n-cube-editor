@@ -63,7 +63,7 @@ var DetailEditor = (function ($)
                     return;
                 }
 
-                var result = nce.call("ncubeController.clearDefaultCell", [nce.getAppId(), nce.getSelectedCubeName()]);
+                var result = nce.call("ncubeController.clearDefaultCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName()]);
                 if (result.status === true)
                 {
                     $('#cube_defValue').val('');
@@ -92,7 +92,7 @@ var DetailEditor = (function ($)
                 cellInfo.dataType = cellInfo.isUrl ? _urlDropdown.val() : _valueDropdown.val();
                 cellInfo.isCached = _isCached.find('input').is(':checked');
 
-                var result = nce.call("ncubeController.updateDefaultCell", [nce.getAppId(), nce.getSelectedCubeName(), cellInfo]);
+                var result = nce.call("ncubeController.updateDefaultCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), cellInfo]);
 
                 if (result.status === true)
                 {
@@ -161,13 +161,7 @@ var DetailEditor = (function ($)
 
     var load = function()
     {
-        if (!nce.getCubeMap() || !nce.doesCubeExist())
-        {
-            clearFields();
-            return;
-        }
-
-        var info = nce.getCubeMap()[(nce.getSelectedCubeName() + '').toLowerCase()];
+        var info = nce.getInfoDto();
         if (!info)
         {
             clearFields();
@@ -188,7 +182,7 @@ var DetailEditor = (function ($)
         $('#cube_sha1').val(info.sha1);
         $('#cube_headSha1').val(info.headSha1);
 
-        var result = nce.call("ncubeController.getDefaultCell", [nce.getAppId(), nce.getSelectedCubeName()]);
+        var result = nce.call("ncubeController.getDefaultCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName()]);
 
         if (result.status === false)
         {
