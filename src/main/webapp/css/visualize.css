@@ -56,12 +56,3 @@ div.col-width-large {
     -ms-user-select: initial;
     user-select: initial;
 }
-
-#scopeBuilderTable {
-    margin: 0 auto;
-}
-
-#scopeBuilderTable td {
-    padding-right: 25px;
-    text-align: center;
-}

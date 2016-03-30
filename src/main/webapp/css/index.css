@@ -552,3 +552,29 @@ span.selected-count {
     -moz-border-radius: 6px 0 6px 6px;
     border-radius: 6px 0 6px 6px;
 }
+
+#batchUpdateAxisReferencesTable {
+    margin: 0 auto;
+}
+
+#batchUpdateAxisReferencesTable th {
+    padding-right: 25px;
+    text-align: center;
+    font-weight: bold;
+}
+
+#batchUpdateAxisReferencesTable td {
+    padding-right: 25px;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#batchUpdateAxisReferencesTable select {
+    max-width: 225px;
+    min-width: 100px;
+}
+
+.modal-xl {
+    width: 94%;
+}

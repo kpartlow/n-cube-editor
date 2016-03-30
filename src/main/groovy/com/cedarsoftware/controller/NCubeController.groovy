@@ -2,6 +2,7 @@ package com.cedarsoftware.controller
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.AxisRef
 import com.cedarsoftware.ncube.AxisType
 import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.CellInfo
@@ -14,6 +15,7 @@ import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.NCubeTest
+import com.cedarsoftware.ncube.ReleaseStatus
 import com.cedarsoftware.ncube.RuleInfo
 import com.cedarsoftware.ncube.StringValuePair
 import com.cedarsoftware.ncube.exception.AxisOverlapException
@@ -310,6 +312,119 @@ class NCubeController extends BaseController
         }
     }
 
+    boolean updateCubeMetaProperties(ApplicationID appId, String cubeName, Map<String, Object> newMetaProperties)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, Delta.Type.UPDATE)
+            NCube ncube = nCubeService.loadCube(appId, cubeName)
+            ncube.clearMetaProperties();
+            ncube.addMetaProperties(newMetaProperties)
+            nCubeService.updateNCube(ncube, getUserForDatabase())
+            return true
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return false
+        }
+    }
+
+    Map getCubeMetaProperties(ApplicationID appId, String cubeName)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, null)
+            NCube ncube = nCubeService.loadCube(appId, cubeName)
+            return ncube.getMetaProperties()
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
+    boolean updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, Delta.Type.UPDATE)
+            NCube ncube = nCubeService.loadCube(appId, cubeName)
+            Axis axis = ncube.getAxis(axisName)
+            axis.clearMetaProperties();
+            axis.addMetaProperties(newMetaProperties)
+            ncube.clearSha1();
+            nCubeService.updateNCube(ncube, getUserForDatabase())
+            return true
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return false
+        }
+    }
+
+    Map getAxisMetaProperties(ApplicationID appId, String cubeName, String axisName)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, null)
+            NCube ncube = nCubeService.loadCube(appId, cubeName)
+            Axis axis = ncube.getAxis(axisName)
+            return axis.getMetaProperties()
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
+    boolean updateColumnMetaProperties(ApplicationID appId, String cubeName, String axisName, long colId, Map<String, Object> newMetaProperties)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, Delta.Type.UPDATE)
+            NCube ncube = nCubeService.loadCube(appId, cubeName)
+            Axis axis = ncube.getAxis(axisName)
+            Column column = axis.getColumnById(colId)
+            column.clearMetaProperties();
+            column.addMetaProperties(newMetaProperties)
+            ncube.clearSha1();
+            nCubeService.updateNCube(ncube, getUserForDatabase())
+            return true
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return false
+        }
+    }
+
+    Map getColumnMetaProperties(ApplicationID appId, String cubeName, String axisName, long colId)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, cubeName, null)
+            NCube ncube = nCubeService.loadCube(appId, cubeName)
+            Axis axis = ncube.getAxis(axisName)
+            Column col = axis.getColumnById(colId)
+            return col.getMetaProperties()
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return null
+        }
+    }
+
     // @Deprecated
     // TODO: Remove
     Object[] getAppNames(String unused1, String unused2)
@@ -345,7 +460,11 @@ class NCubeController extends BaseController
         }
     }
 
-    Object[] getAppVersions(String app, String status, String branchName)
+    Object[] getAppVersions(String app) {
+        getAppVersions(app, null)
+    }
+
+    Object[] getAppVersions(String app, String status)
     {
         try
         {
@@ -357,10 +476,14 @@ class NCubeController extends BaseController
 
             // Filter out duplicates, remove trailing '-SNAPSHOT' and '-RELEASE'
             Set<String> versions = new LinkedHashSet<>()
-            for (int i=vers.length - 1; i >=0; i--)
+            for (int i = vers.length - 1; i >= 0; i--)
             {
                 String mvnVer = vers[i]
-                versions.add(mvnVer.split('-')[0])
+                String[] verArr = mvnVer.split('-')
+                if (status == null || verArr[1] == status)
+                {
+                    versions.add(verArr[0])
+                }
             }
             return versions.toArray()
         }
@@ -612,6 +735,7 @@ class NCubeController extends BaseController
             appId = addTenant(appId)
             isAllowed(appId, null, Delta.Type.UPDATE)
             nCubeService.releaseCubes(appId, newSnapVer)
+            appVersions[appId.app].clear()
         }
         catch (Exception e)
         {
@@ -629,6 +753,7 @@ class NCubeController extends BaseController
             appId = addTenant(appId)
             isAllowed(appId, null, Delta.Type.UPDATE)
             nCubeService.changeVersionValue(appId, newSnapVer)
+            appVersions[appId.app].clear()
         }
         catch (Exception e)
         {
@@ -1267,6 +1392,7 @@ class NCubeController extends BaseController
             isAllowed(appId, null, null)
             nCubeService.clearCache(appId)
             appCache.clear()
+            appVersions.clear()
         }
         catch (Exception e)
         {
@@ -1293,6 +1419,7 @@ class NCubeController extends BaseController
         try
         {
             appId = addTenant(appId)
+            isAllowed(appId, null, null)
 
             Set<String> branches = nCubeService.getBranches(appId)
             if (branches == null && branches.isEmpty())
@@ -1735,7 +1862,7 @@ class NCubeController extends BaseController
     /**
      * Add the n-cube delta description between the two passed in cubes to the passed in Map.
      */
-    private static LinkedHashMap<String, Object> addDeltaDescription(NCube leftCube, NCube rightCube, LinkedHashMap<String, Object> ret)
+    private static Map<String, Object> addDeltaDescription(NCube leftCube, NCube rightCube, Map<String, Object> ret)
     {
         if (leftCube && rightCube)
         {
@@ -1754,6 +1881,52 @@ class NCubeController extends BaseController
     List<String> jsonToLines(String json)
     {
         JsonWriter.formatJson(json).readLines()
+    }
+
+    Object[] getReferenceAxes(ApplicationID appId)
+    {
+        try
+        {
+            appId = addTenant(appId)
+            isAllowed(appId, null, null)
+            List refAxes = nCubeService.getReferenceAxes(appId)
+            return refAxes as Object[]
+        }
+        catch (Exception e)
+        {
+            fail(e)
+            return [] as Object[]
+        }
+    }
+
+    void updateReferenceAxes(Object[] axisRefs)
+    {
+        try
+        {
+            List<AxisRef> axisRefList = axisRefs as List<AxisRef>
+
+            // Ensure access is granted to all APPs and n-cubes involved.
+            for (AxisRef axisRef : axisRefList)
+            {
+                axisRef.with {
+                    srcAppId = addTenant(srcAppId)
+                    isAllowed(srcAppId, srcCubeName, Delta.Type.UPDATE)
+                    ApplicationID destAppId = new ApplicationID(srcAppId.tenant, destApp, destVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD);
+                    isAllowed(destAppId, destCubeName, null)
+                    if (transformApp != null && transformVersion != null)
+                    {
+                        ApplicationID transformAppId = new ApplicationID(srcAppId.getTenant(), transformApp, transformVersion, ReleaseStatus.RELEASE.name(), ApplicationID.HEAD);
+                        isAllowed(transformAppId, transformCubeName, null)
+                    }
+                }
+            }
+
+            nCubeService.updateReferenceAxes(axisRefList, getUserForDatabase())
+        }
+        catch (Exception e)
+        {
+            fail(e)
+        }
     }
 
     Map heartBeat(Map openCubes)
@@ -2041,72 +2214,6 @@ class NCubeController extends BaseController
         }
         return false
     }
-
-//    private void printStackTrace(Throwable t, StringBuilder s) {
-//        // Guard against malicious overrides of Throwable.equals by
-//        // using a Set with identity equality semantics.
-//        Set<Throwable> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>())
-//        dejaVu.add(t)
-//
-//        synchronized (s) {
-//            // Print our stack trace
-//            s.println(this);
-//            StackTraceElement[] trace = getOurStackTrace();
-//            for (StackTraceElement traceElement : trace)
-//                s.println("\tat " + traceElement);
-//
-//            // Print suppressed exceptions, if any
-//            for (Throwable se : getSuppressed())
-//                se.printEnclosedStackTrace(s, trace, SUPPRESSED_CAPTION, "\t", dejaVu);
-//
-//            // Print cause, if any
-//            Throwable ourCause = getCause();
-//            if (ourCause != null)
-//                ourCause.printEnclosedStackTrace(s, trace, CAUSE_CAPTION, "", dejaVu);
-//        }
-//    }
-//
-//    /**
-//     * Print our stack trace as an enclosed exception for the specified
-//     * stack trace.
-//     */
-//    private void printEnclosedStackTrace(PrintStreamOrWriter s,
-//                                         StackTraceElement[] enclosingTrace,
-//                                         String caption,
-//                                         String prefix,
-//                                         Set<Throwable> dejaVu) {
-//        assert Thread.holdsLock(s.lock());
-//        if (dejaVu.contains(this)) {
-//            s.println("\t[CIRCULAR REFERENCE:" + this + "]");
-//        } else {
-//            dejaVu.add(this);
-//            // Compute number of frames in common between this and enclosing trace
-//            StackTraceElement[] trace = getOurStackTrace();
-//            int m = trace.length - 1;
-//            int n = enclosingTrace.length - 1;
-//            while (m >= 0 && n >=0 && trace[m].equals(enclosingTrace[n])) {
-//                m--; n--;
-//            }
-//            int framesInCommon = trace.length - 1 - m;
-//
-//            // Print our stack trace
-//            s.println(prefix + caption + this);
-//            for (int i = 0; i <= m; i++)
-//                s.println(prefix + "\tat " + trace[i]);
-//            if (framesInCommon != 0)
-//                s.println(prefix + "\t... " + framesInCommon + " more");
-//
-//            // Print suppressed exceptions, if any
-//            for (Throwable se : getSuppressed())
-//                se.printEnclosedStackTrace(s, trace, SUPPRESSED_CAPTION,
-//                        prefix +"\t", dejaVu);
-//
-//            // Print cause, if any
-//            Throwable ourCause = getCause();
-//            if (ourCause != null)
-//                ourCause.printEnclosedStackTrace(s, trace, CAUSE_CAPTION, prefix, dejaVu);
-//        }
-//    }
 
     private static String getCauses(Throwable t)
     {

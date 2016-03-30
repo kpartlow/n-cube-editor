@@ -2,6 +2,7 @@ package com.cedarsoftware.service.ncube
 
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.AxisRef
 import com.cedarsoftware.ncube.AxisType
 import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.NCube
@@ -464,6 +465,16 @@ class NCubeService
     void clearCache(ApplicationID appId)
     {
         NCubeManager.clearCache(appId)
+    }
+
+    List<AxisRef> getReferenceAxes(ApplicationID appId)
+    {
+        return NCubeManager.getReferenceAxes(appId)
+    }
+
+    void updateReferenceAxes(List<AxisRef> axisRefs, String username)
+    {
+        NCubeManager.updateReferenceAxes(axisRefs, username);
     }
 
     // =========================================== Helper methods ======================================================

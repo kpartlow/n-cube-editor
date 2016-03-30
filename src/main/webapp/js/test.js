@@ -25,10 +25,10 @@ var TestEditor = (function ($)
     var _testSelectionAnchor = -1;
     var _duplicateTestModal = null;
     var _deleteTestModal = null;
-    var _addParameterModal = null;
     var _deleteParameterModal = null;
     var _createNewTestModal = null;
     var _renameTestModal = null;
+    var _selectedTestName = null;
     var _testResultsDiv = null;
     var _testList = null;
     var _testListWarning = null;
@@ -65,7 +65,6 @@ var TestEditor = (function ($)
 
             _duplicateTestModal = $('#duplicateTestModal');
             _deleteTestModal = $('#deleteTestmodal');
-            _addParameterModal = $('#addParameterModal');
             _deleteParameterModal = $('#deleteParameterModal');
             _createNewTestModal = $('#createNewTestModal');
             _renameTestModal = $('#renameTestModal');
@@ -89,20 +88,13 @@ var TestEditor = (function ($)
                 e.preventDefault();
                 deleteParameterOk();
             });
-            $('#addParameterMenu').click(function (e)
+            $('#addParameter').click(function (e)
             {
-                e.preventDefault();
-                addParameterMenu();
+                addNewParameter();
             });
-            $('#addAssertionMenu').click(function (e)
+            $('#addAssertion').click(function (e)
             {
-                e.preventDefault();
                 addNewAssertion();
-            });
-            $('#addParameterOk').click(function (e)
-            {
-                e.preventDefault();
-                addParameterOk();
             });
             $('#createTestsLink').click(function (e)
             {
@@ -117,10 +109,6 @@ var TestEditor = (function ($)
                     loadTestListView("ncubeController.generateTests", true);
                 }
             });
-            //  Set focused field when dialog appears so user can just start typing.
-            _addParameterModal.on('shown.bs.modal', function () {
-                $('#addParameterField').focus();
-            });
 
             _createNewTestModal.on('shown.bs.modal', function () {
                 $('#createNewTestField').focus();
@@ -132,14 +120,6 @@ var TestEditor = (function ($)
 
             _duplicateTestModal.on('shown.bs.modal', function () {
                 $('#duplicateTestNameField').focus();
-            });
-
-            //  Set default button clicked when <enter> is hit.
-            _addParameterModal.on( 'keypress', function( e ) {
-                if( e.keyCode === 13 ) {
-                    e.preventDefault();
-                    $('#addParameterOk').click();
-                }
             });
 
             _renameTestModal.on( 'keypress', function( e ) {
@@ -418,10 +398,38 @@ var TestEditor = (function ($)
     {
         var ident = generateRandomId();
         var labelGroup = $("<div/>").attr({'class': 'form-group', 'parameter-id':labelText, 'id':ident});
-        var cat = ident + "-value";
-        var label = $("<label/>").attr({'for': cat, 'class': 'control-label'})[0].innerHTML = (labelText);
-        var deleteParamButton = $("<a/>").attr({'class':'red-item pull-right', 'font-size':'9px', 'style':'padding: 1px 3px; font-size: 12px; line-height: 1.5; border-radius: 3px;'});
-        var glyph = $("<span/>").attr({'class':'glyphicon glyphicon-remove', 'style':'vertical-align: -1px;' });
+        var cat = ident + '-value';
+        var label = $('<span/>').addClass('control-label').html(labelText);
+        var deleteParamButton = $('<a/>').attr({'class':'red-item pull-right', 'font-size':'9px', 'style':'padding: 1px 3px; font-size: 12px; line-height: 1.5; border-radius: 3px;'});
+        var glyph = $('<span/>').attr({'class':'glyphicon glyphicon-remove', 'style':'vertical-align: -1px;'});
+
+        label.click(function() {
+            if (label.find('input').length === 0) {
+                var updateParameterName = function() {
+                    var newVal = textBox.val();
+                    if (newVal !== '') {
+                        label.html(newVal);
+                        labelGroup.attr('parameter-id', newVal);
+                        saveAllTests(false);
+                    }
+                };
+                var textBox = $('<input/>')
+                    .prop('type', 'text')
+                    .val(label[0].innerHTML)
+                    .blur(function () {
+                        updateParameterName();
+                    })
+                    .keyup(function(e) {
+                        if (e.keyCode === KEY_CODES.ENTER) {
+                            updateParameterName();
+                        }
+                    });
+                label.empty();
+                label.append(textBox);
+                textBox.focus();
+                textBox.select();
+            }
+        });
 
         deleteParamButton.append(glyph);
         deleteParamButton.click(deleteFunc);
@@ -717,29 +725,12 @@ var TestEditor = (function ($)
         saveAllTests(false);
     };
 
-    var addParameterMenu = function()
+    var addNewParameter = function()
     {
-        nce.clearError();
-        if (!nce.getSelectedCubeName())
-        {
-            nce.showNote('No n-cube selected. Cannot add test parameter.');
-            return;
-        }
-
-        $('#addParameterField').val('');
-
-        _addParameterModal.modal({
-            keyboard: true
-        });
-    };
-
-    var addParameterOk = function()
-    {
-        _addParameterModal.modal('hide');
-        var id = $('#addParameterField').val();
+        var id = 'newInput';
 
         // check to see if parameter already exists in parameter-key of #testAssertions .form-group
-        var param = buildParameter(id, "string", false, '', true, false, deleteParameter);
+        var param = buildParameter(id, 'string', false, '', true, false, deleteParameter);
 
         if (_testParameters.find('.form-group').length > 0)
         {
@@ -751,6 +742,8 @@ var TestEditor = (function ($)
         }
 
         saveAllTests(false);
+
+        param.find('.control-label').click();
     };
 
     var addNewAssertion = function()

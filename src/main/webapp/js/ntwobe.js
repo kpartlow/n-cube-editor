@@ -155,7 +155,6 @@ var NCubeEditor2 = (function ($) {
             addColumnEditListeners();
             addColumnHideListeners();
             addEditCellListeners();
-            addFilterListeners();
             addSearchListeners();
             addModalFilters();
             modalsDraggable(true);
@@ -224,7 +223,8 @@ var NCubeEditor2 = (function ($) {
                         }
                     } else {
                         if (keyCode === KEY_CODES.DELETE) {
-                            editCellClear();
+                            nceCutCopyData(getSelectedCellRange(), true);
+                            reload();
                         }
                     }
                 }
@@ -322,6 +322,7 @@ var NCubeEditor2 = (function ($) {
         _ncubeContent.hide();
         _ncubeHtmlError.show();
         _ncubeHtmlError[0].innerHTML = text;
+        buildTopAxisMenu();
     };
 
     var clearHtmlError = function() {
@@ -329,9 +330,9 @@ var NCubeEditor2 = (function ($) {
         _ncubeHtmlError.hide();
     };
 
-    var load = function() {
+    var load = function(keepTable) {
         resetCoordinateBar();
-        if (hot) {
+        if (hot && !keepTable) {
             hot.destroy();
             hot = null;
         }
@@ -345,7 +346,9 @@ var NCubeEditor2 = (function ($) {
         clearHtmlError();
 
         handleCubeData(JSON.parse(result.data));
-        hot = new Handsontable(document.getElementById('hot-container'), getHotSettings());
+        if (!hot || !keepTable) {
+            hot = new Handsontable(document.getElementById('hot-container'), getHotSettings());
+        }
         selectSavedOrDefaultCell();
         hot.render();
         setClipFormatToggleListener();
@@ -601,7 +604,9 @@ var NCubeEditor2 = (function ($) {
                             c = axisColumnMap[topAxis.name].indexOf(topColId);
                             var colIdCombo = colIds.join('_');
                             r = _columnIdCombinationsToShow.indexOf(colIdCombo);
-                            addToSearchCoords(r + 2, c + (colOffset || 1));
+                            if (r > -1) {
+                                addToSearchCoords(r + 2, c + (colOffset || 1));
+                            }
                             break;
                         }
                     }
@@ -826,7 +831,7 @@ var NCubeEditor2 = (function ($) {
     };
 
     var hasCustomAxisOrder = function() {
-        return localStorage.hasOwnProperty(getStorageKey(AXIS_ORDER));
+        return localStorage.hasOwnProperty(getStorageKey(nce, AXIS_ORDER));
     };
 
     var getAppliedFilters = function() {
@@ -944,7 +949,7 @@ var NCubeEditor2 = (function ($) {
             var i, len, axis;
             if (hasCustomAxisOrder())
             {
-                var order = JSON.parse(localStorage[getStorageKey(AXIS_ORDER)]);
+                var order = JSON.parse(localStorage[getStorageKey(nce, AXIS_ORDER)]);
                 for (i = 0, len = order.length; i < len; i++)
                 {
                     axis = cubeAxes[order[i]];
@@ -1067,7 +1072,7 @@ var NCubeEditor2 = (function ($) {
         var hideColumns = function()
         {
             _hiddenColumns = {};
-            var storageKey = getStorageKey(HIDDEN_COLUMNS);
+            var storageKey = getStorageKey(nce, HIDDEN_COLUMNS);
             if (localStorage.hasOwnProperty(storageKey))
             {
                 _hiddenColumns = JSON.parse(localStorage[storageKey]);
@@ -1105,6 +1110,11 @@ var NCubeEditor2 = (function ($) {
     };
 
     var buildTopAxisMenu = function() {
+        if (_ncubeHtmlError.is(":visible")) {
+            _topAxisBtn.hide();
+            return;
+        }
+        _topAxisBtn.show();
         if (axes.length < 2) {
             _topAxisBtn.empty();
         } else {
@@ -1379,25 +1389,25 @@ var NCubeEditor2 = (function ($) {
     };
 
     var getSavedColumnWidths = function() {
-        var localWidthVar = localStorage[getStorageKey(COLUMN_WIDTHS)];
+        var localWidthVar = localStorage[getStorageKey(nce, COLUMN_WIDTHS)];
         return localWidthVar ? JSON.parse(localWidthVar) : {};
     };
 
     var getSavedRowHeights = function() {
-        var localHeightVar = localStorage[getStorageKey(ROW_HEIGHTS)];
+        var localHeightVar = localStorage[getStorageKey(nce, ROW_HEIGHTS)];
         return localHeightVar ? JSON.parse(localHeightVar) : {};
     };
 
     var saveColumnWidth = function(col, newVal) {
         var saved = getSavedColumnWidths();
         saved[col] = newVal;
-        saveOrDeleteValue(saved, getStorageKey(COLUMN_WIDTHS));
+        saveOrDeleteValue(saved, getStorageKey(nce, COLUMN_WIDTHS));
     };
 
     var saveRowHeight = function(row, newVal) {
         var saved = getSavedRowHeights();
         saved[row] = newVal;
-        saveOrDeleteValue(saved, getStorageKey(ROW_HEIGHTS));
+        saveOrDeleteValue(saved, getStorageKey(nce, ROW_HEIGHTS));
     };
 
     var calcColumnHeader = function(index)
@@ -1449,7 +1459,9 @@ var NCubeEditor2 = (function ($) {
     var getHotSettings = function() {
         return {
             copyPaste: false,
-            fillHandle: false,
+            fillHandle: {
+                autoInsertRow: false
+            },
             colWidths: _columnWidths,
             rowHeights: _rowHeights,
             autoColumnSize: false,
@@ -1528,10 +1540,17 @@ var NCubeEditor2 = (function ($) {
             },
             afterScrollHorizontally: function() {
                 moveTopAxisMenu();
-                saveViewPosition();
+                delay(function() {
+                    saveViewPosition();
+                },PROGRESS_DELAY);
             },
             afterScrollVertically: function() {
-                saveViewPosition();
+                delay(function() {
+                    saveViewPosition();
+                },PROGRESS_DELAY);
+            },
+            beforeAutofill: function(start, end, data) {
+                autoFillNce(start, end);
             }
         };
     };
@@ -1624,7 +1643,7 @@ var NCubeEditor2 = (function ($) {
             td.style.background = BACKGROUND_CUBE_NAME;
             td.style.color = COLOR_WHITE;
             td.colSpan = 1;
-            cellProperties.readOnly = true;
+            cellProperties.editor = CubeEditor;
             if (col < axes.length - 2) {
                 td.style.borderRight = NONE;
                 td.style.overflow = 'visible';
@@ -1885,7 +1904,7 @@ var NCubeEditor2 = (function ($) {
             an.click(function (e) {
                 e.preventDefault();
                 var appId = appIdFrom(axis.referenceApp, axis.referenceVersion, axis.referenceStatus, axis.referenceBranch);
-                nce.selectCubeFromAppId(appId, axis.referenceCubeName);
+                nce.selectCubeByName(axis.referenceCubeName, appId);
             });
             li.append(an);
             ul.append(li);
@@ -1955,6 +1974,30 @@ var NCubeEditor2 = (function ($) {
         });
         li.append(an);
         ul.append(li);
+
+        li = $('<li/>');
+        an = $('<a href="#">');
+        an[0].innerHTML = "Edit axis metadata...";
+        if (isRef) {
+            li.prop('class', 'disabled');
+            an.click(function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        } else {
+            an.click(function (e) {
+                e.preventDefault();
+                var metaPropertyOptions = {
+                    objectType: METAPROPERTIES.OBJECT_TYPES.AXIS,
+                    objectName: axisName,
+                    axis: axis
+                };
+                openMetaPropertiesBuilder(metaPropertyOptions);
+            });
+        }
+        li.append(an);
+        ul.append(li);
+
         li = $('<div/>').prop({'class': 'divider'});
         ul.append(li);
         li = $('<li/>');
@@ -2052,11 +2095,11 @@ var NCubeEditor2 = (function ($) {
         li = $('<li/>');
         an = $('<a href="#">');
         an[0].innerHTML = "Revert column / row sizing";
-        if (localStorage[getStorageKey(COLUMN_WIDTHS)]) {
+        if (localStorage[getStorageKey(nce, COLUMN_WIDTHS)]) {
             an.click(function (e) {
                 e.preventDefault();
-                saveOrDeleteValue(null, getStorageKey(COLUMN_WIDTHS));
-                saveOrDeleteValue(null, getStorageKey(ROW_HEIGHTS));
+                saveOrDeleteValue(null, getStorageKey(nce, COLUMN_WIDTHS));
+                saveOrDeleteValue(null, getStorageKey(nce, ROW_HEIGHTS));
                 reload();
             });
         } else {
@@ -2174,7 +2217,7 @@ var NCubeEditor2 = (function ($) {
             if (hasCustomAxisOrder()) {
                 an.click(function (e) {
                     e.preventDefault();
-                    delete localStorage[getStorageKey(AXIS_ORDER)];
+                    delete localStorage[getStorageKey(nce, AXIS_ORDER)];
                     destroyEditor();
                     reload();
                 });
@@ -2278,17 +2321,18 @@ var NCubeEditor2 = (function ($) {
 
     var keepKeyDownText = function(e) {
         var keycode = e.keyCode;
-        var valid =
+        var validNotNumPad =
             (keycode > 47 && keycode < 58)   || // number keys
             keycode == 32 || keycode == 13   || // spacebar & return key(s) (if you want to allow carriage returns)
             (keycode > 64 && keycode < 91)   || // letter keys
-            (keycode > 95 && keycode < 112)  || // numpad keys
             (keycode > 185 && keycode < 193) || // ;=,-./` (in order)
             (keycode > 218 && keycode < 223);   // [\]' (in order)
 
-        if (valid) {
+        if (validNotNumPad) {
             var addChar = String.fromCharCode(keycode);
             _bufferText += e.shiftKey ? addChar : addChar.toLowerCase();
+        } else if (keycode > 95 && keycode < 112) { //numpad
+            _bufferText += String.fromCharCode(keycode - 48);
         }
     };
 
@@ -2331,14 +2375,141 @@ var NCubeEditor2 = (function ($) {
     ColumnEditor.prototype.open = function() {
         NcubeBaseEditor.prototype.open.apply(this, arguments);
 
-        var axis = this.row === 1 ? axes[colOffset] : axes[this.col];
-        editColumns(axis.name);
+        var row = this.row;
+        var col = this.col;
+        var axis;
+        var column;
+        var columnName;
+
+        if (row === 1) {
+            if (colOffset < 1) {
+                return;
+            }
+            axis = axes[colOffset];
+            column = getColumnHeader(col);
+            columnName = getColumnHeaderValue(col);
+        } else {
+            axis = axes[this.col];
+            column = getRowHeader(row, col);
+            columnName = getRowHeaderPlainText(row, col);
+        }
+
+        var metaPropertyOptions = {
+            objectType: METAPROPERTIES.OBJECT_TYPES.COLUMN,
+            objectName: columnName,
+            axis: axis,
+            column: column
+        };
+        openMetaPropertiesBuilder(metaPropertyOptions);
     };
-    ColumnEditor.prototype.isOpened = function() {
-        return $(_editColumnModal).hasClass('in');
+
+    var CubeEditor = NcubeBaseEditor.prototype.extend();
+    CubeEditor.prototype.open = function() {
+        NcubeBaseEditor.prototype.open.apply(this, arguments);
+
+        var metaPropertyOptions = {
+            objectType: METAPROPERTIES.OBJECT_TYPES.CUBE,
+            objectName: cubeName
+        };
+        openMetaPropertiesBuilder(metaPropertyOptions);
     };
 
     // ==================================== End Custom HOT Editors =====================================================
+
+    // ==================================== Begin Edit Metaproperties ==================================================
+
+    var getMetaPropertiesControllerInfo = function(metaPropertyOptions) {
+        var getMethod;
+        var setMethod;
+        var params = [nce.getSelectedTabAppId(), nce.getSelectedCubeName()];
+        var objectType = metaPropertyOptions.objectType;
+        if (objectType === METAPROPERTIES.OBJECT_TYPES.COLUMN) {
+            getMethod = CONTROLLER_METHOD.GET_COLUMN_METAPROPERTIES;
+            setMethod = CONTROLLER_METHOD.UPDATE_COLUMN_METAPROPERTIES;
+            params.push(metaPropertyOptions.axis.name);
+            params.push(metaPropertyOptions.column.id);
+        } else if (objectType === METAPROPERTIES.OBJECT_TYPES.AXIS) {
+            getMethod = CONTROLLER_METHOD.GET_AXIS_METAPROPERTIES;
+            setMethod = CONTROLLER_METHOD.UPDATE_AXIS_METAPROPERTIES;
+            params.push(metaPropertyOptions.axis.name);
+        } else {
+            getMethod = CONTROLLER_METHOD.GET_CUBE_METAPROPERTIES;
+            setMethod = CONTROLLER_METHOD.UPDATE_CUBE_METAPROPERTIES;
+        }
+
+        return {
+            getter: getMethod,
+            setter: setMethod,
+            params: params
+        };
+    };
+
+    var getMetaProperties = function(metaPropertyOptions) {
+        var controllerInfo = getMetaPropertiesControllerInfo(metaPropertyOptions);
+        var result = nce.call('ncubeController.' + controllerInfo.getter, controllerInfo.params);
+        if (result.status !== true) {
+            nce.showNote("Unable to fetch metaproperties for " + metaPropertyOptions.objectType + " '" + metaPropertyOptions.objectName + "':<hr class=\"hr-small\"/>" + result.data);
+            return null;
+        }
+        return result.data;
+    };
+
+    var updateMetaProperties = function(metaPropertyOptions, metaProperties) {
+        var mpMap = {};
+        for (var mpIdx = 0, mpLen = metaProperties.length; mpIdx < mpLen; mpIdx++) {
+            var prop = metaProperties[mpIdx];
+            mpMap[prop.key] = prop.value;
+        }
+
+        var controllerInfo = getMetaPropertiesControllerInfo(metaPropertyOptions);
+        controllerInfo.params.push(mpMap);
+        var result = nce.call('ncubeController.' + controllerInfo.setter, controllerInfo.params);
+        if (result.status !== true) {
+            nce.showNote("Unable to update metaproperties for " + metaProperties.objectType + " '" + metaPropertyOptions.objectName + "':<hr class=\"hr-small\"/>" + result.data);
+            return;
+        }
+        reload();
+    };
+
+    var openMetaPropertiesBuilder = function(metaPropertyOptions) {
+        var mpData = getMetaProperties(metaPropertyOptions);
+        if (mpData === null) {
+            return;
+        }
+        delete mpData['@type'];
+        var metaKeys = Object.keys(mpData);
+        var metaProperties = [];
+        for (var i = 0, len = metaKeys.length; i < len; i++) {
+            var key = metaKeys[i];
+            metaProperties.push({key:key, value:mpData[key]});
+        }
+
+        var builderOptions = {
+            title: 'Metaproperties - ' + metaPropertyOptions.objectName,
+            instructionsTitle: 'Instructions - Metaproperties',
+            instructionsText: 'Add custom properties for this ' + metaPropertyOptions.objectType + '.',
+            columns: {
+                key: {
+                    heading: 'Key',
+                    type: PropertyBuilder.COLUMN_TYPES.TEXT
+                },
+                value: {
+                    heading: 'Value',
+                    type: PropertyBuilder.COLUMN_TYPES.TEXT
+                }
+            },
+            afterSave: function() {
+                updateMetaProperties(metaPropertyOptions, metaProperties);
+                hot.removeHook('beforeKeyDown', onBeforeKeyDown);
+            }
+        };
+
+        hot.addHook('beforeKeyDown', onBeforeKeyDown);
+        PropertyBuilder.openBuilderModal(builderOptions, metaProperties);
+    };
+
+    // ===================================== End Edit Metaproperties ===================================================
+
 
     // ==================================== Begin Copy / Paste =========================================================
 
@@ -2413,9 +2584,21 @@ var NCubeEditor2 = (function ($) {
             return;
         }
 
-        var cells = [];
-        var range = getSelectedCellRange();
+        var clipData = nceCutCopyData(getSelectedCellRange(), isCut);
+        if (!clipData) {
+            return;
+        }
 
+        if (isCut) {
+            reload();
+        }
+        _clipboard.val(clipData);
+        _clipboard.focusin();
+        _clipboard.select();
+    };
+
+    var nceCutCopyData = function(range, isCut) {
+        var cells = [];
         for (var row = range.startRow; row <= range.endRow; row++) {
             for (var col = range.startCol; col <= range.endCol; col++) {
                 var cellId = getCellId(row, col);
@@ -2431,32 +2614,34 @@ var NCubeEditor2 = (function ($) {
         var result = nce.call("ncubeController.copyCells", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), cells, isCut]);
         if (!result.status) {
             nce.showNote('Error copying/cutting cells:<hr class="hr-small"/>' + result.data);
-            return;
+            return null;
         }
-        if (isCut) {
-            reload();
-        }
-
-        var clipData = result.data;
-        _clipboard.val(CLIP_NCE + clipData);
-        _clipboard.focusin();
-        _clipboard.select();
+        return CLIP_NCE + result.data;
     };
 
     var editPaste = function() {
-        _clipboard.val('');
-        _clipboard.focus();
-
         if (!nce.ensureModifiable('Cannot paste cells.')) {
             return;
         }
 
-        var range = getSelectedCellRange();
+        _clipboard.val('');
+        _clipboard.focus();
 
+        var range = getSelectedCellRange();
         if (!range || range.length < 1) {
             return;
         }
 
+        setTimeout(function() {
+            var content = _clipboard.val();
+            if (!content || content == "") {
+                return;
+            }
+            pasteData(content, range);
+        }, 100);
+    };
+
+    var pasteData = function(content, range) {
         // Location of first selected cell in 2D spreadsheet view.
         var firstRow = range.startRow;
         var firstCol = range.startCol;
@@ -2470,136 +2655,154 @@ var NCubeEditor2 = (function ($) {
 
         var onlyOneCellSelected = firstRow == lastRow && firstCol == lastCol;
 
-        setTimeout(function() {
-            var content = _clipboard.val();
-            if (!content || content == "") {
-                return;
-            }
+        // Parse the clipboard content and build-up coordinates where this content will be pasted.
+        var result;
+        var colNum = firstCol;
+        var rowNum = firstRow;
 
-            // Parse the clipboard content and build-up coordinates where this content will be pasted.
-            var result;
-            var colNum = firstCol;
-            var rowNum = firstRow;
+        if (content.indexOf(CLIP_NCE) == 0) {
+            // NCE clipboard data (allows us to handle all cell types)
+            content = content.slice(CLIP_NCE.length);
+            var clipboard = JSON.parse(content);
 
-            if (content.indexOf(CLIP_NCE) == 0) {
-                // NCE clipboard data (allows us to handle all cell types)
-                content = content.slice(CLIP_NCE.length);
-                var clipboard = JSON.parse(content);
-
-                if (onlyOneCellSelected) {
-                    // Paste full clipboard data to cube (if it fits, otherwise clip to edges)
-                    for (var lineNum = 0, len = clipboard.length; lineNum < len; lineNum++) {
-                        var cellInfo = clipboard[lineNum];
-                        if (cellInfo == null) {
-                            rowNum++;
-                            colNum = firstCol;
-                        } else {
-                            if (colNum < numTableCols) {
-                                // Do attempt to read past edge of 2D grid
-                                var cellId = getCellId(rowNum, colNum);
-                                cellInfo.push(cellId.split('_'));
-                            }
-                            colNum++;
-                        }
-                        if (rowNum >= numTableRows) {
-                            // Do not go past bottom of grid
-                            break;
-                        }
-                    }
-                } else {
-                    // Repeat / Clip case: multiple cells are selected when PASTE invoked, clip pasting to selected
-                    // range. This is the 'fill-mode' of paste (repeating clipboard data to fill selected rectangle)
-                    var clipRect = [[]];  // 2D array
-                    var clipCol = 0;
-                    var clipRow = 0;
-
-                    // Refashion linear clipboard (with nulls as column boundaries) to 2D
-                    for (var k = 0, len = clipboard.length; k < len; k++) {
-                        if (clipboard[k]) {
-                            clipRect[clipRow][clipCol] = clipboard[k];
-                            clipCol++;
-                        } else {
-                            clipCol = 0;
-                            clipRow++;
-                            clipRect[clipRow] = [];
-                        }
-                    }
-                    clipRow++;  // count of rows (not 0 based), e.g. 4 for rows 0-3 (needed for modulo below)
-
-                    rowNum = firstRow;
-                    var clipboard2 = [];
-
-                    for (var r = firstRow; r <= lastRow; r++) {
-                        for (var c = firstCol; c <= lastCol; c++) {
-                            var info = clipRect[(r - firstRow) % clipRow][(c - firstCol) % clipCol];
-                            var cloneCellInfo = info.slice(0);
-                            var cellId = getCellId(r, c);
-                            cloneCellInfo.push(cellId.split('_'));
-                            clipboard2.push(cloneCellInfo);
-                        }
+            if (onlyOneCellSelected) {
+                // Paste full clipboard data to cube (if it fits, otherwise clip to edges)
+                for (var lineNum = 0, len = clipboard.length; lineNum < len; lineNum++) {
+                    var cellInfo = clipboard[lineNum];
+                    if (cellInfo == null) {
                         rowNum++;
-                    }
-                    clipboard = clipboard2;
-                }
-                // Paste cells from database
-                result = nce.call("ncubeController.pasteCellsNce", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), clipboard]);
-            } else {
-                // Normal clipboard data, from Excel, for example
-                var lines = parseExcelClipboard(content);
-                var coords = [];
-                var rowCoords = [];
-                var values = [];
-
-                // If more than one cell is selected, create coords for all selected cells.
-                // Server will repeat values, properly throughout the selected 'clip' region.
-                for (var i = 0; i < lines.length; i++) {
-                    rowCoords = [];
-                    values.push(lines[i]);  // push a whole line of values at once.
-                    colNum = firstCol;
-
-                    for (var j = 0, len = lines[i].length; j < len; j++) {
+                        colNum = firstCol;
+                    } else {
                         if (colNum < numTableCols) {
                             // Do attempt to read past edge of 2D grid
                             var cellId = getCellId(rowNum, colNum);
-                            rowCoords.push(cellId.split('_'));
+                            cellInfo.push(cellId.split('_'));
                         }
                         colNum++;
                     }
-                    coords.push(rowCoords);
-                    rowNum++;
-
-                    if (rowNum > numTableRows) {
+                    if (rowNum >= numTableRows) {
                         // Do not go past bottom of grid
                         break;
                     }
                 }
+            } else {
+                // Repeat / Clip case: multiple cells are selected when PASTE invoked, clip pasting to selected
+                // range. This is the 'fill-mode' of paste (repeating clipboard data to fill selected rectangle)
+                var clipRect = [[]];  // 2D array
+                var clipCol = 0;
+                var clipRow = 0;
 
-                if (!onlyOneCellSelected) {
-                    // Multiple cells are selected when PASTE invoked, clip pasting to selected range.
-                    coords = [];
-                    var addHotIds = [];
-                    for (r = firstRow; r <= lastRow; r++) {
-                        rowCoords = [];
-                        for (c = firstCol; c <= lastCol; c++) {
-                            var cellId = getCellId(r, c);
-                            rowCoords.push(cellId.split('_'));
-                            addHotIds.push(cellId);
-                        }
-                        coords.push(rowCoords);
+                // Refashion linear clipboard (with nulls as column boundaries) to 2D
+                for (var k = 0, len = clipboard.length; k < len; k++) {
+                    if (clipboard[k]) {
+                        clipRect[clipRow][clipCol] = clipboard[k];
+                        clipCol++;
+                    } else {
+                        clipCol = 0;
+                        clipRow++;
+                        clipRect[clipRow] = [];
                     }
                 }
+                clipRow++;  // count of rows (not 0 based), e.g. 4 for rows 0-3 (needed for modulo below)
 
-                // Paste cells from database
-                result = nce.call("ncubeController.pasteCells", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), values, coords]);
+                rowNum = firstRow;
+                var clipboard2 = [];
+
+                for (var r = firstRow; r <= lastRow; r++) {
+                    for (var c = firstCol; c <= lastCol; c++) {
+                        var info = clipRect[(r - firstRow) % clipRow][(c - firstCol) % clipCol];
+                        var cloneCellInfo = info.slice(0);
+                        var cellId = getCellId(r, c);
+                        cloneCellInfo.push(cellId.split('_'));
+                        clipboard2.push(cloneCellInfo);
+                    }
+                    rowNum++;
+                }
+                clipboard = clipboard2;
+            }
+            // Paste cells from database
+            result = nce.call("ncubeController.pasteCellsNce", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), clipboard]);
+        } else {
+            // Normal clipboard data, from Excel, for example
+            var lines = parseExcelClipboard(content);
+            var coords = [];
+            var rowCoords = [];
+            var values = [];
+
+            // If more than one cell is selected, create coords for all selected cells.
+            // Server will repeat values, properly throughout the selected 'clip' region.
+            for (var i = 0; i < lines.length; i++) {
+                rowCoords = [];
+                values.push(lines[i]);  // push a whole line of values at once.
+                colNum = firstCol;
+
+                for (var j = 0, len = lines[i].length; j < len; j++) {
+                    if (colNum < numTableCols) {
+                        // Do attempt to read past edge of 2D grid
+                        var cellId = getCellId(rowNum, colNum);
+                        rowCoords.push(cellId.split('_'));
+                    }
+                    colNum++;
+                }
+                coords.push(rowCoords);
+                rowNum++;
+
+                if (rowNum > numTableRows) {
+                    // Do not go past bottom of grid
+                    break;
+                }
             }
 
-            if (result.status) {
-                reload();
-            } else {
-                nce.clearError();
-                nce.showNote('Error pasting cells:<hr class="hr-small"/>' + result.data);
+            if (!onlyOneCellSelected) {
+                // Multiple cells are selected when PASTE invoked, clip pasting to selected range.
+                coords = [];
+                var addHotIds = [];
+                for (r = firstRow; r <= lastRow; r++) {
+                    rowCoords = [];
+                    for (c = firstCol; c <= lastCol; c++) {
+                        var cellId = getCellId(r, c);
+                        rowCoords.push(cellId.split('_'));
+                        addHotIds.push(cellId);
+                    }
+                    coords.push(rowCoords);
+                }
             }
-        }, 100);
+
+            // Paste cells from database
+            result = nce.call("ncubeController.pasteCells", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), values, coords]);
+        }
+
+        if (result.status) {
+            reload(true);
+        } else {
+            nce.clearError();
+            nce.showNote('Error pasting cells:<hr class="hr-small"/>' + result.data);
+        }
+    };
+
+    var autoFillNce = function(start, end) {
+        var copyRange = getSelectedCellRange();
+        var pasteRange = {
+            startRow: start.row,
+            endRow: end.row,
+            startCol: start.col,
+            endCol: end.col
+        };
+
+        if (copyRange.startRow < pasteRange.startRow) { //fill down
+            copyRange.endRow = pasteRange.startRow - 1;
+        } else if (copyRange.endRow > pasteRange.endRow) { //fill up
+            copyRange.startRow = pasteRange.endRow + 1;
+        } else if (copyRange.startCol < pasteRange.startCol) { //fill right
+            copyRange.endCol = pasteRange.startCol - 1;
+        } else if (copyRange.endCol > pasteRange.endCol) { //fill left
+            copyRange.startCol = pasteRange.endCol + 1;
+        }
+
+        var content = nceCutCopyData(copyRange, false);
+        if (content) {
+            pasteData(content, pasteRange);
+        }
     };
 
     // ==================================== End Copy / Paste ===========================================================
@@ -2661,7 +2864,7 @@ var NCubeEditor2 = (function ($) {
             isCached = data.defaultCellValueCache;
         }
         // Set the cell value (String)
-        var cellValue = value !== null ? value : '';
+        var cellValue = value !== null && value !== undefined ? value : '';
         _editCellValue.val(cellValue);
         if (dataType === null || !dataType) {
             dataType = 'string';
@@ -2766,130 +2969,66 @@ var NCubeEditor2 = (function ($) {
 
     // ============================================== Begin Filtering ==================================================
 
-    var addFilterListeners = function() {
-        $('#filterInstTitle')[0].textContent = 'Instructions - Filter Data';
-        $('#filterInstructions')[0].innerHTML = 'Select filters to apply to cell data for ncube.';
-        var tr = $('<tr/>');
-        tr.append($('<td/>').html('Apply'));
-        tr.append($('<td/>').html('Column'));
-        tr.append($('<td/>').html('Comparator'));
-        tr.append($('<td/>').html('Comparison Value'));
-        tr.append($('<td/>').html('Include Empty Cells'));
-        tr.append($('<td/>'));
-        _filterTable.append(tr);
-
-        $('#filterAdd').click(function() {
-            addFilter();
-        });
-        $('#filterClear').click(function () {
-            filterClear();
-        });
-        $('#filterCancel').click(function () {
-            filterClose();
-        });
-        $('#filterSave').click(function () {
-            filterSave();
-        });
+    var filterSave = function() {
+        saveFilters();
+        reload();
     };
 
-    var addNewTableRow = function() {
-        var tr = $('<tr/>').prop('class','filter-expression');
-        var appliedCheckbox = $('<input/>').prop({type:'checkbox', class:'isApplied'});
-        var includeAllCheckbox = $('<input/>').prop({type:'checkbox', class:'isIncludeAll'});
-        var columnSelect = $('<select/>').prop('class','column');
-        var expressionSelect = $('<select/>').prop('class','comparator');
-        var expressionInput = $('<input/>').prop({type:'text', class:'expressionValue'});
-        var closeBtn = $('<span/>').prop({class:'glyphicon glyphicon-remove tab-close-icon', 'aria-hidden':'true'});
-
+    var filterOpen = function() {
+        var columnSelectList = [];
         var columns = axes[colOffset].columns;
         var columnKeys = Object.keys(columns);
         for (var i = 0, len = columnKeys.length; i < len; i++) {
             var colId = columnKeys[i];
-            var opt = $('<option/>');
-            opt.val(colId);
-            opt.text(columns[colId].value);
-            columnSelect.append(opt);
+            columnSelectList.push({key:colId, value:columns[colId].value});
         }
 
-        for (var c = 0, cLen = FILTER_COMPARATOR_LIST.length; c < cLen; c++) {
-            expressionSelect.append($('<option/>').text(FILTER_COMPARATOR_LIST[c]));
-        }
-
-        closeBtn.click(function() {
-            tr.remove();
-        });
-
-        tr.append($('<td/>').append(appliedCheckbox));
-        tr.append($('<td/>').append(columnSelect));
-        tr.append($('<td/>').append(expressionSelect));
-        tr.append($('<td/>').append(expressionInput));
-        tr.append($('<td/>').append(includeAllCheckbox));
-        tr.append($('<td/>').append(closeBtn));
-        _filterTable.append(tr);
-
-        return tr;
-    };
-
-    var addFilter = function() {
-        var tr = addNewTableRow();
-        tr.find('.isApplied').prop('checked','true');
-        tr.find('.isIncludeAll').prop('checked','true');
-    };
-
-    var filterClear = function() {
-        _filterTable.find('tr.filter-expression').remove();
-    };
-
-    var filterSave = function() {
-        _filters = [];
-        var trs = _filterTable.find('tr.filter-expression');
-        for (var trIdx = 0, trLen = trs.length; trIdx < trLen; trIdx++) {
-            var tr = $(trs[trIdx]);
-            var filter = {};
-            filter.isApplied = tr.find('.isApplied').prop('checked');
-            filter.isIncludeAll = tr.find('.isIncludeAll').prop('checked');
-            filter.column = tr.find('.column').val();
-            filter.comparator = tr.find('.comparator').val();
-            filter.expressionValue = tr.find('.expressionValue').val();
-            _filters.push(filter);
-        }
-
-        saveFilters();
-        filterClose();
-        reload();
-    };
-
-    var filterClose = function() {
-        $(_filterModal).modal('hide');
-        hot.removeHook('beforeKeyDown', onBeforeKeyDown);
-    };
-
-    var filterOpen = function() {
-        filterClear();
-        var fLen = _filters.length;
-        if (fLen === 0) {
-            addFilter();
-        } else {
-            for (var f = 0; f < fLen; f++) {
-                var filter = _filters[f];
-                var tr = addNewTableRow();
-                tr.find('.isApplied').prop('checked', filter.isApplied);
-                tr.find('.isIncludeAll').prop('checked', filter.isIncludeAll);
-                tr.find('.column').val(filter.column);
-                tr.find('.comparator').val(filter.comparator);
-                tr.find('.expressionValue').val(filter.expressionValue);
+        var builderOptions = {
+            title: 'Filter Data',
+            instructionsTitle: 'Instructions - Filter Data',
+            instructionsText: 'Select filters to apply to cell data for ncube.',
+            columns: {
+                isApplied: {
+                    heading: 'Apply',
+                    type: PropertyBuilder.COLUMN_TYPES.CHECKBOX,
+                    default: true
+                },
+                column: {
+                    heading: 'Column',
+                    type: PropertyBuilder.COLUMN_TYPES.SELECT,
+                    selectOptions: columnSelectList
+                },
+                comparator: {
+                    heading: 'Comparator',
+                    type: PropertyBuilder.COLUMN_TYPES.SELECT,
+                    selectOptions: FILTER_COMPARATOR_LIST,
+                    default: FILTER_COMPARATOR_LIST[0]
+                },
+                expressionValue: {
+                    heading: 'Comparison Value',
+                    type: PropertyBuilder.COLUMN_TYPES.TEXT
+                },
+                isIncludeAll: {
+                    heading: 'Include Empty Cells',
+                    type: PropertyBuilder.COLUMN_TYPES.CHECKBOX,
+                    default: true
+                }
+            },
+            afterSave: function() {
+                filterSave();
+                hot.removeHook('beforeKeyDown', onBeforeKeyDown);
             }
-        }
+        };
 
         hot.addHook('beforeKeyDown', onBeforeKeyDown);
-        $(_filterModal).modal();
+        PropertyBuilder.openBuilderModal(builderOptions, _filters);
     };
 
     // =============================================== End Filtering ===================================================
 
     // ============================================== Column Editing== =================================================
 
-    var checkCurrentlyEditedColumn = function() {
+    var focusModal = function() {
         var el = $(document.activeElement);
         if (el.is('input')) {
             el.blur();
@@ -2897,31 +3036,52 @@ var NCubeEditor2 = (function ($) {
         }
     };
 
+    var selectNextInput = function(relativeIdx) {
+        var el = document.activeElement;
+        var inputs = $(el).closest('.modal').find('input[type="text"]');
+        var curIdx = inputs.index(el);
+        var newIdx = curIdx + relativeIdx;
+        if ((relativeIdx > 0 && newIdx < inputs.length) || (relativeIdx < 0 && newIdx >= 0)) {
+            var newInput = $(inputs[newIdx]);
+            newInput.focusin();
+            newInput.select();
+        }
+    };
+
     var addColumnEditListeners = function() {
         _editColumnModal.keydown(function(e) {
             var keyCode = e.keyCode;
+            var isTextInputTarget = $(e.target).is('input[type="text"]');
             if (e.metaKey || e.ctrlKey) {
-                if (keyCode === KEY_CODES.V) {
+                if (keyCode === KEY_CODES.V && !isTextInputTarget) {
                     editColPaste();
                 }
                 return;
             }
             if (keyCode === KEY_CODES.ENTER) {
-                selectNone();
-                var cols = _columnList.prop('model').columns;
-                for (var i = 0, len = cols.length; i < len; i++) {
-                    cols[i].checked = false;
+                var el = document.activeElement;
+                var inputs = $(el).closest('.modal').find('input[type="text"]');
+                var idx = inputs.index(el);
+                $(el).blur();
+                editColAdd(null, idx);
+                return;
+            }
+            if (isTextInputTarget) {
+                if (keyCode === KEY_CODES.ARROW_UP) {
+                    selectNextInput(-1);
+                } else if (keyCode === KEY_CODES.ARROW_DOWN) {
+                    selectNextInput(1);
                 }
-                $(document.activeElement).blur();
-                editColAdd();
-            } else if (keyCode === KEY_CODES.DELETE) {
-                checkCurrentlyEditedColumn();
+                return;
+            }
+            if (keyCode === KEY_CODES.DELETE) {
+                focusModal();
                 editColDelete();
             } else if (keyCode === KEY_CODES.ARROW_UP) {
-                checkCurrentlyEditedColumn();
+                focusModal();
                 editColUp();
             } else if (keyCode === KEY_CODES.ARROW_DOWN) {
-                checkCurrentlyEditedColumn();
+                focusModal();
                 editColDown();
             }
         });
@@ -3012,18 +3172,21 @@ var NCubeEditor2 = (function ($) {
         return _colIds--;
     };
 
-    var editColAdd = function(addedColVal) {
+    var editColAdd = function(addedColVal, addedAtIndex) {
         var input = $('.editColCheckBox');
-        var loc = -1;
-        $.each(input, function (index, btn) {
-            if ($(this).prop('checked')) {
-                loc = index;
-            }
-        });
+        var loc = addedAtIndex;
+        if (loc === undefined || loc === null) {
+            loc = -1;
+            $.each(input, function (index, btn) {
+                if ($(this).prop('checked')) {
+                    loc = index;
+                }
+            });
+        }
         var axis = _columnList.prop('model');
         var newCol = {
             '@type': 'com.cedarsoftware.ncube.Column',
-            'value': addedColVal === undefined ? 'newValue' : addedColVal,
+            'value': addedColVal === undefined || addedColVal === null ? 'newValue' : addedColVal,
             'id': getUniqueId()
         };
 
@@ -3423,13 +3586,8 @@ var NCubeEditor2 = (function ($) {
         reload();
     };
 
-    var getStorageKey = function(prefix)
-    {
-        return prefix + ':' + nce.getSelectedTabAppId().app.toLowerCase() + ':' + data.ncube.toLowerCase();
-    };
-
     var getSavedFilters = function() {
-        var filters = localStorage[getStorageKey(FILTERS)];
+        var filters = localStorage[getStorageKey(nce, FILTERS)];
         return filters ? JSON.parse(filters) : [];
     };
 
@@ -3439,11 +3597,11 @@ var NCubeEditor2 = (function ($) {
     };
 
     var saveFilters = function() {
-        saveOrDeleteValue(_filters, getStorageKey(FILTERS));
+        saveOrDeleteValue(_filters, getStorageKey(nce, FILTERS));
     };
 
     var storeHiddenColumns = function() {
-        saveOrDeleteValue(_hiddenColumns, getStorageKey(HIDDEN_COLUMNS));
+        saveOrDeleteValue(_hiddenColumns, getStorageKey(nce, HIDDEN_COLUMNS));
     };
 
     // =============================================== End Column Hiding ===============================================
@@ -3475,7 +3633,7 @@ var NCubeEditor2 = (function ($) {
         {
             order.push(axes[i].name.toLowerCase());
         }
-        localStorage[getStorageKey(AXIS_ORDER)] = JSON.stringify(order);
+        localStorage[getStorageKey(nce, AXIS_ORDER)] = JSON.stringify(order);
     };
 
     // =============================================== End Axis Ordering ===============================================
@@ -3483,81 +3641,7 @@ var NCubeEditor2 = (function ($) {
     // =============================================== Begin Axis Editing ==============================================
 
     var addAxisEditListeners = function() {
-        var getAppsMethod = 'getAppNames';
-        var getVersionsMethod = 'getAppVersions';
-        var cubeSearchMethod = 'search';
-        var searchAxis = 'axis';
-        var searchMethod = 'method';
         var axisTypes = {};
-
-        var populateSelect = function(sel, method, params, defVal, forceRefresh, isInverted) {
-            if (forceRefresh || sel[0].options.length === 0) {
-                sel.empty();
-                var result = nce.call('ncubeController.' + method, params);
-                if (result.status === true) {
-                    var results = result.data;
-                    for (var i = 0, len = results.length; i < len; i++) {
-                        var option = $('<option/>');
-                        var optionValue = results[i];
-                        if (method === cubeSearchMethod) {
-                            optionValue = optionValue.name;
-                        }
-                        option[0].innerHTML = optionValue;
-                        if (isInverted) {
-                            sel.prepend(option);
-                        } else {
-                            sel.append(option);
-                        }
-                    }
-                } else {
-                    nce.showNote('Error calling ' + method + '():<hr class="hr-small"/>' + result.data);
-                }
-            }
-            if (defVal) {
-                sel.val(defVal);
-            } else {
-                sel.prepend($('<option/>'));
-            }
-        };
-
-        var populateSelectFromCube = function(sel, params, searchType, defVal, forceRefresh) {
-            if (forceRefresh || sel[0].options.length === 0) {
-                sel.empty();
-                var result = nce.call('ncubeController.getJson', params, {noResolveRefs:true});
-                if (result.status === true) {
-                    var results = JSON.parse(result.data).axes;
-                    if (searchType === searchMethod) {
-                        for (var idx = 0, iLen = results.length; idx < iLen; idx++) {
-                            var axis = results[idx];
-                            if (['method','methods'].indexOf(axis.name) > -1) {
-                                results = axis.columns;
-                                break;
-                            }
-                        }
-                    }
-                    for (var i = 0, len = results.length; i < len; i++) {
-                        var option = $('<option/>');
-                        var obj = results[i];
-                        var val;
-                        if (searchType === searchMethod) {
-                            val = obj.value;
-                        } else if (searchType === searchAxis) {
-                            val = obj.name;
-                            axisTypes[val] = {axisType:obj.type, valueType:obj.valueType};
-                        }
-                        option[0].innerHTML = val;
-                        sel.append(option);
-                    }
-                } else {
-                    nce.showNote('Error getting cube data:<hr class="hr-small"/>' + result.data);
-                }
-            }
-            if (defVal) {
-                sel.val(defVal);
-            } else {
-                sel.prepend($('<option/>'));
-            }
-        };
 
         _isRefAxis.change(function() {
             _refAxisGroup.toggle();
@@ -3566,14 +3650,14 @@ var NCubeEditor2 = (function ($) {
             _addAxisTypeName.parent().find('button').prop('disabled', toggleVal);
             _addAxisValueTypeName.parent().find('button').prop('disabled', toggleVal);
 
-            populateSelect(_refAxisApp, getAppsMethod, [] , null, toggleVal);
+            populateSelect(nce, _refAxisApp, CONTROLLER_METHOD.GET_APP_NAMES, [] , null, toggleVal);
             _refAxisAxis.empty();
         });
         _hasRefFilter.change(function() {
             _refFilterGroup.toggle();
 
             var toggleVal = $(this)[0].checked;
-            populateSelect(_refFilterApp, getAppsMethod, [], null, toggleVal);
+            populateSelect(nce, _refFilterApp, CONTROLLER_METHOD.GET_APP_NAMES, [], null, toggleVal);
             _refFilterMethod.empty();
         });
 
@@ -3581,33 +3665,31 @@ var NCubeEditor2 = (function ($) {
             _refAxisVersion.empty();
             _refAxisCube.empty();
             _refAxisAxis.empty();
-            populateSelect(_refAxisVersion, getVersionsMethod, [$(this).val(), _refAxisStatus.val(), _refAxisBranch.val()], null, true, true);
+            populateSelect(nce, _refAxisVersion, CONTROLLER_METHOD.GET_APP_VERSIONS, [$(this).val(), _refAxisStatus.val()], null, true, true);
         });
         _refFilterApp.change(function() {
             _refFilterVersion.empty();
             _refFilterCube.empty();
             _refFilterMethod.empty();
-            populateSelect(_refFilterVersion, getVersionsMethod, [$(this).val(), _refFilterStatus.val(), _refFilterBranch.val()], null, true, true);
+            populateSelect(nce, _refFilterVersion, CONTROLLER_METHOD.GET_APP_VERSIONS, [$(this).val(), _refFilterStatus.val()], null, true, true);
         });
 
         _refAxisVersion.change(function() {
             _refAxisCube.empty();
             _refAxisAxis.empty();
-            populateSelect(_refAxisCube, cubeSearchMethod, [appIdFrom(_refAxisApp.val(), $(this).val(), _refAxisStatus.val(), _refAxisBranch.val()), '*', null, true]);
+            populateSelect(nce, _refAxisCube, CONTROLLER_METHOD.SEARCH, [appIdFrom(_refAxisApp.val(), $(this).val(), _refAxisStatus.val(), _refAxisBranch.val()), '*', null, true]);
         });
         _refFilterVersion.change(function() {
             _refFilterCube.empty();
             _refFilterMethod.empty();
-            populateSelect(_refFilterCube, cubeSearchMethod, [appIdFrom(_refFilterApp.val(), $(this).val(), _refFilterStatus.val(), _refFilterBranch.val()), '*', null, true]);
+            populateSelect(nce, _refFilterCube, CONTROLLER_METHOD.SEARCH, [appIdFrom(_refFilterApp.val(), $(this).val(), _refFilterStatus.val(), _refFilterBranch.val()), '*', null, true]);
         });
 
         _refAxisCube.change(function() {
-            _refAxisAxis.empty();
-            populateSelectFromCube(_refAxisAxis, [appIdFrom(_refAxisApp.val(), _refAxisVersion.val(), _refAxisStatus.val(), _refAxisBranch.val()), _refAxisCube.val(), {mode:'json'}], searchAxis, null, true);
+            axisTypes = populateSelectFromCube(nce, _refAxisAxis, [appIdFrom(_refAxisApp.val(), _refAxisVersion.val(), _refAxisStatus.val(), _refAxisBranch.val()), _refAxisCube.val(), {mode:'json'}], POPULATE_SELECT_FROM_CUBE.AXIS);
         });
         _refFilterCube.change(function() {
-            _refFilterMethod.empty();
-            populateSelectFromCube(_refFilterMethod, [appIdFrom(_refFilterApp.val(), _refFilterVersion.val(), _refFilterStatus.val(), _refFilterBranch.val()), _refFilterCube.val(), {mode:'json'}], searchMethod, null, true);
+            populateSelectFromCube(nce, _refFilterMethod, [appIdFrom(_refFilterApp.val(), _refFilterVersion.val(), _refFilterStatus.val(), _refFilterBranch.val()), _refFilterCube.val(), {mode:'json'}], POPULATE_SELECT_FROM_CUBE.METHOD);
         });
 
         _refAxisAxis.change(function() {
@@ -3615,15 +3697,6 @@ var NCubeEditor2 = (function ($) {
             $('#addAxisTypeName').val(val.axisType);
             $('#addAxisValueTypeName').val(val.valueType);
         });
-    };
-
-    var appIdFrom = function(app, version, status, branch) {
-        return {
-            app: app,
-            version: version,
-            status: status,
-            branch: branch
-        };
     };
 
     var addAxis = function() {
@@ -3707,7 +3780,7 @@ var NCubeEditor2 = (function ($) {
                 storeHiddenColumns();
             }
             if (hasCustomAxisOrder()) {
-                var order = JSON.parse(localStorage[getStorageKey(AXIS_ORDER)]);
+                var order = JSON.parse(localStorage[getStorageKey(nce, AXIS_ORDER)]);
                 axes.splice(order.indexOf(lowerAxisName), 1);
                 storeAxisOrder();
             }
@@ -3838,7 +3911,7 @@ var NCubeEditor2 = (function ($) {
                 storeHiddenColumns();
 
                 if (hasCustomAxisOrder()) {
-                    var order = JSON.parse(localStorage[getStorageKey(AXIS_ORDER)]);
+                    var order = JSON.parse(localStorage[getStorageKey(nce, AXIS_ORDER)]);
                     axes[order.indexOf(oldName)].name = newName;
                     storeAxisOrder();
                 }
@@ -3859,10 +3932,10 @@ var NCubeEditor2 = (function ($) {
         hot.render();
     };
 
-    var reload = function() {
+    var reload = function(keepTable) {
         if (hot) {
             var selection = getSelectedCellRange();
-            load();
+            load(keepTable);
 
             if (selection) {
                 hot.selectCell(selection.startRow, selection.startCol, selection.endRow, selection.endCol, true);

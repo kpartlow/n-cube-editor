@@ -23,18 +23,7 @@
 <div id="testLayoutCenter" class="pane ui-layout-center center-bkgnd">
     <div id="testButtonGroupDiv" class="btn-group">
         <button id="runTestButton" class="btn btn-default" type="button"><span class="glyphicon glyphicon-play" style="color:green"></span>&nbsp;Run</button>
-        <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-            <span class="caret"></span><span class="sr-only">Toggle Dropdown</span>
-        </button>
-        <ul class="dropdown-menu" role="menu">
-            <li><a id="runTestMenu" href="#">Run</a></li>
-            <li class="divider" ></li>
-            <li><a id="addParameterMenu" href="#">Add Input</a></li>
-            <li><a id="addAssertionMenu" href="#">Add Assertion</a></li>
-        </ul>
-    </div>
-    <div id="testNameDiv">
-        <h3 id="selectedTestName"></h3>
+        <span id="selectedTestName"></span>
     </div>
     <div id="testParametersDiv" class="panel panel-default">
         <div class="panel-heading">
@@ -45,6 +34,7 @@
         <div class="panel-body">
             <form id="testParameters" role="form">
             </form>
+            <span id="addParameter" class="glyphicon glyphicon-plus text-success"></span>
         </div>
     </div>
     <div id="testAssertionsDiv" class="panel panel-default">
@@ -56,6 +46,7 @@
         <div class="panel-body">
             <form id="testAssertions" role="form">
             </form>
+            <span id="addAssertion" class="glyphicon glyphicon-plus text-success"></span>
         </div>
     </div>
     <div id="testResultsDiv" class="panel panel-default">
@@ -100,31 +91,6 @@
         </div>
         <div class="panel-body">
             <p>There were no tests found for this cube.  Would you like to <a id="generateTestsLink" href="#">generate tests</a> or <a id="createTestsLink" href="#">create a single test</a>?</p>
-        </div>
-    </div>
-</div>
-
-<!-- Add Input Variable Modal -->
-<div id="addParameterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="addParameterTitle"
-     aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 id="addParameterTitle" class="modal-title">Add Input</h3>
-            </div>
-            <div class="modal-body">
-                <form role="form">
-                    <div class="form-group">
-                        <label for="addParameterField">Input Name</label>
-                        <input class="form-control" type="text" id="addParameterField" placeholder="Type Name Here"/>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't create</button>
-                <button id="addParameterOk" class="btn btn-primary">Create</button>
-            </div>
         </div>
     </div>
 </div>

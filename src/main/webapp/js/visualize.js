@@ -800,116 +800,54 @@ var Visualizer = (function ($) {
 
     /*================================= BEGIN SCOPE BUILDER ==========================================================*/
 
-    function addScopeBuilderListeners() {
-        $('#scopeBuilderInstTitle')[0].textContent = 'Instructions - Scope Builder';
-        $('#scopeBuilderInstructions')[0].innerHTML = 'Add scoping for visualization.';
-        var tr = $('<tr/>');
-        tr.append($('<td/>').html('Apply'));
-        tr.append($('<td/>').html('Key'));
-        tr.append($('<td/>').html('Value'));
-        tr.append($('<td/>'));
-        _scopeBuilderTable.append(tr);
+    var availableScopeKeys = ['context','action','state','date','product','coverage','risk','classCode','programType','lob','businessUnit','producer','policyControlDate','quoteDate','LocationState'];
 
-        $('#scopeBuilderAdd').click(function() {
-            addScope();
-        });
-        $('#scopeBuilderClear').click(function () {
-            scopeBuilderClear();
-        });
-        $('#scopeBuilderCancel').click(function () {
-            scopeBuilderClose();
-        });
-        $('#scopeBuilderSave').click(function () {
-            scopeBuilderSave();
-        });
+    function addScopeBuilderListeners() {
+        var builderOptions = {
+            title: 'Scope Builder',
+            instructionsTitle: 'Instructions - Scope Builder',
+            instructionsText: 'Add scoping for visualization.',
+            columns: {
+                isApplied: {
+                    heading: 'Apply',
+                    default: true,
+                    type: PropertyBuilder.COLUMN_TYPES.CHECKBOX
+                },
+                key: {
+                    heading: 'Key',
+                    type: PropertyBuilder.COLUMN_TYPES.SELECT,
+                    selectOptions: availableScopeKeys
+                },
+                value: {
+                    heading: 'Value',
+                    type: PropertyBuilder.COLUMN_TYPES.TEXT
+                }
+            },
+            afterSave: function() {
+                scopeBuilderSave();
+            }
+        };
 
         $('#scopeBuilderOpen').click(function() {
-            scopeBuilderOpen();
+            PropertyBuilder.openBuilderModal(builderOptions, _savedScope);
         });
     }
 
     function scopeBuilderSave() {
-        _savedScope = [];
-        var trs = _scopeBuilderTable.find('tr.scope-expression');
-        for (var trIdx = 0, trLen = trs.length; trIdx < trLen; trIdx++) {
-            var tr = $(trs[trIdx]);
-            var scopeExpression = {};
-            scopeExpression.isApplied = tr.find('.isApplied').prop('checked');
-            scopeExpression.key = tr.find('.expressionKey').val();
-            scopeExpression.value = tr.find('.expressionValue').val();
-            _savedScope.push(scopeExpression);
-        }
-
         saveScope();
-        scopeBuilderClose();
-        reload();
-    }
-
-    function addScope() {
-        var tr = addNewScopeBuilderTableRow();
-        tr.find('.isApplied').prop('checked','true');
-    }
-
-    function scopeBuilderClear() {
-        _scopeBuilderTable.find('tr.scope-expression').remove();
-    }
-
-    function scopeBuilderClose() {
         var newScope = buildScopeText();
         _scopeInput.val(newScope);
         _scope = buildScopeFromText(newScope);
         load(true);
-        $(_scopeBuilderModal).modal('hide');
-    }
-
-    // TODO - extract to cube
-    var availableScopeKeys = ['context','action','state','date','product','coverage','risk','classCode','programType','lob','businessUnit','producer','policyControlDate','quoteDate','LocationState'];
-    function addNewScopeBuilderTableRow() {
-        var tr = $('<tr/>').prop('class','scope-expression');
-        var appliedCheckbox = $('<input/>').prop({type:'checkbox', class:'isApplied'});
-        var expressionSelect = $('<select/>').prop('class','expressionKey');
-        var expressionInput = $('<input/>').prop({type:'text', class:'expressionValue'});
-        var closeBtn = $('<span/>').prop({class:'glyphicon glyphicon-remove tab-close-icon', 'aria-hidden':'true'});
-
-        availableScopeKeys.sort();
-        for (var i = 0, len = availableScopeKeys.length; i < len; i++) {
-            var scopeKey = availableScopeKeys[i];
-            var opt = $('<option/>');
-            opt.text(scopeKey);
-            expressionSelect.append(opt);
-        }
-
-        closeBtn.click(function() {
-            tr.remove();
-        });
-
-        tr.append($('<td/>').append(appliedCheckbox));
-        tr.append($('<td/>').append(expressionSelect));
-        tr.append($('<td/>').append(expressionInput));
-        tr.append($('<td/>').append(closeBtn));
-        _scopeBuilderTable.append(tr);
-        return tr;
-    }
-
-    function scopeBuilderOpen() {
-        scopeBuilderClear();
-        for (var i = 0, len = _savedScope.length; i < len; i++) {
-            var expression = _savedScope[i];
-            var tr = addNewScopeBuilderTableRow();
-            tr.find('.isApplied').prop('checked', expression.isApplied);
-            tr.find('.expressionKey').val(expression.key);
-            tr.find('.expressionValue').val(expression.value);
-        }
-        _scopeBuilderModal.modal();
     }
 
     function getSavedScope() {
-        var scopeMap = localStorage[getStorageKey(SCOPE_MAP)];
+        var scopeMap = localStorage[getStorageKey(_nce, SCOPE_MAP)];
         return scopeMap ? JSON.parse(scopeMap) : DEFAULT_SCOPE;
     }
 
     function saveScope() {
-        saveOrDeleteValue(_savedScope, getStorageKey(SCOPE_MAP));
+        saveOrDeleteValue(_savedScope, getStorageKey(_nce, SCOPE_MAP));
     }
 
     function buildScopeText() {
@@ -926,10 +864,6 @@ var Visualizer = (function ($) {
     }
 
     /*================================= END SCOPE BUILDER ============================================================*/
-
-    function getStorageKey(prefix) {
-        return prefix + ':' + _nce.getSelectedTabAppId().app.toLowerCase() + ':' + _nce.getSelectedCubeName().toLowerCase();
-    }
 
 // Let parent (main frame) know that the child window has loaded.
 // The loading of all of the Javascript (deeply) is continuous on the main thread.

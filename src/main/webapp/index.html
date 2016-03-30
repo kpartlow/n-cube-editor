@@ -14,6 +14,7 @@
     <link href="css/bootstrap.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
+    <link href="css/bootstrap-toggle.css" rel="stylesheet"/>
     <link href="css/diffview.css" rel="stylesheet"/>
     <link href="css/common.css" rel="stylesheet"/>
     <link href="css/index.css" rel="stylesheet"/>
@@ -111,6 +112,8 @@
                     <li><a href="#" id="newCubeMenu">New</a></li>
                     <li><a href="#" id="deleteCubeMenu">Delete</a></li>
                     <li><a href="#" id="restoreCubeMenu">Restore</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#" id="batchUpdateAxisReferencesMenu">Batch Update Reference Axes</a></li>
                 </ul>
             </div>
             <span id="ncubeCount" class="badge pull-right"></span>
@@ -577,10 +580,70 @@
     </div>
 </div>
 
+<!-- Batch Update Axis References Modal -->
+<div id="batchUpdateAxisReferencesModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="batchUpdateAxisReferencesLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-filter">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="batchUpdateAxisReferencesLabel" class="modal-title">Batch Update Axis References</h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+                <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="batchUpdateAxisReferencesHeading">
+                            <h4 class="panel-title">
+                                <a id="batchUpdateAxisReferencesInstTitle" data-toggle="collapse" data-parent="#accordion" href="#batchUpdateAxisReferencesCollapse"
+                                   aria-expanded="true" aria-controls="batchUpdateAxisReferencesCollapse">Instructions</a>
+                            </h4>
+                        </div>
+                        <div id="batchUpdateAxisReferencesCollapse" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="batchUpdateAxisReferencesHeading">
+                            <div id="batchUpdateAxisReferencesInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
+                <table id="batchUpdateAxisReferencesTable">
+                    <tr>
+                        <td colspan="3"></td>
+                        <td><select id="batchUpdateAxisReferencesApp"></select></td>
+                        <td><select id="batchUpdateAxisReferencesVersion"></select></td>
+                        <td><select id="batchUpdateAxisReferencesCubeName"></select></td>
+                        <td><select id="batchUpdateAxisReferencesAxisName"></select></td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th colspan="2">Source Axis</th>
+                        <th colspan="4" id="batchUpdateAxisReferencesSectionHeader"></th>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>Cube Name</th>
+                        <th>Axis Name</th>
+                        <th>Application</th>
+                        <th>Version</th>
+                        <th>Cube Name</th>
+                        <th>Axis Name</th>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
+                <input id="batchUpdateAxisReferencesToggle" type="checkbox" checked data-toggle="toggle" data-width="150"
+                       data-on="Destination Axis" data-off="Transform Axis" data-onstyle="primary" data-offstyle="primary" />
+                <button id="batchUpdateAxisReferencesUpdate" class="btn btn-primary btn-sm">Update Selected References</button>
+                <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="js/jquery-2.1.4.min.js"></script>
 <script src="js/jquery-ui-1.11.0.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/bootstrap-select.min.js"></script>
+<script src="js/bootstrap-toggle.min.js"></script>
 <script src="js/jquery.layout-1.4.4.js"></script>
 <script src="js/jquery.gritter.js"></script>
 <script src="js/jquery-scroll-into-view.js"></script>
