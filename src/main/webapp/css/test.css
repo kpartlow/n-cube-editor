@@ -47,7 +47,7 @@
 }
 
 #testParameters > .panel-body {
-    padding: 15px;
+    padding: 0 15px 5px;
 }
 
 #testParameters div.form-group, #testAssertions div.form-group {
@@ -61,6 +61,7 @@
 
 #testParametersDiv {
     overflow: visible;
+    margin-top: 15px;
 }
 
 #testListWarning {
@@ -108,4 +109,11 @@
     -moz-user-select: initial;
     -ms-user-select: initial;
     user-select: initial;
+}
+
+#selectedTestName {
+    display: inline-block;
+    margin: 0 25px;
+    line-height: 34px;
+    font-size: 24px;
 }

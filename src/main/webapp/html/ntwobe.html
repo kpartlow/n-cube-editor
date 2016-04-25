@@ -123,7 +123,7 @@
                         <div class="form-group">
                             <div class="checkbox">
                                 <label>
-                                    <input id="hasRefFilter" type="checkbox"> Filter
+                                    <input id="hasRefFilter" type="checkbox"> Transform
                                 </label>
                             </div>
                         </div>
@@ -298,7 +298,7 @@
                             <div class="form-group">
                                 <div class="checkbox">
                                     <label>
-                                        <input id="hasRefFilterUpdate" type="checkbox" disabled="true"> Filter
+                                        <input id="hasRefFilterUpdate" type="checkbox" disabled="true"> Transform
                                     </label>
                                 </div>
                             </div>
@@ -460,42 +460,6 @@
     </div>
 </div>
 
-<!-- Filter Modal -->
-<div id="filterModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="filterLabel"
-     aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 id="filterLabel" class="modal-title">Filter Data</h3>
-            </div>
-            <div class="modal-body" style="overflow-y: auto;height:500px">
-                <div class="panel-group" role="tablist" aria-multiselectable="true">
-                    <div class="panel panel-default">
-                        <div class="panel-heading" role="tab" id="filterHeadingOne">
-                            <h4 class="panel-title">
-                                <a id="filterInstTitle" data-toggle="collapse" data-parent="#accordion" href="#filterCollapseOne"
-                                   aria-expanded="true" aria-controls="filterCollapseOne"></a>
-                            </h4>
-                        </div>
-                        <div id="filterCollapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="filterHeadingOne">
-                            <div id="filterInstructions" class="panel-body"></div>
-                        </div>
-                    </div>
-                </div>
-                <table id="filterTable">
-                </table>
-            </div>
-            <div class="modal-footer">
-                <button id="filterAdd" class="btn btn-default btn-sm">Add Filter</button>
-                <button id="filterClear" class="btn btn-danger btn-sm">Clear Filters</button>
-                <button id="filterCancel" class="btn btn-default btn-sm">Cancel</button>
-                <button id="filterSave" class="btn btn-primary btn-sm">Save</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Edit Cell Modal -->
 <div id="editCellModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="editCellLabel"
      aria-hidden="true" data-backdrop="static">
@@ -571,6 +535,7 @@
 <script src="js/mitDate.js"></script>
 <script src="js/constants.js"></script>
 <script src="js/common.js"></script>
+<script src="js/prop-builder.js"></script>
 <script src="js/ntwobe.js"></script>
 
 </body>

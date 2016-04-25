@@ -89,6 +89,17 @@ var NCE = (function ($)
     var _tabDragIndicator = $('#tab-drag-indicator');
     var _appMenu = $('#AppMenu');
     var _versionMenu = $('#VersionMenu');
+    var _batchUpdateAxisReferencesTable = $('#batchUpdateAxisReferencesTable');
+    var _batchUpdateAxisReferencesToggle = $('#batchUpdateAxisReferencesToggle');
+    var _batchUpdateAxisReferencesData = [];
+    var _batchUpdateAxisReferencesApp = $('#batchUpdateAxisReferencesApp');
+    var _batchUpdateAxisReferencesVersion = $('#batchUpdateAxisReferencesVersion');
+    var _batchUpdateAxisReferencesCubeName = $('#batchUpdateAxisReferencesCubeName');
+    var _batchUpdateAxisReferencesAxisName = $('#batchUpdateAxisReferencesAxisName');
+    var _changeVersionMenu = $('#changeVerMenu');
+    var _releaseCubesMenu = $('#releaseCubesMenu');
+    var _releaseMenu = $('#ReleaseMenu');
+    var _branchCommit = $('#branchCommit');
 
     //  modal dialogs
     var _selectBranchModal = $('#selectBranchModal');
@@ -530,169 +541,172 @@ var NCE = (function ($)
                     .click(function(e) {
                         showReqScope();
                     }))
-        ).append(
-            $('<div/>').addClass('divider')
-        ).append(
-            $('<li/>')
-                .append(
-                $('<a/>')
-                    .attr('href','#')
-                    .html('Commit...')
-                    .click(function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        li.find('li').not($(this).parent()).find('button').remove();
-                        var buttons = $(this).find('button');
-                        if (buttons.length === 0) {
-                            $(this).append(
-                                $('<button/>')
-                                    .addClass('btn btn-danger btn-xs pull-right')
-                                    .html('Cancel')
-                            ).append(
-                                $('<button/>')
-                                    .addClass('btn btn-primary btn-xs pull-right')
-                                    .html('Confirm')
-                                    .click(function (e) {
-                                        closeTab();
-                                        callCommit(getInfoDto(), getSelectedTabAppId());
-                                    })
-                            );
-                        } else {
-                            buttons.remove();
-                        }
-                    }))
-        ).append(
-            $('<li/>')
-                .append(
-                $('<a/>')
-                    .attr('href','#')
-                    .html('Rollback...')
-                    .click(function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        li.find('li').not($(this).parent()).find('button').remove();
-                        var buttons = $(this).find('button');
-                        if (buttons.length === 0) {
-                            $(this).append(
-                                $('<button/>')
-                                    .addClass('btn btn-danger btn-xs pull-right')
-                                    .html('Cancel')
-                            ).append(
-                                $('<button/>')
-                                    .addClass('btn btn-primary btn-xs pull-right')
-                                    .html('Confirm')
-                                    .click(function (e) {
-                                        closeTab();
-                                        callRollbackFromTab(getInfoDto());
-                                    })
-                            );
-                        } else {
-                            buttons.remove();
-                        }
-                    }))
-        ).append(
-            $('<li/>')
-                .addClass('dropdown-submenu')
-                .append(
-                $('<a/>')
-                    .prop({href:'#', tabindex:'-1'})
-                    .html('Update')
+        );
+
+        if (cubeInfo[CUBE_INFO.BRANCH] !== head) {
+            dd.append(
+                $('<div/>').addClass('divider')
+            ).append(
+                $('<li/>')
+                    .append(
+                    $('<a/>')
+                        .attr('href', '#')
+                        .html('Commit...')
+                        .click(function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            li.find('li').not($(this).parent()).find('button').remove();
+                            var buttons = $(this).find('button');
+                            if (buttons.length === 0) {
+                                $(this).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-danger btn-xs pull-right')
+                                        .html('Cancel')
+                                ).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-primary btn-xs pull-right')
+                                        .html('Confirm')
+                                        .click(function (e) {
+                                            closeTab();
+                                            callCommit(getInfoDto(), getSelectedTabAppId());
+                                        })
+                                );
+                            } else {
+                                buttons.remove();
+                            }
+                        }))
+            ).append(
+                $('<li/>')
+                    .append(
+                    $('<a/>')
+                        .attr('href', '#')
+                        .html('Rollback...')
+                        .click(function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            li.find('li').not($(this).parent()).find('button').remove();
+                            var buttons = $(this).find('button');
+                            if (buttons.length === 0) {
+                                $(this).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-danger btn-xs pull-right')
+                                        .html('Cancel')
+                                ).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-primary btn-xs pull-right')
+                                        .html('Confirm')
+                                        .click(function (e) {
+                                            closeTab();
+                                            callRollbackFromTab(getInfoDto());
+                                        })
+                                );
+                            } else {
+                                buttons.remove();
+                            }
+                        }))
+            ).append(
+                $('<li/>')
+                    .addClass('dropdown-submenu')
+                    .append(
+                    $('<a/>')
+                        .prop({href: '#', tabindex: '-1'})
+                        .html('Update')
                 ).append(
-                    createBranchesUl(function(branchName) {
+                    createBranchesUl(function (branchName) {
                         callUpdate(branchName);
                     })
-            )
-        ).append(
-            $('<div/>')
-                .addClass('divider')
-        ).append(
-            $('<li/>')
-                .append(
-                $('<a/>')
-                    .attr('href','#')
-                    .html('Delete...')
-                    .click(function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        li.find('li').not($(this).parent()).find('button').remove();
-                        var buttons = $(this).find('button');
-                        if (buttons.length === 0) {
-                            $(this).append(
-                                $('<button/>')
-                                    .addClass('btn btn-danger btn-xs pull-right')
-                                    .html('Cancel')
-                            ).append(
-                                $('<button/>')
-                                    .addClass('btn btn-primary btn-xs pull-right')
-                                    .html('Confirm')
-                                    .click(function (e) {
-                                        closeTab();
-                                        callDeleteFromTab(getInfoDto().name);
+                )
+            ).append(
+                $('<div/>')
+                    .addClass('divider')
+            ).append(
+                $('<li/>')
+                    .append(
+                    $('<a/>')
+                        .attr('href', '#')
+                        .html('Delete...')
+                        .click(function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            li.find('li').not($(this).parent()).find('button').remove();
+                            var buttons = $(this).find('button');
+                            if (buttons.length === 0) {
+                                $(this).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-danger btn-xs pull-right')
+                                        .html('Cancel')
+                                ).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-primary btn-xs pull-right')
+                                        .html('Confirm')
+                                        .click(function (e) {
+                                            closeTab();
+                                            callDeleteFromTab(getInfoDto().name);
+                                        })
+                                );
+                            } else {
+                                buttons.remove();
+                            }
+                        }))
+            ).append(
+                $('<li/>')
+                    .append(
+                    $('<a/>')
+                        .attr('href', '#')
+                        .html('Duplicate...')
+                        .click(function (e) {
+                            dupeCube();
+                        }))
+            ).append(
+                $('<li/>')
+                    .append(
+                    $('<a/>')
+                        .attr('href', '#')
+                        .html('Rename')
+                        .click(function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            var parent = $(this).parent();
+                            var inputs = parent.find('input');
+                            if (inputs.length === 0) {
+                                var newNameInput = $('<input/>')
+                                    .prop('type', 'text')
+                                    .val(cubeInfo[CUBE_INFO.NAME])
+                                    .addClass('form-control')
+                                    .click(function (ie) {
+                                        ie.preventDefault();
+                                        ie.stopPropagation();
                                     })
-                            );
-                        } else {
-                            buttons.remove();
-                        }
-                    }))
-        ).append(
-            $('<li/>')
-                .append(
-                $('<a/>')
-                    .attr('href','#')
-                    .html('Duplicate...')
-                    .click(function(e) {
-                        dupeCube();
-                    }))
-        ).append(
-            $('<li/>')
-                .append(
-                $('<a/>')
-                    .attr('href','#')
-                    .html('Rename')
-                    .click(function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!ensureModifiable('Unable to rename cube.')) {
-                            return;
-                        }
-                        var parent = $(this).parent();
-                        var inputs = parent.find('input');
-                        if (inputs.length === 0) {
-                            var newNameInput = $('<input/>')
-                                .prop('type','text')
-                                .val(cubeInfo[CUBE_INFO.NAME])
-                                .addClass('form-control')
-                                .click(function (ie) {
-                                    ie.preventDefault();
-                                    ie.stopPropagation();
-                                })
-                                .keyup(function(ie) {
-                                    if (ie.keyCode === KEY_CODES.ENTER) {
-                                        closeTab();
-                                        renameCube(newNameInput.val());
-                                    }
-                                });
-                            parent.append(newNameInput);
-                            $(this).append(
-                                $('<button/>')
-                                    .addClass('btn btn-danger btn-xs pull-right')
-                                    .html('Cancel')
-                            ).append(
-                                $('<button/>')
-                                    .addClass('btn btn-primary btn-xs pull-right')
-                                    .html('Confirm')
-                                    .click(function (e) {
-                                        closeTab();
-                                        renameCube(newNameInput.val());
-                                    })
-                            );
-                            newNameInput[0].focus();
-                        } else {
-                            inputs.remove();
-                            parent.find('button').remove();
-                        }
-                    }))
-        ).append(
+                                    .keyup(function (ie) {
+                                        if (ie.keyCode === KEY_CODES.ENTER) {
+                                            closeTab();
+                                            renameCube(newNameInput.val());
+                                        }
+                                    });
+                                parent.append(newNameInput);
+                                $(this).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-danger btn-xs pull-right')
+                                        .html('Cancel')
+                                ).append(
+                                    $('<button/>')
+                                        .addClass('btn btn-primary btn-xs pull-right')
+                                        .html('Confirm')
+                                        .click(function (e) {
+                                            closeTab();
+                                            renameCube(newNameInput.val());
+                                        })
+                                );
+                                newNameInput[0].focus();
+                            } else {
+                                inputs.remove();
+                                parent.find('button').remove();
+                            }
+                        }))
+            );
+        }
+
+        dd.append(
             $('<div/>')
                 .prop({'class': 'divider'})
         ).append(
@@ -986,7 +1000,7 @@ var NCE = (function ($)
             saveNumFrozenCols: saveNumFrozenCols,
             getSearchQuery: getSearchQuery,
             saveSearchQuery: saveSearchQuery,
-            selectCubeFromAppId: selectCubeFromAppId
+            checkPermissions: checkPermissions
         };
     }
 
@@ -1010,15 +1024,21 @@ var NCE = (function ($)
         _cubeCount[0].textContent = Object.keys(_cubeList).length;
     }
 
-    function selectCubeByName(cubeName)
+    function selectCubeByName(cubeName, differentAppId)
     {
         if (!cubeName) {
             return;
         }
-        _selectedCubeName = getProperCubeName(cubeName);
-        localStorage[SELECTED_CUBE] = cubeName;
+        var cubeInfo;
+        if (differentAppId) {
+            _selectedCubeName = cubeName;
+            cubeInfo = [differentAppId.app, differentAppId.version, differentAppId.status, differentAppId.branch, cubeName];
+        } else {
+            _selectedCubeName = getProperCubeName(cubeName);
+            cubeInfo = [_selectedApp, _selectedVersion, _selectedStatus, _selectedBranch, _selectedCubeName];
+        }
 
-        var cubeInfo = [_selectedApp, _selectedVersion, _selectedStatus, _selectedBranch, _selectedCubeName];
+        localStorage[SELECTED_CUBE] = cubeName;
         var cis = getCubeInfoKey(cubeInfo);
         var found = false;
         for (var i = 0, len = _openCubes.length; i < len; i++) {
@@ -1043,26 +1063,10 @@ var NCE = (function ($)
         }
         if (!found) {
             setActiveTabViewType(_defaultTab);
-            addCurrentCubeTab();
+            cubeInfo.push(getActiveTabViewType());
+            addCurrentCubeTab(null, cubeInfo);
         }
         saveState();
-    }
-
-    function selectCubeFromAppId(appId, cubeName) {
-        var app = appId.app;
-        var version = appId.version;
-        var branch = appId.branch;
-        var status = appId.status;
-        var appChanged = _selectedApp !== app;
-        var verChanged = _selectedVersion !== version;
-        var staChanged = _selectedStatus !== status;
-        var braChanged = _selectedBranch !== branch;
-        _selectedApp = app;
-        _selectedVersion = version;
-        _selectedBranch = branch;
-        _selectedStatus = status;
-
-        selectCubeByName(cubeName);
     }
 
     function runSearch()
@@ -1249,15 +1253,11 @@ var NCE = (function ($)
         });
         $('#newCubeMenu').click(function ()
         {
-            newCube()
+            newCube();
         });
         $('#newCubeSave').click(function ()
         {
-            newCubeSave()
-        });
-        $('#renameCubeOk').click(function ()
-        {
-            renameCubeOk();
+            newCubeSave();
         });
         $('#dupeCubeCopy').click(function ()
         {
@@ -1291,16 +1291,13 @@ var NCE = (function ($)
         {
             showReqScopeClose();
         });
-        $('#releaseCubesMenu').click(function ()
-        {
+        _releaseCubesMenu.click(function () {
             releaseCubes();
         });
-        $('#releaseCubesOk').click(function ()
-        {
+        $('#releaseCubesOk').click(function () {
             releaseCubesOk();
         });
-        $('#changeVerMenu').click(function ()
-        {
+        _changeVersionMenu.click(function () {
             changeVersion();
         });
         $('#changeVerOk').click(function ()
@@ -1334,14 +1331,202 @@ var NCE = (function ($)
         {
             clearRevSelection();
         });
+        $('#batchUpdateAxisReferencesMenu').click(function() {
+            batchUpdateAxisReferencesOpen();
+        });
+        $('#batchUpdateAxisReferencesUpdate').click(function() {
+            batchUpdateAxisReferencesUpdate();
+        });
+        _batchUpdateAxisReferencesToggle.change(function() {
+            buildBatchUpdateAxisReferencesTable();
+        });
+        _batchUpdateAxisReferencesApp.change(function() {
+            batchUpdateAxisReferencesAppChanged();
+        });
+        _batchUpdateAxisReferencesVersion.change(function() {
+            batchUpdateAxisReferencesVersionChanged();
+        });
+        _batchUpdateAxisReferencesCubeName.change(function() {
+            batchUpdateAxisReferencesCubeNameChanged();
+        });
 
         addBranchListeners();
+        addSelectAllNoneListeners();
+    }
+
+    function batchUpdateAxisReferencesAppChanged() {
+        _batchUpdateAxisReferencesCubeName.empty();
+        _batchUpdateAxisReferencesAxisName.empty();
+        var params = [_batchUpdateAxisReferencesApp.val(), STATUS.RELEASE];
+        populateSelect(buildAppState(), _batchUpdateAxisReferencesVersion, CONTROLLER_METHOD.GET_APP_VERSIONS, params, null, true);
+    }
+
+    function batchUpdateAxisReferencesVersionChanged() {
+        _batchUpdateAxisReferencesAxisName.empty();
+        var params = [appIdFrom(_batchUpdateAxisReferencesApp.val(), _batchUpdateAxisReferencesVersion.val(), STATUS.RELEASE, head), '*', null, true];
+        populateSelect(buildAppState(), _batchUpdateAxisReferencesCubeName, CONTROLLER_METHOD.SEARCH, params, null, true);
+    }
+
+    function batchUpdateAxisReferencesCubeNameChanged() {
+        var params = [appIdFrom(_batchUpdateAxisReferencesApp.val(), _batchUpdateAxisReferencesVersion.val(), STATUS.RELEASE, head), _batchUpdateAxisReferencesCubeName.val(), {mode:'json'}];
+        populateSelectFromCube(buildAppState(), _batchUpdateAxisReferencesAxisName, params, POPULATE_SELECT_FROM_CUBE.AXIS);
+    }
+
+    function batchUpdateAxisReferencesOpen() {
+        _batchUpdateAxisReferencesData = [];
+        $('#batchUpdateAxisReferencesInstTitle')[0].innerHTML = 'Instructions - Batch Update Axis References';
+        $('#batchUpdateAxisReferencesInstructions')[0].innerHTML = 'Update the reference axis properties of the checked axes. Updating will only update the rows you have selected. You can toggle between destination and transformation properties';
+
+        populateSelect(buildAppState(), _batchUpdateAxisReferencesApp, CONTROLLER_METHOD.GET_APP_NAMES, [], null, true);
+
+        showNote('Finding all reference axes, please wait...');
+        setTimeout(function() {
+            var result = call('ncubeController.getReferenceAxes', [getAppId()]);
+            clearError();
+            if (!result.status) {
+                showNote('Unable to load reference axes:<hr class="hr-small"/>' + result.data);
+                return;
+            }
+
+            _batchUpdateAxisReferencesData = result.data;
+            buildBatchUpdateAxisReferencesTable();
+            $('#batchUpdateAxisReferencesModal').modal();
+        },1);
+    }
+
+    function findBatchUpdateAxisReferencesRows() {
+        return _batchUpdateAxisReferencesTable.find('.batch-update-axis-references-entry');
+    }
+
+    function isBatchUpdateAxisReferencesDestinationToggled() {
+        return _batchUpdateAxisReferencesToggle.prop('checked');
+    }
+
+    function buildBatchUpdateAxisReferencesTable() {
+        findBatchUpdateAxisReferencesRows().remove();
+        var isDest = isBatchUpdateAxisReferencesDestinationToggled();
+        $('#batchUpdateAxisReferencesSectionHeader')[0].innerHTML = isDest ? 'Destination Axis' : 'Transform Axis';
+
+        for (var i = 0, len = _batchUpdateAxisReferencesData.length; i < len; i++) {
+            var refAxData = _batchUpdateAxisReferencesData[i];
+            var tr = $('<tr/>').prop('class','batch-update-axis-references-entry');
+            var selectCheckbox = $('<input/>').prop({type:'checkbox', class:'isSelected'});
+            var app, version, cube, axis;
+            if (isDest) {
+                app = refAxData.destApp;
+                version = refAxData.destVersion;
+                cube = refAxData.destCubeName;
+                axis = refAxData.destAxisName;
+            } else {
+                app = refAxData.transformApp;
+                version = refAxData.transformVersion;
+                cube = refAxData.transformCubeName;
+                axis = refAxData.transformAxisName;
+            }
+
+            tr.append($('<td/>').append(selectCheckbox));
+            tr.append($('<td/>').html(refAxData.srcCubeName));
+            tr.append($('<td/>').html(refAxData.srcAxisName));
+            tr.append($('<td/>').html(app).prop('class','app'));
+            tr.append($('<td/>').html(version).prop('class','version'));
+            tr.append($('<td/>').html(cube).prop('class','cubeName'));
+            tr.append($('<td/>').html(axis).prop('class','axisName'));
+
+            _batchUpdateAxisReferencesTable.append(tr);
+        }
+    }
+
+    function batchUpdateAxisReferencesUpdate() {
+        var refAxes = [];
+        var allRows = findBatchUpdateAxisReferencesRows();
+        var checked = allRows.has('input:checked');
+        var newAppVal = _batchUpdateAxisReferencesApp.val();
+        var newVersionVal = _batchUpdateAxisReferencesVersion.val();
+        var newCubeNameVal = _batchUpdateAxisReferencesCubeName.val();
+        var newAxisNameVal = _batchUpdateAxisReferencesAxisName.val();
+        var propPrefix = isBatchUpdateAxisReferencesDestinationToggled() ? 'dest' : 'transform';
+        var appProp = propPrefix + 'App';
+        var versionProp = propPrefix + 'Version';
+        var cubeNameProp = propPrefix + 'CubeName';
+        var axisNameProp = propPrefix + 'AxisName';
+
+        for (var checkedIdx = 0, checkedLen = checked.length; checkedIdx < checkedLen; checkedIdx++) {
+            var refAxIdx = allRows.index(checked[checkedIdx]);
+            var refAx = _batchUpdateAxisReferencesData[refAxIdx];
+            if (newAppVal !== '') {
+                refAx[appProp] = newAppVal;
+                if (newVersionVal !== '') {
+                    refAx[versionProp] = newVersionVal;
+                    if (newCubeNameVal !== '') {
+                        refAx[cubeNameProp] = newCubeNameVal;
+                        if (newAxisNameVal !== '') {
+                            refAx[axisNameProp] = newAxisNameVal;
+                        }
+                    }
+                }
+            }
+            refAxes.push(refAx);
+        }
+        var result = call('ncubeController.updateReferenceAxes', [refAxes]);
+        if (!result.status) {
+            showNote('Unable to update reference axes:<hr class="hr-small"/>' + result.data);
+            return;
+        }
+        var axisGrammar = checkedLen === 1 ? 'axis' : 'axes';
+        showNote(checkedLen + ' ' + axisGrammar + ' updated', '', 3000);
+        for (checkedIdx = 0; checkedIdx < checkedLen; checkedIdx++) {
+            var row = $(checked[checkedIdx]);
+            if (newAppVal !== '') {
+                row.find('td.app')[0].innerHTML = newAppVal;
+                if (newVersionVal !== '') {
+                    row.find('td.version')[0].innerHTML = newVersionVal;
+                    if (newCubeNameVal !== '') {
+                        row.find('td.cubeName')[0].innerHTML = newCubeNameVal;
+                        if (newAxisNameVal !== '') {
+                            row.find('td.axisName')[0].innerHTML = newAxisNameVal;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function checkPermissions(appId, resource, action) {
+        var permissionResult = call('ncubeController.checkPermissions', [appId, resource, action]);
+        return ensureModifiable() && permissionResult.data === true;
+    }
+
+    function checkAppPermission(action) {
+        var result = call('ncubeController.checkPermissions', [getAppId(), null, action]);
+        return result.data;
+    }
+
+    function enableDisableReleaseMenu() {
+        if (checkAppPermission(PERMISSION_ACTION.RELEASE)) {
+            _releaseMenu.show();
+        } else {
+            _releaseMenu.hide();
+        }
+    }
+
+    function enableDisableCommitBranch() {
+        if (checkAppPermission(PERMISSION_ACTION.COMMIT)) {
+            _branchCommit.show();
+        } else {
+            _branchCommit.hide();
+        }
+    }
+
+    function handleAppPermissions() {
+        enableDisableReleaseMenu();
+        enableDisableCommitBranch();
     }
 
     function loadAppListView()
     {
         var ul = _appMenu.parent().find('.dropdown-menu');
         ul.empty();
+        handleAppPermissions();
 
         $.each(_apps, function (index, value)
         {
@@ -1353,6 +1538,8 @@ var NCE = (function ($)
                 localStorage[SELECTED_APP] = value;
                 _selectedApp = value;
                 _appMenu.find('button')[0].innerHTML = value + '&nbsp;<b class="caret"></b>';
+
+                handleAppPermissions();
 
                 setVersionListLoading();
                 setCubeListLoading();
@@ -1374,7 +1561,7 @@ var NCE = (function ($)
 
         if (_selectedApp)
         {
-            _appMenu[0].innerHTML = 'Application:&nbsp;<button class="btn-sm btn-primary">' + _selectedApp + '&nbsp;<b class="caret"></b></button>';
+            _appMenu[0].innerHTML = '<button class="btn-sm btn-primary">' + _selectedApp + '&nbsp;<b class="caret"></b></button>';
         }
     }
 
@@ -1436,7 +1623,7 @@ var NCE = (function ($)
 
         if (_selectedVersion)
         {
-            _versionMenu[0].innerHTML = 'Version:&nbsp;<button class="btn-sm btn-primary">' + _selectedVersion + '-' + _selectedStatus + '&nbsp;<b class="caret"></b></button>';
+            _versionMenu[0].innerHTML = '<button class="btn-sm btn-primary">' + _selectedVersion + '-' + _selectedStatus + '&nbsp;<b class="caret"></b></button>';
         }
     }
 
@@ -1646,6 +1833,8 @@ var NCE = (function ($)
                 _selectedVersion = null;
                 _selectedStatus = null;
             }
+            localStorage[SELECTED_VERSION] = _selectedVersion;
+            localStorage[SELECTED_STATUS] = _selectedStatus;
         }
     }
 
@@ -1715,7 +1904,7 @@ var NCE = (function ($)
     }
 
     function buildVersionsDropdown(listId, inputId) {
-        var result = call("ncubeController.getAppVersions", [_selectedApp, _selectedStatus, _selectedBranch]);
+        var result = call("ncubeController.getAppVersions", [_selectedApp]);
         if (result.status === true)
         {
             buildDropDown(listId, inputId, result.data, function(){});
@@ -2184,7 +2373,7 @@ var NCE = (function ($)
             showNote('No n-cube selected. Nothing to duplicate.');
             return;
         }
-        if (isHeadSelected())
+        if (isSelectedCubeInHead())
         {
             selectBranch();
             return false;
@@ -2351,9 +2540,31 @@ var NCE = (function ($)
         setTimeout(function() {
             $('#changeVerModal').modal('hide');
             var newSnapVer = $('#changeVerValue').val();
-            var result = call("ncubeController.changeVersionValue", [getAppId(), newSnapVer]);
-            if (result.status === true)
+            var appId = getAppId();
+            var result = call("ncubeController.changeVersionValue", [appId, newSnapVer]);
+            if (result.status)
             {
+                var doesCubeInfoMatchOldVersion = function(cubeInfo) {
+                    return cubeInfo[CUBE_INFO.APP] === appId.app
+                        && cubeInfo[CUBE_INFO.BRANCH] === appId.branch
+                        && cubeInfo[CUBE_INFO.STATUS] === appId.status
+                        && cubeInfo[CUBE_INFO.VERSION] === appId.version
+                };
+
+                for (var i = 0, len = _openCubes.length; i < len; i++) {
+                    var cubeInfo = getCubeInfo(_openCubes[i].cubeKey);
+                    if (doesCubeInfoMatchOldVersion) {
+                        cubeInfo[CUBE_INFO.VERSION] = newSnapVer;
+                        _openCubes[i].cubeKey = getCubeInfoKey(cubeInfo);
+                    }
+                }
+                saveOpenCubeList();
+
+                if (doesCubeInfoMatchOldVersion(_selectedCubeInfo)) {
+                    _selectedCubeInfo[CUBE_INFO.VERSION] = newSnapVer;
+                }
+                buildTabs();
+
                 loadVersions();
                 _selectedVersion = doesItemExist(newSnapVer, _versions) ? newSnapVer : _selectedVersion;
                 loadVersionListView();
@@ -2371,9 +2582,12 @@ var NCE = (function ($)
 
     function ensureModifiable(operation)
     {
+        if (!operation) {
+            operation = '';
+        }
         clearError();
         var appId = getSelectedTabAppId() || getAppId();
-        if (!appId.app || !appId.version || !_selectedCubeName || !appId.status)
+        if (!appId.app || !appId.version || !_selectedCubeName || !appId.status || !appId.branch)
         {
             showNote(operation + ' No n-cube selected.');
             return false;
@@ -2383,9 +2597,9 @@ var NCE = (function ($)
             showNote(operation + ' Only a SNAPSHOT version can be modified.');
             return false;
         }
-        if (isHeadSelected())
+        if (appId.branch === head)
         {
-            selectBranch();
+            showNote(operation + ' HEAD branch cannot be modified.');
             return false;
         }
 
@@ -2554,7 +2768,7 @@ var NCE = (function ($)
 
     function showActiveBranch()
     {
-        $('#BranchMenu')[0].innerHTML = 'Branch:&nbsp;<button class="btn-sm btn-primary">&nbsp;' + (_selectedBranch || head) + '&nbsp;<b class="caret"></b></button>';
+        $('#BranchMenu')[0].innerHTML = '<button class="btn-sm btn-primary">&nbsp;' + (_selectedBranch || head) + '&nbsp;<b class="caret"></b></button>';
     }
 
     function getBranchNames(refresh)
@@ -3342,12 +3556,15 @@ var NCE = (function ($)
         }
     }
 
-    function isHeadSelected()
-    {
-        var appId = getSelectedTabAppId();
-        var branch = appId ? appId.branch : _selectedBranch;
-        return head === branch;
+    function isHeadSelected() {
+        return head === _selectedBranch;
     }
+
+    function isSelectedCubeInHead() {
+        var appId = getSelectedTabAppId();
+        return appId ? appId.branch === head : true;
+    }
+
     /**
      * Get the ApplicationID based on the user's selections.  Tenant is sent not sent (server will fill
      * that in based on authentication.

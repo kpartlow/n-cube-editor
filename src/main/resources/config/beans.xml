@@ -14,6 +14,10 @@
         </constructor-arg>
     </bean>
 
+    <bean name="setUser" class="com.cedarsoftware.controller.BeforeAdviceSetUser">
+        <constructor-arg ref="ncubeController"/>
+    </bean>
+
     <bean id="ncubeTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
         <property name="dataSource" ref="ncubeDataSource" />
     </bean>
@@ -30,8 +34,16 @@
     </tx:advice>
 
     <aop:config>
+
         <aop:pointcut id="ncubeServiceMethods" expression="execution(* com.cedarsoftware.service.ncube.NCubeService.*(..))"/>
         <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeServiceMethods"/>
+
+        <aop:aspect ref="setUser">
+            <aop:before
+                pointcut="execution(* com.cedarsoftware.controller.NCubeController.*(..))"
+                method="setUserOnThread"/>
+        </aop:aspect>
+
     </aop:config>
 
     <!--

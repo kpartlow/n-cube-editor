@@ -8,6 +8,7 @@ import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeManager
+import com.cedarsoftware.ncube.NCubeManager.ACTION
 import com.cedarsoftware.ncube.ReferenceAxisLoader
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
@@ -54,9 +55,9 @@ class NCubeService
         return NCubeManager.search(appId, cubeNamePattern, contentMatching, options)
     }
 
-    void restoreCubes(ApplicationID appId, Object[] cubeNames, String username)
+    void restoreCubes(ApplicationID appId, Object[] cubeNames)
     {
-        NCubeManager.restoreCubes(appId, cubeNames, username)
+        NCubeManager.restoreCubes(appId, cubeNames)
     }
 
     List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName)
@@ -84,34 +85,29 @@ class NCubeService
         return NCubeManager.getBranches(appId)
     }
 
-    Set<String> getBranches(String tenant)
-    {
-        return NCubeManager.getBranches(tenant)
-    }
-
     List<NCubeInfoDto> getBranchChanges(ApplicationID appId)
     {
         return NCubeManager.getBranchChangesFromDatabase(appId)
     }
 
-    List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos, String username)
+    List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos)
     {
-        return NCubeManager.commitBranch(appId, infoDtos, username)
+        return NCubeManager.commitBranch(appId, infoDtos)
     }
 
-    int rollbackCubes(ApplicationID appId, Object[] cubeNames, String username)
+    int rollbackCubes(ApplicationID appId, Object[] cubeNames)
     {
-        NCubeManager.rollbackCubes(appId, cubeNames, username)
+        NCubeManager.rollbackCubes(appId, cubeNames)
     }
 
-    Map<String, Object> updateBranch(ApplicationID appId, String username)
+    Map<String, Object> updateBranch(ApplicationID appId)
     {
-        return NCubeManager.updateBranch(appId, username)
+        return NCubeManager.updateBranch(appId)
     }
 
-    Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String sourceBranch, String username)
+    Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String sourceBranch)
     {
-        return NCubeManager.updateBranchCube(appId, cubeName, sourceBranch, username)
+        return NCubeManager.updateBranchCube(appId, cubeName, sourceBranch)
     }
 
     void deleteBranch(ApplicationID appId)
@@ -119,17 +115,17 @@ class NCubeService
         NCubeManager.deleteBranch(appId);
     }
 
-    int acceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1, String username)
+    int acceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1)
     {
-        NCubeManager.mergeAcceptTheirs(appId, cubeNames, branchSha1, username)
+        NCubeManager.mergeAcceptTheirs(appId, cubeNames, branchSha1)
     }
 
-    int acceptMine(ApplicationID appId, Object[] cubeNames, String username)
+    int acceptMine(ApplicationID appId, Object[] cubeNames)
     {
-        NCubeManager.mergeAcceptMine(appId, cubeNames, username)
+        NCubeManager.mergeAcceptMine(appId, cubeNames)
     }
 
-    void createCube(ApplicationID appId, NCube ncube, String username)
+    void createCube(ApplicationID appId, NCube ncube)
     {
         List<NCubeInfoDto> list = NCubeManager.search(appId, ncube.name, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
         if (!list.isEmpty())
@@ -141,17 +137,17 @@ class NCubeService
         {
             throw new IllegalArgumentException(ncube.name + ' was previously deleted. Use restore instead.')
         }
-        NCubeManager.updateCube(appId, ncube, username)
+        NCubeManager.updateCube(appId, ncube)
     }
 
-    boolean deleteCubes(ApplicationID appId, Object[] cubeNames, String username)
+    boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
     {
-        return NCubeManager.deleteCubes(appId, cubeNames, username)
+        return NCubeManager.deleteCubes(appId, cubeNames)
     }
 
-    void duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName, String username)
+    void duplicateCube(ApplicationID appId, ApplicationID destAppId, String cubeName, String newName)
     {
-        NCubeManager.duplicate(appId, destAppId, cubeName, newName, username)
+        NCubeManager.duplicate(appId, destAppId, cubeName, newName)
     }
 
     void releaseCubes(ApplicationID appId, String newSnapVer)
@@ -164,7 +160,7 @@ class NCubeService
         NCubeManager.changeVersionValue(appId, newSnapVer)
     }
 
-    void addAxis(ApplicationID appId, String cubeName, String axisName, String type, String valueType, String username)
+    void addAxis(ApplicationID appId, String cubeName, String axisName, String type, String valueType)
     {
         if (StringUtilities.isEmpty(axisName))
         {
@@ -189,10 +185,10 @@ class NCubeService
         }
         Axis axis = new Axis(axisName, AxisType.valueOf(type), AxisValueType.valueOf(valueType), false, Axis.DISPLAY, maxId + 1)
         ncube.addAxis(axis)
-        NCubeManager.updateCube(appId, ncube, username)
+        NCubeManager.updateCube(appId, ncube)
     }
 
-    void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName, String username)
+    void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName)
     {
         NCube nCube = NCubeManager.getCube(appId, cubeName)
         if (nCube == null)
@@ -234,13 +230,13 @@ class NCubeService
 
         Axis axis = new Axis(axisName, maxId + 1, false, refAxisLoader)
         nCube.addAxis(axis)
-        NCubeManager.updateCube(appId, nCube, username)
+        NCubeManager.updateCube(appId, nCube)
     }
 
     /**
      * Delete the specified axis.
      */
-    void deleteAxis(ApplicationID appId, String name, String axisName, String username)
+    void deleteAxis(ApplicationID appId, String name, String axisName)
     {
         NCube ncube = NCubeManager.getCube(appId, name)
         if (ncube == null)
@@ -254,13 +250,13 @@ class NCubeService
         }
 
         ncube.deleteAxis(axisName)
-        NCubeManager.updateCube(appId, ncube, username)
+        NCubeManager.updateCube(appId, ncube)
     }
 
     /**
      * Update the 'informational' part of the Axis (not the columns).
      */
-    void updateAxis(ApplicationID appId, String name, String origAxisName, String axisName, boolean hasDefault, boolean isSorted, boolean fireAll, String username)
+    void updateAxis(ApplicationID appId, String name, String origAxisName, String axisName, boolean hasDefault, boolean isSorted, boolean fireAll)
     {
         NCube ncube = NCubeManager.getCube(appId, name)
         if (ncube == null)
@@ -299,13 +295,13 @@ class NCubeService
         }
 
         ncube.clearSha1();
-        NCubeManager.updateCube(appId, ncube, username)
+        NCubeManager.updateCube(appId, ncube)
     }
 
     /**
      * Removes the reference from one axis to another.
      */
-    void breakAxisReference(ApplicationID appId, String name, String axisName, String username)
+    void breakAxisReference(ApplicationID appId, String name, String axisName)
     {
         NCube ncube = NCubeManager.getCube(appId, name)
         if (ncube == null)
@@ -315,7 +311,7 @@ class NCubeService
 
         // Update default column setting (if changed)
         ncube.breakAxisReference(axisName);
-        NCubeManager.updateCube(appId, ncube, username)
+        NCubeManager.updateCube(appId, ncube)
     }
 
     /**
@@ -325,7 +321,7 @@ class NCubeService
      * example, and it will be added as a Range(10, 25) and will go through all the proper
      * "up promotion" before being set into the column.
      */
-    void updateColumnCell(ApplicationID appId, String cubeName, String colId, String value, String username)
+    void updateColumnCell(ApplicationID appId, String cubeName, String colId, String value)
     {
         NCube ncube = NCubeManager.getCube(appId, cubeName)
         if (ncube == null)
@@ -350,29 +346,29 @@ class NCubeService
         }
 
         ncube.updateColumn(id, axis.convertStringToColumnValue(value))
-        NCubeManager.updateCube(appId, ncube, username)
+        NCubeManager.updateCube(appId, ncube)
     }
 
     /**
      * In-place update of a cell.  'Value' is the final (converted) object type to be stored
      * in the indicated (by colIds) cell.
      */
-    void updateNCube(NCube ncube, String username)
+    void updateNCube(NCube ncube)
     {
         ApplicationID appId = ncube.getApplicationID()
-        NCubeManager.updateCube(appId, ncube, username)
+        NCubeManager.updateCube(appId, ncube)
     }
 
-    boolean renameCube(ApplicationID appId, String oldName, String newName, String username)
+    boolean renameCube(ApplicationID appId, String oldName, String newName)
     {
-        return NCubeManager.renameCube(appId, oldName, newName, username)
+        return NCubeManager.renameCube(appId, oldName, newName)
     }
 
     /**
      * Update / Save a single n-cube -or- create / update a batch of n-cubes, represented as a JSON
      * array [] of n-cubes.
      */
-    void updateCube(ApplicationID appId, String name, String json, String username)
+    void updateCube(ApplicationID appId, String name, String json)
     {
         json = json.trim()
         List cubes
@@ -400,7 +396,7 @@ class NCubeService
                 }
             }
 
-            NCubeManager.updateCube(appId, ncube, username)
+            NCubeManager.updateCube(appId, ncube)
         }
     }
 
@@ -470,6 +466,21 @@ class NCubeService
     List<AxisRef> getReferenceAxes(ApplicationID appId)
     {
         return NCubeManager.getReferenceAxes(appId)
+    }
+
+    void updateReferenceAxes(List<AxisRef> axisRefs)
+    {
+        NCubeManager.updateReferenceAxes(axisRefs);
+    }
+
+    boolean assertPermissions(ApplicationID appId, String resource, ACTION action)
+    {
+        NCubeManager.assertPermissions(appId, resource, action ?: ACTION.READ)
+    }
+
+    boolean checkPermissions(ApplicationID appId, String resource, ACTION action)
+    {
+        NCubeManager.checkPermissions(appId, resource, action)
     }
 
     // =========================================== Helper methods ======================================================

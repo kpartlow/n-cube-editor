@@ -201,7 +201,7 @@ div#west div.panel-body {
 }
 
 #ncube-list-div div.panel-body {
-    height:calc(100% - 96px);
+    height:calc(100% - 260px);
 }
 
 div#east div.panel-body {
@@ -551,4 +551,46 @@ span.selected-count {
     -webkit-border-radius: 6px 0 6px 6px;
     -moz-border-radius: 6px 0 6px 6px;
     border-radius: 6px 0 6px 6px;
+}
+
+#batchUpdateAxisReferencesTable {
+    margin: 0 auto;
+}
+
+#batchUpdateAxisReferencesTable th {
+    padding-right: 25px;
+    text-align: center;
+    font-weight: bold;
+}
+
+#batchUpdateAxisReferencesTable td {
+    padding-right: 25px;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#batchUpdateAxisReferencesTable select {
+    max-width: 225px;
+    min-width: 100px;
+}
+
+.modal-xl {
+    width: 94%;
+}
+
+#appIdMenu {
+    padding: 5px 5px 10px;
+}
+
+#appIdMenu li, #appIdMenu button {
+    width: 100%;
+}
+
+#appIdMenu li a.dropdown-toggle {
+    padding: 10px 0;
+}
+
+#appIdMenu .open a.dropdown-toggle, #appIdMenu li a.dropdown-toggle:hover, #appIdMenu li a.dropdown-toggle:focus {
+    background-color: #777777;
 }
