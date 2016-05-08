@@ -6,6 +6,7 @@
  *      instructionsTitle   - title of instructions area (omit for no instructions box)
  *      instructionsText    - text of instructions area (omit for no instructions box)
  *      afterSave           - callback fires upon clicking save button
+ *      readonly            - should the user be able to edit or only view
  *      columns             - columns to show on modal
  *          heading         - heading for column
  *          type            - type of input for column, use constant COLUMN_TYPES
@@ -48,6 +49,8 @@ var PropertyBuilder = (function ($) {
         container.append(buildModalHeader());
         container.append(buildModalContent());
         container.append(buildModalFooter());
+
+        container.find('input,textarea,select').attr('disabled', _options.readonly);
 
         _modal.modal();
     }
@@ -239,10 +242,14 @@ var PropertyBuilder = (function ($) {
                 closeBuilderModal(true);
             });
 
-        footer.append(_btnAdd);
-        footer.append(_btnClear);
-        footer.append(_btnCancel);
-        footer.append(_btnSave);
+        if (_options.readonly) {
+            footer.append(_btnCancel);
+        } else {
+            footer.append(_btnAdd);
+            footer.append(_btnClear);
+            footer.append(_btnCancel);
+            footer.append(_btnSave);
+        }
         return footer;
     }
 

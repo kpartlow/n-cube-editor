@@ -201,7 +201,7 @@ div#west div.panel-body {
 }
 
 #ncube-list-div div.panel-body {
-    height:calc(100% - 96px);
+    height:calc(100% - 230px);
 }
 
 div#east div.panel-body {
@@ -577,4 +577,22 @@ span.selected-count {
 
 .modal-xl {
     width: 94%;
+}
+
+#appIdMenu {
+    padding: 5px;
+    float: none;
+    background: #D1C5B7;
+}
+
+#appIdMenu li, #appIdMenu button {
+    width: 100%;
+}
+
+#appIdMenu li a.dropdown-toggle {
+    padding: 5px 0;
+}
+
+#appIdMenu .open a.dropdown-toggle, #appIdMenu li a.dropdown-toggle:hover, #appIdMenu li a.dropdown-toggle:focus {
+    background-color: #777777;
 }

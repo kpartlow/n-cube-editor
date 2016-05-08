@@ -1,16 +1,15 @@
 package com.cedarsoftware.controller
 
-import com.cedarsoftware.dto.User
 import groovy.transform.CompileStatic
 
 /**
- * Interface for UserController.
+ * Before Advice that sets user ID on current thread.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br/>
  *         Copyright (c) Cedar Software LLC
  *         <br/><br/>
- *         Licensed under the Apache License, Version 2.0 (the "License");
+ *         Licensed under the Apache License, Version 2.0 (the "License")
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
  *         <br/><br/>
@@ -23,12 +22,17 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-public interface IUserController extends IBaseController
+class BeforeAdviceSetUser
 {
-	Object[] getUserOption(String key)
+    NCubeController controller
 
-	void setUserOption(String key, String value)
+    BeforeAdviceSetUser(NCubeController ncubeController)
+    {
+        controller = ncubeController
+    }
 
-	User getUser(String userId)
-
+    void setUserOnThread()
+    {
+        controller.getUserForDatabase()
+    }
 }

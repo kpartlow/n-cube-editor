@@ -24,6 +24,8 @@ var NCubeEditor2 = (function ($) {
     var _editCellModal = null;
     var _editCellValue = null;
     var _editCellCache = null;
+    var _editCellCancel = null;
+    var _editCellClear = null;
     var _editCellRadioURL = null;
     var _editColumnModal = null;
     var _valueDropdown = null;
@@ -63,6 +65,7 @@ var NCubeEditor2 = (function ($) {
     var _refFilterMethod = null;
     var _isRefAxisUpdate = null;
     var _hasRefFilterUpdate = null;
+    var _updateAxisModal = null;
     var _updateAxisName = null;
     var _updateAxisTypeName = null;
     var _updateAxisValueTypeName = null;
@@ -97,6 +100,8 @@ var NCubeEditor2 = (function ($) {
             _editCellModal = $('#editCellModal');
             _editCellValue = $('#editCellValue');
             _editCellCache = $('#editCellCache');
+            _editCellCancel = $('#editCellCancel');
+            _editCellClear = $('#editCellClear');
             _editCellRadioURL = $('#editCellRadioURL');
             _editColumnModal = $('#editColumnsModal');
             _valueDropdown = $('#datatypes-value');
@@ -128,6 +133,7 @@ var NCubeEditor2 = (function ($) {
             _refFilterMethod = $('#refFilterMethod');
             _isRefAxisUpdate = $('#isRefAxisUpdate');
             _hasRefFilterUpdate = $('#hasRefFilterUpdate');
+            _updateAxisModal = $('#updateAxisModal');
             _updateAxisName = $('#updateAxisName');
             _updateAxisTypeName = $('#updateAxisTypeName');
             _updateAxisValueTypeName = $('#updateAxisValueTypeName');
@@ -917,6 +923,7 @@ var NCubeEditor2 = (function ($) {
                         }
                     }
                     combos = tempCombos;
+                    combos.sort();
                 }
             }
         } else {
@@ -1990,7 +1997,8 @@ var NCubeEditor2 = (function ($) {
                 var metaPropertyOptions = {
                     objectType: METAPROPERTIES.OBJECT_TYPES.AXIS,
                     objectName: axisName,
-                    axis: axis
+                    axis: axis,
+                    readonly: !nce.checkPermissions(nce.getSelectedTabAppId(), cubeName + '/' + axisName, PERMISSION_ACTION.UPDATE)
                 };
                 openMetaPropertiesBuilder(metaPropertyOptions);
             });
@@ -2398,7 +2406,8 @@ var NCubeEditor2 = (function ($) {
             objectType: METAPROPERTIES.OBJECT_TYPES.COLUMN,
             objectName: columnName,
             axis: axis,
-            column: column
+            column: column,
+            readonly: !nce.checkPermissions(nce.getSelectedTabAppId(), cubeName + '/' + axis.name, PERMISSION_ACTION.UPDATE)
         };
         openMetaPropertiesBuilder(metaPropertyOptions);
     };
@@ -2409,7 +2418,8 @@ var NCubeEditor2 = (function ($) {
 
         var metaPropertyOptions = {
             objectType: METAPROPERTIES.OBJECT_TYPES.CUBE,
-            objectName: cubeName
+            objectName: cubeName,
+            readonly: !nce.checkPermissions(nce.getSelectedTabAppId(), cubeName, PERMISSION_ACTION.UPDATE)
         };
         openMetaPropertiesBuilder(metaPropertyOptions);
     };
@@ -2498,6 +2508,7 @@ var NCubeEditor2 = (function ($) {
                     type: PropertyBuilder.COLUMN_TYPES.TEXT
                 }
             },
+            readonly: metaPropertyOptions.readonly,
             afterSave: function() {
                 updateMetaProperties(metaPropertyOptions, metaProperties);
                 hot.removeHook('beforeKeyDown', onBeforeKeyDown);
@@ -2810,10 +2821,10 @@ var NCubeEditor2 = (function ($) {
     // ==================================== Everything to do with Cell Editing =========================================
 
     var addEditCellListeners = function() {
-        $('#editCellClear').click(function() {
+        _editCellClear.click(function() {
             editCellClear();
         });
-        $('#editCellCancel').click(function() {
+        _editCellCancel.click(function() {
             editCellCancel();
         });
         $('#editCellOk').click(function() {
@@ -2836,12 +2847,10 @@ var NCubeEditor2 = (function ($) {
     };
 
     var editCell = function() {
-        if (!nce.ensureModifiable('Cell cannot be updated.')) {
-            return;
-        }
+        var appId = nce.getSelectedTabAppId();
+        var modifiable = nce.checkPermissions(appId, cubeName, PERMISSION_ACTION.UPDATE)
 
-        var result = nce.call("ncubeController.getCellNoExecute", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId]);
-
+        var result = nce.call("ncubeController.getCellNoExecute", [appId, cubeName, _cellId]);
         if (result.status === false) {
             nce.showNote('Unable to fetch the cell contents: ' + result.data);
             return;
@@ -2852,12 +2861,14 @@ var NCubeEditor2 = (function ($) {
         var dataType = null;
         var isUrl = false;
         var isCached = false;
+        var isDefault = false;
         if (cellInfo.value !== null || cellInfo.dataType !== null || cellInfo.isUrl || cellInfo.isCached) {
             value = cellInfo.value;
             dataType = cellInfo.dataType;
             isUrl = cellInfo.isUrl;
             isCached = cellInfo.isCached;
         } else { // use cube defaults if exist
+            isDefault = true;
             isUrl = data.defaultCellValueUrl !== undefined;
             value = isUrl ? data.defaultCellValueUrl : data.defaultCellValue;
             dataType = data.defaultCellValueType;
@@ -2888,17 +2899,26 @@ var NCubeEditor2 = (function ($) {
         _editCellCache.find('input').prop('checked', isCached);
 
         enabledDisableCheckBoxes(); // reset for form
-        _editCellModal.modal('show');
+        _editCellModal.find('input,textarea,select').attr('disabled', !modifiable);
+        if (modifiable) {
+            _editCellCancel.show();
+            _editCellClear.show();
 
-        if (_bufferText.trim() !== '') {
             $(_editCellModal).one('shown.bs.modal', function () {
-                _editCellValue.val(cellValue + _bufferText);
+                if (_bufferText.trim() !== '') {
+                    _editCellValue.val(isDefault ? _bufferText : (cellValue + _bufferText));
+                } else if (isDefault) {
+                    _editCellValue.select();
+                }
             });
+        } else {
+            _editCellCancel.hide();
+            _editCellClear.hide();
         }
+        _editCellModal.modal('show');
     };
 
     var editCellClear = function() {
-        _editCellModal.modal('hide');
         var result = nce.call("ncubeController.updateCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId, null]);
 
         if (result.status === false) {
@@ -2908,8 +2928,7 @@ var NCubeEditor2 = (function ($) {
         }
 
         delete data.cells[_tableCellId];
-        _cellId = null;
-        destroyEditor();
+        editCellCancel()
     };
 
     var editCellCancel = function() {
@@ -2919,6 +2938,12 @@ var NCubeEditor2 = (function ($) {
     };
 
     var editCellOK = function() {
+        var appId = nce.getSelectedTabAppId();
+        var modifiable = nce.checkPermissions(appId, cubeName, PERMISSION_ACTION.UPDATE);
+        if (!modifiable) {
+            editCellCancel();
+            return;
+        }
         var cellInfo = {'@type':'com.cedarsoftware.ncube.CellInfo'};
         cellInfo.isUrl = _editCellRadioURL.find('input').prop('checked');
         cellInfo.value = _editCellValue.val();
@@ -2926,7 +2951,7 @@ var NCubeEditor2 = (function ($) {
         cellInfo.isCached = _editCellCache.find('input').prop('checked');
         _editCellModal.modal('hide');
 
-        var result = nce.call("ncubeController.updateCell", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _cellId, cellInfo]);
+        var result = nce.call("ncubeController.updateCell", [appId, cubeName, _cellId, cellInfo]);
 
         if (result.status === false) {
             _cellId = null;
@@ -3126,11 +3151,14 @@ var NCubeEditor2 = (function ($) {
     };
 
     var editColumns = function(axisName) {
-        if (!nce.ensureModifiable('Columns cannot be edited.')) {
+        var appId = nce.getSelectedTabAppId();
+        var modifiable = nce.checkPermissions(appId, cubeName + '/' + axisName, PERMISSION_ACTION.UPDATE);
+        if (!modifiable) {
+            nce.showNote('Columns cannot be edited.');
             return false;
         }
 
-        var result = nce.call("ncubeController.getAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.getAxis", [appId, cubeName, axisName]);
         var axis;
         if (result.status === true) {
             axis = result.data;
@@ -3700,7 +3728,9 @@ var NCubeEditor2 = (function ($) {
     };
 
     var addAxis = function() {
-        if (!nce.ensureModifiable('Axis cannot be added.')) {
+        var modifiable = nce.checkPermissions(nce.getSelectedTabAppId(), cubeName + '/*', PERMISSION_ACTION.UPDATE);
+        if (!modifiable) {
+            nce.showNote('Axis cannot be added.');
             return;
         }
 
@@ -3724,7 +3754,11 @@ var NCubeEditor2 = (function ($) {
         $('#addAxisModal').modal('hide');
         var axisName = _addAxisName.val();
         var appId = nce.getSelectedTabAppId();
-        var cubeName = nce.getSelectedCubeName();
+        var modifiable = nce.checkPermissions(appId, cubeName + '/' + axisName, PERMISSION_ACTION.UPDATE);
+        if (!modifiable) {
+            nce.showNote('Cannot add axis ' + axisName);
+            return;
+        }
         var params;
         if (_isRefAxis[0].checked) {
             var refAppId = appIdFrom(_refAxisApp.val(), _refAxisVersion.val(), _refAxisStatus.val(), _refAxisBranch.val());
@@ -3759,7 +3793,9 @@ var NCubeEditor2 = (function ($) {
     };
 
     var deleteAxis = function(axisName) {
-        if (!nce.ensureModifiable('Axis cannot be deleted.')) {
+        var modifiable = nce.checkPermissions(nce.getSelectedTabAppId(), cubeName + '/' + axisName, PERMISSION_ACTION.UPDATE);
+        if (!modifiable) {
+            nce.showNote('Axis cannot be deleted.');
             return;
         }
 
@@ -3793,11 +3829,16 @@ var NCubeEditor2 = (function ($) {
     };
 
     var updateAxis = function(axisName) {
-        if (!nce.ensureModifiable('Axis cannot be updated.')) {
-            return false;
+        var appId = nce.getSelectedTabAppId();
+        var modifiable = nce.checkPermissions(appId, cubeName + '/' + axisName, PERMISSION_ACTION.UPDATE);
+        _updateAxisModal.find('input').attr('disabled', !modifiable);
+        if (modifiable) {
+            $('#updateAxisOk').show();
+        } else {
+            $('#updateAxisOk').hide();
         }
 
-        var result = nce.call("ncubeController.getAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), axisName]);
+        var result = nce.call("ncubeController.getAxis", [appId, cubeName, axisName]);
         var axis;
         if (result.status === true) {
             axis = result.data;
@@ -3862,14 +3903,14 @@ var NCubeEditor2 = (function ($) {
         }
 
         _axisName = axisName;
-        $('#updateAxisModal').modal({
+        _updateAxisModal.modal({
             keyboard: true
         });
     };
 
     var showAxisSortOption = function(axis) {
         $('#updateAxisSortOrderRow').show();
-        _updateAxisSortOrder.prop({'checked': axis.preferredOrder == 0, 'disabled': false});
+        _updateAxisSortOrder.prop({'checked': axis.preferredOrder === 0});
     };
 
     var hideAxisSortOption = function() {
@@ -3878,7 +3919,7 @@ var NCubeEditor2 = (function ($) {
 
     var showAxisDefaultColumnOption = function(axis) {
         $('#updateAxisDefaultColRow').show();
-        $('#updateAxisDefaultCol').prop({'checked': axis.defaultCol != null, 'disabled': false});
+        $('#updateAxisDefaultCol').prop({'checked': axis.defaultCol !== null});
     };
 
     var hideAxisDefaultColumnOption = function() {
@@ -3887,7 +3928,7 @@ var NCubeEditor2 = (function ($) {
 
     var showAxisFireAllOption = function(axis) {
         $('#updateAxisFireAllRow').show();
-        $('#updateAxisFireAll').prop({'checked': axis.fireAll == true, 'disabled': false});
+        $('#updateAxisFireAll').prop({'checked': axis.fireAll === true});
     };
 
     var hideAxisFireAllOption = function() {
@@ -3895,12 +3936,12 @@ var NCubeEditor2 = (function ($) {
     };
 
     var updateAxisOk = function() {
-        $('#updateAxisModal').modal('hide');
+        _updateAxisModal.modal('hide');
         var axisName = $('#updateAxisName').val();
         var hasDefault = $('#updateAxisDefaultCol').prop('checked');
         var sortOrder = _updateAxisSortOrder.prop('checked');
         var fireAll = $('#updateAxisFireAll').prop('checked');
-        var result = nce.call("ncubeController.updateAxis", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _axisName, axisName, hasDefault, sortOrder, fireAll]);
+        var result = nce.call("ncubeController.updateAxis", [nce.getSelectedTabAppId(), cubeName, _axisName, axisName, hasDefault, sortOrder, fireAll]);
         if (result.status === true) {
             var oldName = _axisName.toLowerCase();
             var newName = axisName.toLowerCase();
