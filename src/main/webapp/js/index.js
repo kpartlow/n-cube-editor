@@ -1489,6 +1489,7 @@ var NCE = (function ($)
                 }
             }
         }
+        selectNone();
     }
 
     function checkPermissions(appId, resource, action) {
@@ -2995,7 +2996,7 @@ var NCE = (function ($)
             ul.append(li);
         });
 
-        checkAll(true, 'input[type="checkbox"]');
+        selectAll();
         _commitModal.modal('show');
     }
 
