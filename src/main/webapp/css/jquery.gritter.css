@@ -2,7 +2,7 @@
     position:fixed;
     top:50px;
     right:20px;
-    width:401px;
+    width:501px;
     z-index:9999;
     max-height: calc(100% - 65px);
     overflow-x:hidden;
@@ -27,6 +27,17 @@
     padding:0;
     margin:0;
     word-wrap: break-word;
+}
+.gritter-drag {
+    position: absolute;
+    top: 5px;
+    right: 35px;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    text-indent: -9999em;
+    background: url(../img/glyphicons-halflings-white.png) no-repeat -245px -103px;
+    background-size: 50vw;
 }
 .gritter-close {
     display:none;

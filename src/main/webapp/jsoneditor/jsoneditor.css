@@ -18,7 +18,7 @@ div.jsoneditor-value p {
 }
 
 div.jsoneditor-value {
-  word-break: break-word;
+  word-break: normal;
 }
 
 div.jsoneditor-readonly {
@@ -27,8 +27,7 @@ div.jsoneditor-readonly {
 }
 
 div.jsoneditor-empty {
-  border-color: lightgray;
-  border-style: dashed;
+  border: dashed lightgray;
   border-radius: 2px;
 }
 
@@ -369,7 +368,6 @@ div.jsoneditor-tree .jsoneditor-schema-error {
   display: block;
   -webkit-animation: fade-in .3s linear 1, move-up .3s linear 1;
   -moz-animation: fade-in .3s linear 1, move-up .3s linear 1;
-  -ms-animation: fade-in .3s linear 1, move-up .3s linear 1;
 }
 
 @-webkit-keyframes fade-in {

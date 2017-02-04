@@ -23,25 +23,37 @@
 
 <body>
     <div id="fadeMe1"></div>
-    <img height="270" class="fadeMe2" src="img/splash.jpg"/>
+    <img class="fadeMe2" src="img/splash2.png"/>
     <h3 class="fadeMe2">N-Cube Editor Loading...</h3>
     <div id="diffOutputModal" style="box-shadow:0 5px 15px rgba(0,0,0,.5)">
         <div class="modal-header noselect">
             <h3 id="diffTitle" class="modal-title">Compare N-Cubes</h3>
         </div>
         <div class="modal-body">
-            <form role="form" style="height:100%">
-                <div class="form-group" style="height:100%">
-                    <div id="diffOutput" style="height:100%"></div>
+            <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="diffHeading">
+                        <h4 class="panel-title">
+                            <a id="diffInstTitle" data-toggle="collapse" data-parent="#accordion" href="#diffCollapse"
+                               aria-expanded="true" aria-controls="diffCollapse">Instructions</a>
+                        </h4>
+                    </div>
+                    <div id="diffCollapse" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="diffHeading">
+                        <div id="diffInstructions" class="panel-body"></div>
+                    </div>
+                </div>
+            </div>
+            <form role="form">
+                <div class="form-group">
+                    <div id="diffOutput"></div>
                 </div>
             </form>
         </div>
         <div class="modal-footer noselect">
-            <button id="diffDesc" type="button" class="btn btn-info btn-sm pull-left">Descriptive</button>
-            <button id="diffVisual" type="button" class="btn btn-info btn-sm pull-left">Visual</button>
-            <button id="diffSide" type="button" class="btn btn-info btn-sm pull-left">Side-by-side</button>
-            <button id="diffInline" type="button" class="btn btn-info btn-sm pull-left">Inline</button>
-            <button id="diffModalClose" class="btn btn-primary">Close</button>
+            <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+            <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
+            <button id="diffModalClose" class="btn btn-default">Close</button>
+            <button id="diffModalMerge" class="btn btn-primary">Merge</button>
         </div>
     </div>
 
@@ -50,7 +62,7 @@
         <button class="navbar-toggle collapsed" type="button" data-toggle="collapse">
         </button>
         <!--suppress CheckImageSize -->
-        <img height="40" src="img/splash.jpg" style="border-radius:8px;padding:2px"/><a id="appTitle" class="navbar-brand" href="#"></a>
+        <img height="40" src="img/splash2.png" style="border-radius:8px;padding:2px"/><a id="appTitle" class="navbar-brand" href="#"></a>
         <span>&nbsp;&nbsp;</span>
     </div>
     <nav class="navbar-collapse collapse" role="navigation" style="height: 1px !important;">
@@ -76,6 +88,10 @@
                 <ul class="dropdown-menu">
                     <li><a href="#" id="releaseCubesMenu">Release SNAPSHOT</a></li>
                     <li><a href="#" id="changeVerMenu">Change SNAPSHOT version</a></li>
+                    <li><a href="#" id="createSnapshotMenu">Create SNAPSHOT from RELEASE</a></li>
+                    <li class="divider" />
+                    <li><a href="#" id="lockUnlockAppMenu"></a></li>
+                    <li class="disabled"><a href="#" id="getAppLockedByMenu"></a></li>
                 </ul>
             </li>
         </ul>
@@ -83,7 +99,8 @@
 </header>
 
 <div id="west" class="ui-layout-west noselect">
-    <ul id="appIdMenu" class="nav navbar-nav">
+    <div class="ui-layout-center" style="padding:0">
+        <ul id="appIdMenu" class="nav navbar-nav">
         <li class="dropdown">
             <a id="AppMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <button class="btn-sm btn-primary">&nbsp;<b class="caret"></b></button>
@@ -102,17 +119,23 @@
             <a id="BranchMenu" href="#" class="dropdown-toggle" data-toggle="dropdown">
                 <button class="btn-sm btn-primary">&nbsp;<b class="caret"></b></button>
             </a>
-            <ul class="dropdown-menu">
+            <ul class="dropdown-menu has-submenu">
                 <li><a id="branchSelect" href="#">Select/Create Branch...</a></li>
-                <li><a id="branchUpdate" href="#">Update Branch</a></li>
+                <li class="dropdown-submenu"><a id="branchCompareUpdate" href="#" tabindex="-1">Update Branch</a></li>
+                <li><a id="branchCopy" href="#">Copy Branch...</a></li>
                 <li><a id="branchDelete" href="#">Delete Branch</a></li>
                 <li class="divider"></li>
-                <li><a id="branchCommit" href="#">Commit...</a></li>
-                <li><a id="branchRollback" href="#">Rollback...</a></li>
+                <li><a id="branchCommit" href="#">Commit Branch...</a></li>
+                <li><a id="branchRollback" href="#">Rollback Branch...</a></li>
+                <li class="divider"></li>
+                <li id="branchQuickSelectHeader">
+                    Quick Select:
+                    <button id="btnClearBranchQuickSelect" class="btn btn-xs btn-default pull-right">Clear</button>
+                </li>
             </ul>
         </li>
     </ul>
-    <div id="ncube-list-div" class="panel" style="height:100%">
+        <div id="ncube-list-div" class="panel">
         <div class="panel-heading">
             <div class="btn-group">
                 <a href="#" class="btn-sm btn-primary dropdown-toggle" aria-haspopup="true" data-toggle="dropdown"
@@ -120,11 +143,12 @@
                     <span>n-cubes</span><span class="caret"></span>
                 </a>
                 <ul class="dropdown-menu">
-                    <li><a href="#" id="newCubeMenu">New</a></li>
-                    <li><a href="#" id="deleteCubeMenu">Delete</a></li>
-                    <li><a href="#" id="restoreCubeMenu">Restore</a></li>
+                    <li><a href="#" id="newCubeMenu">New...</a></li>
+                    <li><a href="#" id="deleteCubeMenu">Delete...</a></li>
+                    <li><a href="#" id="restoreCubeMenu">Restore...</a></li>
                     <li class="divider"></li>
-                    <li><a href="#" id="batchUpdateAxisReferencesMenu">Batch Update Reference Axes</a></li>
+                    <li><a href="#" id="batchUpdateAxisReferencesMenu">Batch Update Reference Axes...</a></li>
+                    <li><a href="#" id="globalComparatorMenu">Compare Any Two Cubes...</a></li>
                 </ul>
             </div>
             <span id="ncubeCount" class="badge pull-right"></span>
@@ -135,14 +159,26 @@
                 <button id="cube-search-reset" class="btn btn-sm btn-default" type="button">
                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                 </button>
+                <button id="cube-search-options-btn" class="btn btn-sm btn-default" type="button">
+                    <span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span>
+                </button>
             </span>
         </div>
-        <input id="cube-search-content" style="font-size:12px" type="text" class="form-control" placeholder="Cubes containing...">
+        <div id="cube-search-options" class="input-group input-group-sm">
+            <input id="cube-search-contains" type="text" class="form-control" placeholder="Cubes containing...">
+            <input id="cube-search-tags-include" type="text" class="form-control" placeholder="Includes tag1,tag2...">
+            <input id="cube-search-tags-exclude" type="text" class="form-control" placeholder="Excludes tag1,tag2...">
+        </div>
         <div class="panel-body">
             <ul class="nav nav-list" id="ncube-list">
                 <a>Loading n-cubes...</a>
             </ul>
         </div>
+    </div>
+    </div>
+    <div id="south" class="ui-layout-south" style="padding:0">
+        <ul id="ncube-mod-list" class="nav nav-list">
+        </ul>
     </div>
 </div>
 
@@ -304,9 +340,36 @@
             <div class="modal-footer">
                 <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
                 <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
+                <button class="btn btn-danger btn-sm pull-left accept-mine" aria-hidden="true">Accept Mine</button>
+                <button class="btn btn-danger btn-sm pull-left accept-theirs" aria-hidden="true">Accept Theirs</button>
                 <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Cancel</button>
                 <button id="commitOk" class="btn btn-primary btn-sm">Commit</button>
                 <button id="rollbackOk" class="btn btn-primary btn-sm">Rollback</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Compare / Update Branch Modal -->
+<div id="branchCompareUpdateModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="branchCompareUpdateLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content modal-filter">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="branchCompareUpdateLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+                <ul id="branchCompareUpdateList" class="list-group">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
+                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
+                <button class="btn btn-danger btn-sm pull-left accept-mine" aria-hidden="true">Accept Mine</button>
+                <button class="btn btn-danger btn-sm pull-left accept-theirs" aria-hidden="true">Accept Theirs</button>
+                <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Close</button>
+                <button id="branchCompareUpdateOk" class="btn btn-primary btn-sm">Update</button>
             </div>
         </div>
     </div>
@@ -363,6 +426,66 @@
     </div>
 </div>
 
+<!-- Copy Branch Modal -->
+<div id="copyBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="copyBranchLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="copyBranchLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="copyBranchAppName">App</label>
+                        <div class="input-group">
+                            <div class="input-group-btn">
+                                <button type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown">Choose<span class="caret"></span></button>
+                                <ul id="copyBranchAppList" class="dropdown-menu">
+                                </ul>
+                            </div>
+                            <input id="copyBranchAppName" type="text" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newCubeStatus">Status</label>
+                        <input class="form-control" type="text" placeholder="" id="copyBranchStatus" readonly/>
+                    </div>
+                    <div class="form-group">
+                        <label for="copyBranchVersion">Version</label>
+                        <div class="input-group">
+                            <div class="input-group-btn">
+                                <button type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown">Choose<span class="caret"></span></button>
+                                <ul id="copyBranchVersionList" class="dropdown-menu">
+                                </ul>
+                            </div>
+                            <input id="copyBranchVersion" type="text" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="copyBranchName">New Branch Name</label>
+                        <input class="form-control" type="text" id="copyBranchName" placeholder="Type name here"/>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label>
+                                <input id="copy-branch-with-history" type="checkbox"> Copy Branch With History
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button id="copyBranchOk" class="btn btn-primary">Copy Branch</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Branch Modal -->
 <div id="deleteBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="deleteBranchLabel"
      aria-hidden="true" data-backdrop="static">
@@ -378,44 +501,6 @@
             <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
                 <button id="deleteBranchOk" class="btn btn-primary">Delete</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Merge Branch Modal -->
-<div id="mergeBranchModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="mergeBranchLabel"
-     aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content modal-filter">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 id=mergeBranchLabel" class="modal-title">Merge Branch</h3>
-            </div>
-            <div class="modal-body" style="overflow: auto;height:450px">
-
-                <form role="form">
-                    <div class="well well-sm">
-                        <span class="help-block">One or more cubes that you have worked on has changed in HEAD since your created / updated the cubes in your branch.  A cube in conflict cannot be committed to HEAD.</span>
-                    </div>
-                </form>
-
-                <form role="form">
-                    <div class="form-group">
-                        <label for="mergeList">Select conflicting cube:</label>
-                        <ul id="mergeList" class="list-group">
-                        </ul>
-                    </div>
-                </form>
-
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
-                <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
-                <button id="compareCubes" class="btn btn-primary btn-sm pull-left">Compare</button>
-                <button id="acceptMine" class="btn btn-primary btn-sm pull-left">Accept Mine</button>
-                <button id="acceptTheirs" class="btn btn-primary btn-sm pull-left">Accept Theirs</button>
-                <button id="mergeClose" class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Close</button>
             </div>
         </div>
     </div>
@@ -446,15 +531,6 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="dupeCubeName">New n-cube Name</label>
-                        <input class="form-control" type="text" id="dupeCubeName" placeholder="Type name here"/>
-                    </div>
-                    <div class="form-group">
-                        <label for="dupeCubeStatus">New status</label>
-                        <input class="form-control" type="text" placeholder="" id="dupeCubeStatus" value="SNAPSHOT"
-                               readonly/>
-                    </div>
-                    <div class="form-group">
                         <label for="dupeCubeVersion">New version</label>
 
                         <div class="input-group">
@@ -467,31 +543,33 @@
                             <input id="dupeCubeVersion" type="text" class="form-control">
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label for="dupeCubeStatus">New status</label>
+                        <input class="form-control" type="text" placeholder="" id="dupeCubeStatus" value="SNAPSHOT"
+                               readonly/>
+                    </div>
+                    <div class="form-group">
+                        <label for="dupeCubeBranch">New branch</label>
+
+                        <div class="input-group">
+                            <div class="input-group-btn">
+                                <button type="button" class="btn btn-default dropdown-toggle"
+                                        data-toggle="dropdown">Choose<span class="caret"></span></button>
+                                <ul id="dupeCubeBranchList" class="dropdown-menu">
+                                </ul>
+                            </div>
+                            <input id="dupeCubeBranch" type="text" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dupeCubeName">New n-cube name</label>
+                        <input class="form-control" type="text" id="dupeCubeName" placeholder="Type name here"/>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true">Don't copy</button>
                 <button id="dupeCubeCopy" class="btn btn-primary">Copy</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 'Show References to' Modal -->
-<div id="showRefsToCubeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="showRefsToLabel"
-     aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content modal-filter">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h3 id="showRefsToLabel" class="modal-title"></h3>
-            </div>
-            <div class="modal-body" style="overflow: auto;height:450px">
-                <ul id="refsToCubeList" class="list-group">
-                </ul>
-            </div>
-            <div class="modal-footer">
-                <button id="showRefsToClose" class="btn btn-primary">Close</button>
             </div>
         </div>
     </div>
@@ -511,7 +589,7 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="showRefsFromClose" class="btn btn-primary">Close</button>
+                <button id="showRefsFromClose" data-dismiss="modal" class="btn btn-primary">Close</button>
             </div>
         </div>
     </div>
@@ -531,7 +609,7 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button id="showReqScopeClose" class="btn btn-primary">Close</button>
+                <button id="showReqScopeClose" data-dismiss="modal" class="btn btn-primary">Close</button>
             </div>
         </div>
     </div>
@@ -553,14 +631,59 @@
                         <input class="form-control" type="text" placeholder="" id="releaseCubesAppName" readonly/>
                     </div>
                     <div class="form-group">
+                        <label>What kind of version is this?</label>
+                        <button class="btn btn-primary" id="releaseCubesVersionMajor">Major</button>
+                        <button class="btn btn-primary" id="releaseCubesVersionMinor">Minor</button>
+                        <button class="btn btn-primary" id="releaseCubesVersionPatch">Patch</button>
+                    </div>
+                    <div class="form-group">
                         <label for="releaseCubesVersion">New SNAPSHOT Version</label>
-                        <input class="form-control" type="text" placeholder="Enter version number n.n.n here" id="releaseCubesVersion"/>
+                        <input class="form-control" type="text" placeholder="Version number n.n.n" id="releaseCubesVersion" readonly/>
+                    </div>
+                    <div id="releaseCubesProgressDiv">
+                        <div class="progress">
+                            <div id="releaseCubesProgressBar" class="progress-bar progress-bar-striped" role="progressbar"
+                                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div id="releaseCubesProgressInfo"></div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't release</button>
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
                 <button id="releaseCubesOk" class="btn btn-primary">Release</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Snapshot Modal -->
+<div id="createSnapshotModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="releaseCubesLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="createSnapshotLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <label>What kind of version is this?</label>
+                        <button class="btn btn-primary" id="createSnapshotVersionMajor">Major</button>
+                        <button class="btn btn-primary" id="createSnapshotVersionMinor">Minor</button>
+                        <button class="btn btn-primary" id="createSnapshotVersionPatch">Patch</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="createSnapshotVersion">New SNAPSHOT Version</label>
+                        <input class="form-control" type="text" placeholder="Version number n.n.n" id="createSnapshotVersion" readonly/>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+                <button id="createSnapshotOk" class="btn btn-primary">Create</button>
             </div>
         </div>
     </div>
@@ -616,6 +739,10 @@
                 </div>
                 <table id="batchUpdateAxisReferencesTable">
                     <tr>
+                        <th colspan="3"></th>
+                        <th colspan="4" id="batchUpdateAxisReferencesNewAxisHeader"></th>
+                    </tr>
+                    <tr class="batchUpdateAxisReferencesNewAxisSelect">
                         <td colspan="3"></td>
                         <td><select id="batchUpdateAxisReferencesApp"></select></td>
                         <td><select id="batchUpdateAxisReferencesVersion"></select></td>
@@ -625,7 +752,7 @@
                     <tr>
                         <th></th>
                         <th colspan="2">Source Axis</th>
-                        <th colspan="4" id="batchUpdateAxisReferencesSectionHeader"></th>
+                        <th colspan="4" id="batchUpdateAxisReferencesCurrAxisHeader"></th>
                     </tr>
                     <tr>
                         <th></th>
@@ -634,16 +761,71 @@
                         <th>Application</th>
                         <th>Version</th>
                         <th>Cube Name</th>
-                        <th>Axis Name</th>
+                        <th id="batchUpdateAxisReferencesAxisMethodNameColumnHeader"></th>
                     </tr>
                 </table>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-info btn-sm pull-left select-all" aria-hidden="true">Select All</button>
                 <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
+                <button id="batchUpdateAxisReferencesRemoveTransform" class="btn btn-primary btn-sm">Remove Transform</button>
                 <input id="batchUpdateAxisReferencesToggle" type="checkbox" checked data-toggle="toggle" data-width="150"
                        data-on="Destination Axis" data-off="Transform Axis" data-onstyle="primary" data-offstyle="primary" />
                 <button id="batchUpdateAxisReferencesUpdate" class="btn btn-primary btn-sm">Update Selected References</button>
+                <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Global Cube Comparator Modal -->
+<div id="globalComparatorModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="globalComparatorLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="globalComparatorLabel" class="modal-title">Compare Any Two Cubes</h3>
+            </div>
+            <div class="modal-body" style="overflow: auto;height:450px">
+                <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="globalComparatorHeading">
+                            <h4 class="panel-title">
+                                <a id="globalComparatorInstTitle" data-toggle="collapse" data-parent="#accordion" href="#globalComparatorCollapse"
+                                   aria-expanded="true" aria-controls="globalComparatorCollapse">Instructions</a>
+                            </h4>
+                        </div>
+                        <div id="globalComparatorCollapse" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="globalComparatorHeading">
+                            <div id="globalComparatorInstructions" class="panel-body">Select two cubes to compare using the left (merge to) and right (merge from) selectors.</div>
+                        </div>
+                    </div>
+                </div>
+                <table id="globalComparatorTable">
+                    <tr>
+                        <td>App:</td>
+                        <td><select id="globalComparatorLeftApp"></select></td>
+                        <td><select id="globalComparatorRightApp"></select></td>
+                    </tr>
+                    <tr>
+                        <td>Version:</td>
+                        <td><select id="globalComparatorLeftVersion"></select></td>
+                        <td><select id="globalComparatorRightVersion"></select></td>
+                    </tr>
+                    <tr>
+                        <td>Branch:</td>
+                        <td><select id="globalComparatorLeftBranch"></select></td>
+                        <td><select id="globalComparatorRightBranch"></select></td>
+                    </tr>
+                    <tr>
+                        <td>Cube:</td>
+                        <td><select id="globalComparatorLeftCube"></select></td>
+                        <td><select id="globalComparatorRightCube"></select></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button id="globalComparatorCompare" class="btn btn-primary btn-sm">Compare</button>
                 <button class="btn btn-sm" data-dismiss="modal" aria-hidden="true">Close</button>
             </div>
         </div>

@@ -72,6 +72,7 @@ var DetailEditor = (function ($)
                     _urlDropdown.toggle(false);
                     _valueDropdown.toggle(true);
                     nce.showNote('Default cell cleared.', 'Note', 2000);
+                    nce.updateCubeLeftHandChangedStatus(cubeName, CHANGETYPE.UPDATED);
                 }
                 else
                 {
@@ -97,6 +98,7 @@ var DetailEditor = (function ($)
                 if (result.status === true)
                 {
                     nce.showNote('Default cell updated successfully.', 'Note', 2000);
+                    nce.updateCubeLeftHandChangedStatus(cubeName, CHANGETYPE.UPDATED);
                 }
                 else
                 {
@@ -117,7 +119,7 @@ var DetailEditor = (function ($)
 
     var scrollToSavedPosition = function() {
         var pos = nce.getViewPosition();
-        if (typeof pos === 'object') {
+        if (typeof pos === OBJECT) {
             $(window).scrollTop(pos.scrollTop);
             $(window).scrollLeft(pos.scrollLeft);
         }
@@ -238,6 +240,16 @@ var DetailEditor = (function ($)
         load();
     };
 
+    // Let parent (main frame) know that the child window has loaded.
+    // The loading of all of the Javascript (deeply) is continuous on the main thread.
+    // Therefore, the setTimeout(, 1) ensures that the main window (parent frame)
+    // is called after all Javascript has been loaded.
+    if (window.parent.frameLoaded) {
+        setTimeout(function () {
+            window.parent.frameLoaded(document);
+        }, 1);
+    }
+
     return {
         init: init,
         handleCubeSelected: handleCubeSelected,
@@ -256,3 +268,5 @@ var cubeSelected = function cubeSelected()
 {
     DetailEditor.handleCubeSelected();
 };
+
+var onNoteEvent = function onNoteEvent(e, element){};

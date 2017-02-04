@@ -1,0 +1,21 @@
+runtime: java
+vm: true
+module: default
+threadsafe: true
+runtime_config:
+   jdk: openjdk8
+   server: jetty9
+resources:
+  cpu: 1
+  memory_gb: 2.0
+  disk_size_gb: 1
+handlers:
+- url: /.*
+  secure: always
+env_variables:
+  spring.profiles.active: 'mysql'
+network:
+  forwarded_ports:
+  - 8081
+  instance_tag: ncube
+  name: ncube

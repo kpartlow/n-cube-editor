@@ -1,15 +1,17 @@
 package com.cedarsoftware.service.ncube
 
+import com.cedarsoftware.ncube.Action
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.AxisRef
 import com.cedarsoftware.ncube.AxisType
 import com.cedarsoftware.ncube.AxisValueType
+import com.cedarsoftware.ncube.Delta
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeInfoDto
 import com.cedarsoftware.ncube.NCubeManager
-import com.cedarsoftware.ncube.NCubeManager.ACTION
 import com.cedarsoftware.ncube.ReferenceAxisLoader
+import com.cedarsoftware.ncube.VersionControl
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
@@ -17,6 +19,10 @@ import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.springframework.stereotype.Service
+
+import static com.cedarsoftware.ncube.NCubeConstants.*
+
 /**
  * RESTful Ajax/JSON API for editor application
  *
@@ -37,22 +43,14 @@ import org.apache.logging.log4j.Logger
  *         limitations under the License.
  */
 @CompileStatic
+@Service
 class NCubeService
 {
     private static final Logger LOG = LogManager.getLogger(NCubeService.class)
 
     List<NCubeInfoDto> search(ApplicationID appId, String cubeNamePattern, String contentMatching, Map options)
     {
-        if (!cubeNamePattern.startsWith('*'))
-        {
-            cubeNamePattern = '*' + cubeNamePattern
-        }
-        if (!cubeNamePattern.endsWith('*'))
-        {
-            cubeNamePattern = cubeNamePattern + '*'
-        }
-
-        return NCubeManager.search(appId, cubeNamePattern, contentMatching, options)
+         return NCubeManager.search(appId, cubeNamePattern, contentMatching, options)
     }
 
     void restoreCubes(ApplicationID appId, Object[] cubeNames)
@@ -60,9 +58,9 @@ class NCubeService
         NCubeManager.restoreCubes(appId, cubeNames)
     }
 
-    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName)
+    List<NCubeInfoDto> getRevisionHistory(ApplicationID appId, String cubeName, boolean ignoreVersion)
     {
-        return NCubeManager.getRevisionHistory(appId, cubeName)
+        return NCubeManager.getRevisionHistory(appId, cubeName, ignoreVersion)
     }
 
     List<String> getAppNames(String tenant)
@@ -75,9 +73,9 @@ class NCubeService
         return NCubeManager.getVersions(tenant, app)
     }
 
-    void createBranch(ApplicationID appId)
+    void copyBranch(ApplicationID srcAppId, ApplicationID targetAppId, boolean copyWithHistory = false)
     {
-        NCubeManager.createBranch(appId)
+        NCubeManager.copyBranch(srcAppId, targetAppId, copyWithHistory)
     }
 
     Set<String> getBranches(ApplicationID appId)
@@ -85,29 +83,39 @@ class NCubeService
         return NCubeManager.getBranches(appId)
     }
 
-    List<NCubeInfoDto> getBranchChanges(ApplicationID appId)
+    int getBranchCount(ApplicationID appId)
     {
-        return NCubeManager.getBranchChangesFromDatabase(appId)
+        return NCubeManager.getBranchCount(appId)
     }
 
-    List<NCubeInfoDto> commitBranch(ApplicationID appId, Object[] infoDtos)
+    List<NCubeInfoDto> getBranchChangesForHead(ApplicationID appId)
     {
-        return NCubeManager.commitBranch(appId, infoDtos)
+        return VersionControl.getBranchChangesForHead(appId)
+    }
+
+    List<NCubeInfoDto> getHeadChangesForBranch(ApplicationID appId)
+    {
+        return VersionControl.getHeadChangesForBranch(appId)
+    }
+
+    List<NCubeInfoDto> getBranchChangesForMyBranch(ApplicationID appId, String branch)
+    {
+        return VersionControl.getBranchChangesForMyBranch(appId, branch)
+    }
+
+    Map<String, Object> commitBranch(ApplicationID appId, Object[] infoDtos)
+    {
+        return VersionControl.commitBranch(appId, infoDtos)
     }
 
     int rollbackCubes(ApplicationID appId, Object[] cubeNames)
     {
-        NCubeManager.rollbackCubes(appId, cubeNames)
+        VersionControl.rollbackCubes(appId, cubeNames)
     }
 
-    Map<String, Object> updateBranch(ApplicationID appId)
+    Map<String, Object> updateBranch(ApplicationID appId, Object[] cubeDtos)
     {
-        return NCubeManager.updateBranch(appId)
-    }
-
-    Map<String, Object> updateBranchCube(ApplicationID appId, String cubeName, String sourceBranch)
-    {
-        return NCubeManager.updateBranchCube(appId, cubeName, sourceBranch)
+        return VersionControl.updateBranch(appId, cubeDtos)
     }
 
     void deleteBranch(ApplicationID appId)
@@ -115,29 +123,31 @@ class NCubeService
         NCubeManager.deleteBranch(appId);
     }
 
-    int acceptTheirs(ApplicationID appId, Object[] cubeNames, Object[] branchSha1)
+    NCube mergeDeltas(ApplicationID appId, String cubeName, List<Delta> deltas)
     {
-        NCubeManager.mergeAcceptTheirs(appId, cubeNames, branchSha1)
+        NCubeManager.mergeDeltas(appId, cubeName, deltas)
+    }
+
+    int acceptTheirs(ApplicationID appId, Object[] cubeNames, String sourceBranch)
+    {
+        VersionControl.mergeAcceptTheirs(appId, cubeNames, sourceBranch)
     }
 
     int acceptMine(ApplicationID appId, Object[] cubeNames)
     {
-        NCubeManager.mergeAcceptMine(appId, cubeNames)
+        VersionControl.mergeAcceptMine(appId, cubeNames)
     }
 
     void createCube(ApplicationID appId, NCube ncube)
     {
-        List<NCubeInfoDto> list = NCubeManager.search(appId, ncube.name, null, [(NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY):true])
-        if (!list.isEmpty())
+        Map options = [(SEARCH_ACTIVE_RECORDS_ONLY):true, (SEARCH_EXACT_MATCH_NAME):true]
+        List<NCubeInfoDto> list = NCubeManager.search(appId, ncube.name, null, options)
+        if (!list.empty)
         {
             throw new IllegalArgumentException(ncube.name + ' exists.')
         }
-        list = NCubeManager.search(appId, ncube.name, null, [(NCubeManager.SEARCH_DELETED_RECORDS_ONLY):true])
-        if (!list.isEmpty())
-        {
-            throw new IllegalArgumentException(ncube.name + ' was previously deleted. Use restore instead.')
-        }
-        NCubeManager.updateCube(appId, ncube)
+
+        NCubeManager.updateCube(appId, ncube, true)
     }
 
     boolean deleteCubes(ApplicationID appId, Object[] cubeNames)
@@ -174,7 +184,7 @@ class NCubeService
         }
 
         long maxId = -1
-        Iterator<Axis> i = ncube.getAxes().iterator()
+        Iterator<Axis> i = ncube.axes.iterator()
         while (i.hasNext())
         {
             Axis axis = i.next()
@@ -183,9 +193,9 @@ class NCubeService
                 maxId = axis.id
             }
         }
-        Axis axis = new Axis(axisName, AxisType.valueOf(type), AxisValueType.valueOf(valueType), false, Axis.DISPLAY, maxId + 1)
+        Axis axis = new Axis(axisName, AxisType.valueOf(type), AxisValueType.valueOf(valueType), true, Axis.DISPLAY, maxId + 1)
         ncube.addAxis(axis)
-        NCubeManager.updateCube(appId, ncube)
+        NCubeManager.updateCube(appId, ncube, false)
     }
 
     void addAxis(ApplicationID appId, String cubeName, String axisName, ApplicationID refAppId, String refCubeName, String refAxisName, ApplicationID transformAppId, String transformCubeName, String transformMethodName)
@@ -202,7 +212,7 @@ class NCubeService
         }
 
         long maxId = -1
-        Iterator<Axis> i = nCube.getAxes().iterator()
+        Iterator<Axis> i = nCube.axes.iterator()
         while (i.hasNext())
         {
             Axis axis = i.next()
@@ -228,9 +238,9 @@ class NCubeService
         args[ReferenceAxisLoader.TRANSFORM_METHOD_NAME] = transformMethodName
         ReferenceAxisLoader refAxisLoader = new ReferenceAxisLoader(cubeName, axisName, args)
 
-        Axis axis = new Axis(axisName, maxId + 1, false, refAxisLoader)
+        Axis axis = new Axis(axisName, maxId + 1, true, refAxisLoader)
         nCube.addAxis(axis)
-        NCubeManager.updateCube(appId, nCube)
+        NCubeManager.updateCube(appId, nCube, false)
     }
 
     /**
@@ -244,13 +254,13 @@ class NCubeService
             throw new IllegalArgumentException("Could not delete axis '" + axisName + "', NCube '" + name + "' not found for app: " + appId)
         }
 
-        if (ncube.getNumDimensions() == 1)
+        if (ncube.numDimensions == 1)
         {
             throw new IllegalArgumentException("Could not delete axis '" + axisName + "' - at least one axis must exist on n-cube.")
         }
 
         ncube.deleteAxis(axisName)
-        NCubeManager.updateCube(appId, ncube)
+        NCubeManager.updateCube(appId, ncube, false)
     }
 
     /**
@@ -287,15 +297,15 @@ class NCubeService
         // update preferred column order
         if (axis.type == AxisType.RULE)
         {
-            axis.setFireAll(fireAll)
+            axis.fireAll = fireAll
         }
         else
         {
-            axis.setColumnOrder(isSorted ? Axis.SORTED : Axis.DISPLAY)
+            axis.columnOrder = isSorted ? Axis.SORTED : Axis.DISPLAY
         }
 
         ncube.clearSha1();
-        NCubeManager.updateCube(appId, ncube)
+        NCubeManager.updateCube(appId, ncube, false)
     }
 
     /**
@@ -311,7 +321,7 @@ class NCubeService
 
         // Update default column setting (if changed)
         ncube.breakAxisReference(axisName);
-        NCubeManager.updateCube(appId, ncube)
+        NCubeManager.updateCube(appId, ncube, false)
     }
 
     /**
@@ -334,7 +344,7 @@ class NCubeService
         {
             id = Long.parseLong(colId)
         }
-        catch (NumberFormatException e)
+        catch (NumberFormatException ignore)
         {
             throw new IllegalArgumentException("Column ID passed in (" + colId + ") is not a number, attempting to update column on NCube '" + cubeName + "'")
         }
@@ -345,8 +355,8 @@ class NCubeService
             throw new IllegalArgumentException("Column ID passed in (" + colId + ") does not match any axis on NCube '" + cubeName + "'")
         }
 
-        ncube.updateColumn(id, axis.convertStringToColumnValue(value))
-        NCubeManager.updateCube(appId, ncube)
+        ncube.updateColumn(id, value)
+        NCubeManager.updateCube(appId, ncube, false)
     }
 
     /**
@@ -355,8 +365,8 @@ class NCubeService
      */
     void updateNCube(NCube ncube)
     {
-        ApplicationID appId = ncube.getApplicationID()
-        NCubeManager.updateCube(appId, ncube)
+        ApplicationID appId = ncube.applicationID
+        NCubeManager.updateCube(appId, ncube, false)
     }
 
     boolean renameCube(ApplicationID appId, String oldName, String newName)
@@ -396,7 +406,7 @@ class NCubeService
                 }
             }
 
-            NCubeManager.updateCube(appId, ncube)
+            NCubeManager.updateCube(appId, ncube, true)
         }
     }
 
@@ -463,6 +473,11 @@ class NCubeService
         NCubeManager.clearCache(appId)
     }
 
+    boolean isAdmin(ApplicationID appId)
+    {
+        NCubeManager.isAdmin(appId)
+    }
+
     List<AxisRef> getReferenceAxes(ApplicationID appId)
     {
         return NCubeManager.getReferenceAxes(appId)
@@ -473,14 +488,66 @@ class NCubeService
         NCubeManager.updateReferenceAxes(axisRefs);
     }
 
-    boolean assertPermissions(ApplicationID appId, String resource, ACTION action)
+    boolean assertPermissions(ApplicationID appId, String resource, Action action)
     {
-        NCubeManager.assertPermissions(appId, resource, action ?: ACTION.READ)
+        NCubeManager.assertPermissions(appId, resource, action ?: Action.READ)
     }
 
-    boolean checkPermissions(ApplicationID appId, String resource, ACTION action)
+    boolean checkPermissions(ApplicationID appId, String resource, Action action)
     {
         NCubeManager.checkPermissions(appId, resource, action)
+    }
+
+    String getAppLockedBy(ApplicationID appId)
+    {
+        NCubeManager.getAppLockedBy(appId)
+    }
+
+    void lockApp(ApplicationID appId)
+    {
+        NCubeManager.lockApp(appId)
+    }
+
+    void unlockApp(ApplicationID appId)
+    {
+        NCubeManager.unlockApp(appId)
+    }
+
+    int moveBranch(ApplicationID appId, String newSnapVer)
+    {
+        NCubeManager.moveBranch(appId, newSnapVer)
+    }
+
+    int releaseVersion(ApplicationID appId, String newSnapVer)
+    {
+        NCubeManager.releaseVersion(appId, newSnapVer)
+    }
+
+    boolean isCubeUpToDate(ApplicationID appId, String cubeName)
+    {
+        Map options = [:]
+        options[(SEARCH_ACTIVE_RECORDS_ONLY)] = true
+        options[(SEARCH_EXACT_MATCH_NAME)] = true
+
+        List<NCubeInfoDto> list = NCubeManager.search(appId, cubeName, null, options)
+        if (list.size() != 1)
+        {
+            return false
+        }
+
+        NCubeInfoDto branchDto = list.first()     // only 1 because we used exact match
+        list = NCubeManager.search(appId.asHead(), cubeName, null, options)
+        if (list.size() == 0)
+        {   // New n-cube - up-todate because it does not yet exist in HEAD - the branch n-cube is the Creator.
+            return true
+        }
+        else if (list.size() != 1)
+        {   // Should never happen
+            return false
+        }
+
+        NCubeInfoDto headDto = list.first()     // only 1 because we used exact match
+        return StringUtilities.equalsIgnoreCase(branchDto.headSha1, headDto.sha1)
     }
 
     // =========================================== Helper methods ======================================================
@@ -506,7 +573,7 @@ class NCubeService
                     String json1 = JsonWriter.objectToJson(ncube)
                     NCube nCube = NCube.fromSimpleJson(json1)
                     cubeList.add(nCube)
-                    lastSuccessful = nCube.getName()
+                    lastSuccessful = nCube.name
                 }
             }
 
@@ -519,33 +586,8 @@ class NCubeService
         }
     }
 
-    Object getUpToDateStatus(ApplicationID appId, String cubeName)
+    void updateAxisMetaProperties(ApplicationID appId, String cubeName, String axisName, Map<String, Object> newMetaProperties)
     {
-        return true
-//        if (appId.isHead())
-//        {   // HEAD cube can never be out-of-date by definition.
-//            return true
-//        }
-//
-//        Map options = [(NCubeManager.SEARCH_EXACT_MATCH_NAME): true,
-//                       (NCubeManager.SEARCH_ACTIVE_RECORDS_ONLY): true]
-//
-//        String realHeadSha1
-//        List<NCubeInfoDto> list = NCubeManager.search(appId.asHead(), cubeName, null, options)
-//        if (list.size() != 1)
-//        {   // New cube in your branch but not yet in HEAD branch
-//            return true
-//        }
-//
-//        NCubeInfoDto dto = list[0]
-//        realHeadSha1 = dto.sha1
-//
-//        list = NCubeManager.search(appId, cubeName, null, options)
-//        if (list.size() != 1)
-//        {   // Ignore when you can't find the cube that was requested
-//            return true
-//        }
-//        dto = list[0]
-//        return StringUtilities.equalsIgnoreCase(realHeadSha1, dto.headSha1)
+        NCubeManager.updateAxisMetaProperties(appId, cubeName, axisName, newMetaProperties)
     }
 }

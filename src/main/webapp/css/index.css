@@ -4,7 +4,7 @@ body {
 }
 
 #ncube-tabs {
-    background-color: #fff;
+    background-color: #ececec;
     border: 1px solid #ddd;
     border-radius: 4px 4px 0 0;
     -webkit-box-shadow: none;
@@ -147,16 +147,9 @@ body {
     background-color:rgba(61, 139, 202, 0.45);
 }
 
-#cube-search {
-    border-radius: 0;
-}
-
-#cube-search-content {
-    border-radius: 0;
-}
-
-#cube-search-reset {
-    border-radius: 0;
+#cube-search-options {
+    display: none;
+    height: 90px;
 }
 
 #ncubeTabContent {
@@ -200,8 +193,12 @@ div#west div.panel-body {
     overflow: auto;
 }
 
-#ncube-list-div div.panel-body {
-    height:calc(100% - 230px);
+#south .nav-list {
+    padding: 5px;
+}
+
+#ncube-list-div input, #ncube-list-div button, #ncube-list-div .panel-heading {
+    border-radius: 0;
 }
 
 div#east div.panel-body {
@@ -218,15 +215,6 @@ div#restoreCubeModal ul.list-group
 span.selected-count {
     margin: 5px 0 0 5px;
     color: #999;
-}
-
-.innerL {
-    position: absolute;
-}
-.innerR {
-    position: absolute;
-    opacity: 0.70;
-    mix-blend-mode: difference;
 }
 
 .hr-small
@@ -278,7 +266,6 @@ span.selected-count {
 .click-space {
     display: inline-block;
     width: 22px;
-    margin-right: 1px;
     position: relative;
     top: -1px;
 }
@@ -303,12 +290,25 @@ span.selected-count {
     margin-bottom: 0;
 }
 
+.change-type-header-count {
+    color: #999;
+    text-decoration: none;
+}
+
+.cube-fastforward {
+    color: darkgrey;
+}
+
+.cube-conflict {
+    color: red;
+}
+
 .cube-modified {
-    color: blue !important;
+    color: cornflowerblue;
 }
 
 .cube-added {
-    color: green !important;
+    color: green;
 }
 
 .cube-deleted {
@@ -316,7 +316,7 @@ span.selected-count {
 }
 
 .cube-restored {
-    color: darkgoldenrod !important;
+    color: goldenrod;
 }
 
 .top-buffer { margin-top:20px; }
@@ -333,10 +333,18 @@ span.selected-count {
     padding: 0 2px;
 }
 
-.navbar-nav>li>.dropdown-menu {
-    max-height: 250px;
+.open>.dropdown-menu:not(.has-submenu):not(.tab-menu) {
+    max-height: 450px;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+#releaseCubesProgressBar {
+    width: 0;
+    -webkit-transition: none;
+    -moz-transition: none;
+    -o-transition: none;
+    transition: none;
 }
 
 #fadeMe1 {
@@ -387,7 +395,10 @@ span.selected-count {
     /* 100% = dialog height, 120px = header + footer */
     width:100%;
     height: calc(100% - 120px);
-    overflow-y: auto;
+    overflow-y: scroll;
+}
+#diffOutputModal table.diff {
+    margin: 5px 35px;
 }
 
 .navbar-custom {
@@ -400,6 +411,7 @@ span.selected-count {
 }
 .navbar-custom .navbar-brand {
     color: #ffffff;
+    height: 40px;
     line-height: 40px;
     font-size: 16px;
     padding: 0 12px;
@@ -570,9 +582,29 @@ span.selected-count {
     text-overflow: ellipsis;
 }
 
+.batchUpdateAxisReferencesNewAxisSelect td {
+    padding-bottom: 25px;
+}
+
 #batchUpdateAxisReferencesTable select {
     max-width: 225px;
     min-width: 100px;
+}
+
+#globalComparatorTable {
+    margin: 0 auto;
+}
+
+#globalComparatorTable td {
+    padding: 0 25px 20px 0;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#globalComparatorTable select {
+    max-width: 225px;
+    min-width: 225px;
 }
 
 .modal-xl {
@@ -589,10 +621,50 @@ span.selected-count {
     width: 100%;
 }
 
+#btnClearBranchQuickSelect {
+    width: 25% !important;
+    margin-right: 5px;
+}
+
 #appIdMenu li a.dropdown-toggle {
     padding: 5px 0;
 }
 
 #appIdMenu .open a.dropdown-toggle, #appIdMenu li a.dropdown-toggle:hover, #appIdMenu li a.dropdown-toggle:focus {
     background-color: #777777;
+}
+
+.panel-frame {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.backdrop-overlay {
+    opacity: .5;
+    position: fixed;
+    z-index: 1040;
+    background-color: #000;
+}
+
+a.section-all, a.section-none,
+a.section-all:focus, a.section-none:focus,
+a.section-all:hover, a.section-none:hover {
+    text-decoration: none;
+    color: #999;
+    margin-left: 10px;
+}
+
+.compare-label {
+    width:65px;
+}
+.html-label {
+    width: 45px;
+}
+.json-label {
+    width: 46px;
+}
+
+.space-grey {
+    color: #a5adb0;
 }

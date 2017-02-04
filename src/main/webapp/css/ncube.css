@@ -51,13 +51,21 @@ div#editColumnsModal div.panel-group
     margin-bottom: 0;
 }
 
-.nc-anc {
+.nc-anc-cube, .nc-anc-url {
     cursor: pointer;
 }
 
 #hot-container {
     top: 20px;
     position: fixed;
+}
+
+ul#setUpHideList {
+    list-style-type: none;
+}
+
+ul#setUpHideList li {
+    margin-bottom: 10px;
 }
 
 /* begin coord bar and HOT */
@@ -80,7 +88,7 @@ div#editColumnsModal div.panel-group
 
 #coordinate-bar-move-left {
     position: absolute;
-    left: 0px;
+    left: 0;
     display: none;
 }
 
@@ -90,7 +98,7 @@ div#editColumnsModal div.panel-group
 }
 
 #search-container {
-    width: 300px;
+    width: 320px;
     position: absolute;
     max-height: 20px;
     overflow: hidden;
@@ -171,6 +179,14 @@ div#editColumnsModal div.panel-group
 .handsontable .tableDefault, .handsontable .tableDefault a {
     color: #CCC;
 }
+.handsontable .columnDefault, .handsontable .columnDefault a {
+    color: #B4CDCD;
+}
+
+.handsontable .null-cell, .handsontable .null-cell a {
+    font-style: oblique;
+    color: darkgray;
+}
 
 .dropdown-menu {
     position: fixed;
@@ -207,16 +223,12 @@ div#editColumnsModal div.panel-group
     color:#e8e8e8;
     border-radius:3px;
     font-family: "arial","helvetica", sans-serif;
-    padding-left:5px;
-    padding-right:5px;
-    padding-top:1px;
-    padding-bottom:1px
+    padding: 1px 5px;
 }
 
 .hr-rule {
-    margin:1px;
-    border-style:dashed;
-    border-color:darkgray;
+    margin: 1px;
+    border-top: 1px dashed darkgray;
 }
 
 .handsontable td.code {
@@ -245,4 +257,26 @@ div#editColumnsModal div.panel-group
 .axisTableCellRight {
     display: table-cell;
     width: 100%
+}
+
+#moveAxesList { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+#moveAxesList li { margin: 0 5px 5px 5px; padding: 5px; font-size: 1.2em; }
+html>body #moveAxesList li { height: 1.5em; line-height: 1.2em; }
+#moveAxesList li:last-child { color: green; }
+.ui-state-default {
+    border: 1px solid #d3d3d3;
+    background: #e6e6e6 url("../images/ui-bg_glass_75_e6e6e6_1x400.png") 50% 50% repeat-x;
+    font-weight: normal;
+    color: #555555;
+}
+.ui-state-highlight {
+    border: 1px solid #fcefa1;
+    background: #fbf9ee url("../images/ui-bg_glass_55_fbf9ee_1x400.png") 50% 50% repeat-x;
+    color: #363636;
+}
+
+#editCellUp {
+    position: fixed;
+    right: 511px;
+    bottom: 54px;
 }

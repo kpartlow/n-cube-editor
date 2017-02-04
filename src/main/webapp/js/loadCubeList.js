@@ -12,59 +12,52 @@
  * @author John DeRegnaucourt
  */
 
-onmessage = function(e)
-{
+onmessage = function(e) {
+    var searchResults, cubes, results, i ,len, infoDto, array, optsString;
     var args = e.data;
-    var filter = args[0];
-    var content = args[1];
-    var appId = args[2];
-    var hasFilter = filter && filter.length > 0;
-    var appIdString = JSON.stringify(appId);
+    var nameFilter = args[0];
+    var searchOptions = args[1];
+    var appIdString = JSON.stringify(args[2]);
+    var regex = args[3];
+    var hasFilter = nameFilter && nameFilter.length;
     var req = new XMLHttpRequest();
+    var opts = {
+        activeRecordsOnly: true,
+        includeTags: searchOptions.tagsInclude,
+        excludeTags: searchOptions.tagsExclude
+    };
+    optsString = JSON.stringify(opts);
 
     req.open("POST", getSearchUrl(), false);
-    req.send('[' + appIdString + ',"' + filter + '","' + content + '",true]');
+    req.send(encodeURIComponent('[' + appIdString + ',"' + nameFilter + '","' + searchOptions.contains + '",' + optsString + ']'));
 
-    if (req.response)
-    {
-        var searchResults = JSON.parse(req.response);
-        if (searchResults.status === true)
-        {
-            var cubes = {};
-            var results = searchResults.data;
-            var len = results.length;
-            for (var i = 0; i < len; ++i)
-            {
-                var infoDto = results[i];
+    if (req.response) {
+        searchResults = JSON.parse(req.response);
+        if (searchResults.status) {
+            cubes = {};
+            results = searchResults.data;
+            for (i = 0, len = results.length; i < len; ++i) {
+                infoDto = results[i];
                 cubes[infoDto.name.toLowerCase()] = infoDto;
-                if (hasFilter)
-                {
-                    var idx = infoDto.name.toLowerCase().indexOf(filter.toLowerCase());
-                    if (idx >= 0)
-                    {   // record starting location of cube name filter, so UI can display highlighted matching text
-                        infoDto.pos = idx;
+                if (hasFilter && regex) {
+                    array = regex.exec(infoDto.name);
+                    if (array) {
+                        infoDto.pos = array.index;
+                        infoDto.endPos = array.index + array[0].length;
                     }
                 }
             }
-
             postMessage(cubes);
         }
     }
 
-    function getSearchUrl()
-    {
+    function getSearchUrl() {
         var regexp = /\/([^\/]+)\//g;
         var match = regexp.exec(location.pathname);
-        var url;
+        var url = location.protocol + '//' + location.hostname + ":" + location.port;
 
-        if (match == null || match.length != 2)
-        {
-            url = location.protocol + '//' + location.hostname + ":" + location.port;
-        }
-        else
-        {
-            var ctx = match[1];
-            url = location.protocol + '//' + location.hostname + ":" + location.port + "/" + ctx;
+        if (match !== null && match.length === 2) {
+            url += "/" + match[1];
         }
         url += '/cmd/ncubeController/search';
         return url;

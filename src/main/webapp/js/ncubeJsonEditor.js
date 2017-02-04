@@ -5,25 +5,19 @@
  * @author John DeRegnaucourt
  */
 
-var NCubeJsonEditor = (function ($)
-{
+var NCubeJsonEditor = (function ($) {
     var nce = null;
     var _editor = null;
-    var _vScroll = null;
-    var _hScroll = null;
 
-    var init = function(info)
-    {
+    function init(info) {
+        var container, options;
         // Create JSON Editor (http://jsoneditoronline.org/downloads/)
-        if (!nce)
-        {
+        if (!nce) {
             nce = info;
-            var container = document.getElementById('jsoneditor');
-            var options =
-            {
+            container = document.getElementById('jsoneditor');
+            options = {
                 mode: 'code',
-                onChange: function ()
-                {
+                onChange: function () {
                     updateDirtyStatus();
                 }
             };
@@ -38,23 +32,21 @@ var NCubeJsonEditor = (function ($)
             }
         }
         scrollToSavedPosition();
-    };
+    }
 
-    var scrollToSavedPosition = function() {
+    function scrollToSavedPosition() {
         var pos = nce.getViewPosition() || 0;
         _editor.aceEditor.session.setScrollTop(pos);
-    };
+    }
 
-    var saveViewPosition = function (scrollInfo) {
+    function saveViewPosition(scrollInfo) {
         nce.saveViewPosition(scrollInfo);
-    };
+    }
 
-    var addSaveButton = function()
-    {
+    function addSaveButton() {
         var editCtrl = $('#jsoneditor');
         var menu = editCtrl.find('.jsoneditor-menu');
-        var save = $("<button/>").attr(
-        {
+        var save = $("<button/>").attr({
             id: 'saveButton',
             style: 'background-image:none;width:64px',
             title: 'Save changes'
@@ -63,89 +55,84 @@ var NCubeJsonEditor = (function ($)
         menu.find('a').remove();
 
         // Attach listener
-        $('#saveButton').click(function ()
-        {
-            nce.clearError();
-            if (nce.isHeadSelected())
-            {
+        $('#saveButton').click(function () {
+            var result;
+            nce.clearNote();
+            if (nce.isHeadSelected()) {
                 nce.selectBranch();
                 return;
             }
 
             clearDirtyStatus();
             updateDirtyStatus();
-            var result = nce.call("ncubeController.saveJson", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _editor.getText()]);
-            if (result.status !== true)
-            {
+            result = nce.call(CONTROLLER + CONTROLLER_METHOD.SAVE_JSON, [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), _editor.getText()]);
+            if (result.status) {
+                nce.updateCubeLeftHandChangedStatus(cubeName, CHANGETYPE.UPDATED);
+            } else {
                 nce.showNote('Error saving JSON n-cube:<hr class="hr-small"/>' + result.data);
             }
         });
-    };
+    }
 
-    var isDirty = function()
-    {
-        if (_editor.aceEditor)
-        {
+    function isDirty() {
+        if (_editor.aceEditor) {
             return !_editor.aceEditor.getSession().getUndoManager().isClean();
         }
         return false;
-    };
+    }
 
-    var clearDirtyStatus = function()
-    {
-        if (_editor.aceEditor)
-        {
-            var undoMgr = _editor.aceEditor.getSession().getUndoManager();
+    function clearDirtyStatus() {
+        var undoMgr;
+        if (_editor.aceEditor) {
+            undoMgr = _editor.aceEditor.getSession().getUndoManager();
             undoMgr.reset();
             undoMgr.markClean();
         }
-    };
+    }
 
-    var updateDirtyStatus = function()
-    {
+    function updateDirtyStatus() {
+        var dirty, text;
         var saveButton = $('#saveButton');
-        if (saveButton.length == 0)
-        {
+        if (!saveButton.length) {
             return;
         }
-        var dirty = isDirty();
+        dirty = isDirty();
         saveButton.prop('disabled', !dirty);
-        var text = 'Save';
-        if (dirty)
-        {
-            text += '*';
-        }
+        text = dirty ? 'Save*' : 'Save';
         saveButton.html(text);
-    };
+    }
 
-    var load = function()
-    {
-        var result = nce.call("ncubeController.getJson", [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), {mode:"json"}], {noResolveRefs:true});
-        if (result.status === true)
-        {
+    function load() {
+        var result = nce.call(CONTROLLER + CONTROLLER_METHOD.GET_JSON, [nce.getSelectedTabAppId(), nce.getSelectedCubeName(), {mode:JSON_MODE.JSON}], {noResolveRefs:true});
+        if (result.status) {
             try {
                 _editor.setText(result.data);
                 _editor.format();
-            }
-            catch (e)
-            {
+            } catch (e) {
                 nce.showNote('JSON content too large for the JSON Text Editor.  Capture the JSON from the "Revision History" option.');
                 console.log(e);
             }
-        }
-        else
-        {
+        } else {
             _editor.setText("Unable to load '" + nce.getSelectedCubeName() + "'. " + result.data);
         }
 
         clearDirtyStatus();
         updateDirtyStatus();
-    };
+    }
 
-    var handleCubeSelected = function()
-    {
+    function handleCubeSelected() {
         load();
-    };
+    }
+
+    // Let parent (main frame) know that the child window has loaded.
+    // The loading of all of the Javascript (deeply) is continuous on the main thread.
+    // Therefore, the setTimeout(, 1) ensures that the main window (parent frame)
+    // is called after all Javascript has been loaded.
+    if (window.parent.frameLoaded) {
+        setTimeout(function () {
+            window.parent.frameLoaded(document);
+        }, 1);
+    }
 
     return {
         init: init,
@@ -155,13 +142,13 @@ var NCubeJsonEditor = (function ($)
 
 })(jQuery);
 
-var tabActivated = function tabActivated(info)
-{
+function tabActivated(info) {
     NCubeJsonEditor.init(info);
     NCubeJsonEditor.load();
-};
+}
 
-var cubeSelected = function cubeSelected()
-{
+function cubeSelected() {
     NCubeJsonEditor.handleCubeSelected();
-};
+}
+
+var onNoteEvent = function onNoteEvent(e, element){};

@@ -17,11 +17,15 @@ div.inline-block {
 }
 
 #scope {
-    width: 90%;
+    width: 100%;
 }
 
 div.col-width-large {
-    width: 580px
+    width: 700px
+}
+
+div.col-width-xs {
+    width: 25px
 }
 
 .nc-anc {
@@ -56,3 +60,112 @@ div.col-width-large {
     -ms-user-select: initial;
     user-select: initial;
 }
+
+.wordwrap{
+    white-space: pre-wrap;
+    white-space: -moz-pre-wrap;
+    white-space: -pre-wrap;
+    white-space: -o-pre-wrap;
+    word-wrap: break-word;
+}
+
+ul, li{
+    list-style-position: inside;
+    margin: 0;
+    padding: 0;
+}
+
+.cellValues
+{
+    list-style-position: inside;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.cellValues li.executedCell
+{
+    background-image: url('../img/greenokcircle.png');
+    background-repeat: no-repeat;
+    background-position: 0 50%;
+    padding: 3px 0 3px 20px;
+    margin: .4em 0;
+}
+
+.cellValues li.Exception
+{
+    background-image: url('../img/redexclamationmarkcircle.png');
+     background-repeat: no-repeat;
+    background-position: 0 50%;
+    padding: 3px 0 3px 20px;
+    margin: .4em 0;
+}
+
+.cellValues li.InvalidCoordinateException, li.CoordinateNotFoundException
+{
+    background-image: url('../img/bluecirclequestionmark.png');
+    background-repeat: no-repeat;
+    background-position: 0 50%;
+    padding: 3px 0 3px 20px;
+    margin: .4em 0;
+}
+
+.execute
+{
+    background-image: url('../img/greenruntriangle.png');
+    cursor:pointer;
+    background-repeat: no-repeat;
+    background-position: 0 50%;
+    padding: 3px 0 3px 20px;
+    margin: .4em 0;
+}
+
+h3{
+    margin-top: 0;
+}
+
+.title1{
+    color: darkgray;
+}
+
+#groups-div {
+    min-height: 47px;
+}
+
+#networkOptionsButton
+{
+    background-image: url('../img/einstein.png');
+    cursor:pointer;
+    width: 25px;
+    height: 25px;
+    border: none;
+    outline: none;
+    box-shadow: inset 0 6px 14px rgba(0,0,0,.70);
+}
+
+#networkOptionsButton.active {
+    box-shadow: none;
+    border: none;
+}
+
+#networkOptionsSection
+{
+    display:none;
+    visibility:inherit;
+    background-color:#D1C5B7;
+}
+
+.borders div{
+}
+
+.highlighted{
+    background-color:#FFFF00;
+}
+
+.readOnly{
+    background-color:rgb(235, 235, 228);
+}
+
+
+
+

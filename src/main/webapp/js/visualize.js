@@ -20,334 +20,828 @@
 
 var Visualizer = (function ($) {
 
+    var _tempNote = null;
     var _network = null;
+    var _nodeDataSet = null;
+    var _edgeDataSet = null;
     var _nce = null;
+    var _visInfo = null;
     var _loadedCubeName = null;
-    var _nodesAllLevels = null;
-    var _edgesAllLevels = null;
-    var _nodesAtLevel = null;
-    var _edgesAtLevel = null;
-    var _nodesAboveLevel = null;
-    var _edgesAboveLevel = null;
-    var _nodes = null;
-    var _edges = null;
-    var _networkData = null;
+    var _loadedAppId = null;
+    var _loadedVisInfoType = null;
+    var _okToLoadFromServer = true;
+    var _nodes = [];
+    var _edges = [];
     var _scope = null;
+    var _keepCurrentScope = false;
     var _selectedGroups = null;
     var _availableGroupsAtLevel = null;
     var _availableGroupsAllLevels = null;
-    var _allGroups = null;
-    var _maxLevel = null;
-    var _nodeCount = null;
-    var _groupSuffix = null;
-    var _startCube = null;
-    var _hierarchical = false;
+    var _selectedCubeName = null;
     var _selectedLevel = null;
+    var _countNodesAtLevel = null;
     var _visualizerInfo = null;
     var _visualizerNetwork = null;
     var _visualizerContent = null;
-    var _visualizerHtmlError = null;
     var TWO_LINE_BREAKS = '<BR><BR>';
-    var _nodeTitle = null;
-    var _nodeDesc = null;
+    var _nodeDetailsTitle1 = null;
+    var _nodeDetailsTitle2 = null;
+    var _nodeCubeLink = null;
+    var _nodeVisualizer = null;
+    var _nodeCellValues = null;
+    var _nodeAddTypes = null;
+    var _nodeDetails = null;
     var _layout = null;
-    var _scopeBuilderTable = null;
-    var _scopeBuilderModal = null;
-    var _savedScope = null;
     var _scopeInput = null;
+    var _findNode = null;
+    var STATUS_SUCCESS = 'success';
+    var STATUS_MISSING_START_SCOPE = 'missingStartScope';
+    var UNSPECIFIED = 'UNSPECIFIED';
+    var _noteIdList = [];
+    var COMPLETE = 'complete';
+    var ITERATING = 'iterating...';
+    var DOT_DOT_DOT = '...';
+    var NA = 'n/a';
+    var NO_GROUPS_SELECTED = 'NO GROUPS SELECTED';
 
-    var init = function (info) {
+    //Network layout parameters
+    var _hierarchical = false;
+
+    //Network physics
+    var _networkOptionsButton = null;
+    var _networkOptionsSection = null;
+    var _basicStabilizationAfterNetworkUpdate = false;
+    var _basicStabilizationAfterInitNetwork = false;
+    var _fullStabilizationAfterBasic = false;
+    var _networkOptionsVis = {};
+    var _networkOptionsBasicStabilization = null;
+    var _networkOptionsDefaults = null;
+    var _networkOptionsInput = null;
+    var _networkOptionsInputHold = null;
+    var _networkOverridesBasic = null;
+    var _networkOverridesFull = null;
+    var _networkOverridesTopNode = null;
+    var _dataLoadStart = null;
+    var _basicStabilizationStart = null;
+    var _stabilizationStart = null;
+
+    var EAST_MIN_SIZE = 50;
+    var EAST_MAX_SIZE = 1000;
+    var EAST_SIZE = 250;
+    var EAST_LENGTH_OPEN = 60;
+    
+    function init(info) {
         if (!_nce) {
             _nce = info;
 
             _layout = $('#visBody').layout({
                 name: 'visLayout'
                 ,	livePaneResizing:			true
-                ,   east__minSize:              50
-                ,   east__maxSize:              1000
-                ,   east__size:                 250
+                ,   east__minSize:              EAST_MIN_SIZE
+                ,   east__maxSize:              EAST_MAX_SIZE
+                ,   east__size:                 EAST_SIZE
                 ,   east__closable:             true
                 ,   east__resizeable:           true
                 ,   east__initClosed:           true
                 ,   east__slidable:             true
                 ,   center__triggerEventsOnLoad: true
                 ,   center__maskContents:       true
-                ,   togglerLength_open:         60
+                ,   togglerLength_open:         EAST_LENGTH_OPEN
                 ,   togglerLength_closed:       '100%'
                 ,	spacing_open:			    5  // ALL panes
                 ,	spacing_closed:			    5 // ALL panes
             });
 
             _visualizerContent = $('#visualizer-content');
-            _visualizerHtmlError = $('#visualizer-error');
             _visualizerInfo = $('#visualizer-info');
             _visualizerNetwork = $('#visualizer-network');
-            _nodeTitle = $('#nodeTitle');
-            _nodeDesc = $('#nodeDesc');
-            _scopeBuilderTable = $('#scopeBuilderTable');
-            _scopeBuilderModal = $('#scopeBuilderModal');
+            _nodeDetailsTitle1 = $('#nodeDetailsTitle1');
+            _nodeDetailsTitle2 = $('#nodeDetailsTitle2');
+            _nodeCubeLink = $('#nodeCubeLink');
+            _nodeCellValues = $('#nodeCellValues');
+            _nodeAddTypes = $('#nodeAddTypes');
+            _nodeVisualizer = $('#nodeVisualizer');
+            _nodeDetails = $('#nodeDetails');
             _scopeInput = $('#scope');
+            _findNode = $('#findNode');
+            _networkOptionsSection = $('#networkOptionsSection');
 
-            addScopeBuilderListeners();
+             $('#selectedLevel-list').on('change', function () {
+                _selectedLevel = Number($('#selectedLevel-list').val());
+                saveToLocalStorage(_selectedLevel, SELECTED_LEVEL);
+                reload();
+            });
 
-            $(window).resize(function() {
-                if (_network) {
+            $('#hierarchical').on('change', function () {
+                //Hierarchical mode is disabled due to what appears to be a bug in vis.js or because the
+                //visualizer.js code is missing something. Tis problem started when converting to use
+                //visjs DataSets for network data.
+                //The problem is that when visjs creates the network.body nodes from the network.body.data
+                //nodes, it doesn't set the level on the network.body nodes. This causes an exception
+                //if hierarchical mode is selected since that mode requires either all or no nodes to
+                //have a defined level. Attempted short-term fix in setLevelOnNetworkNodes() method, but it's not enough.
+                //TODO: Keep investigating, submit question and possibly a bug fix to visjs.
+                $('#hierarchical').prop('checked', false);
+                _nce.showNote('Hierarchical mode is currently not available');
+                //_hierarchical = this.checked;
+                //saveToLocalStorage(_hierarchical, HIERARCHICAL);
+                //updateNetworkOptions();
+            });
+
+            _scopeInput.on('change', function () {
+                _scope = buildScopeFromText(_scopeInput.val());
+                scopeChange();
+            });
+
+            _findNode.on('change', function () {
+                var nodeLabel, nodeLabelLowerCase, nodes, nodeId, params, note, k, kLen, node, linkText, sourceDescription;
+                nodeLabel = _findNode.val();
+                if (nodeLabel) {
+                    nodeLabelLowerCase = nodeLabel.toLowerCase();
+                    nodes = _nodeDataSet.get({
+                        filter: function (node) {
+                            return node.label && node.label.toLowerCase().indexOf(nodeLabelLowerCase) > -1;
+                        }
+                    });
+                    if (0 === nodes.length) {
+                        _nce.showNote(nodeLabel + ' not found');
+                    }
+                    else if (1 === nodes.length) {
+                        nodeId = nodes[0].id;
+                        params = {nodes: [nodeId]};
+                        _network.selectNodes([nodeId]);
+                        networkSelectNodeEvent(params);
+                    }
+                    else {
+                        note = 'Multiple nodes found: ';
+                        note += TWO_LINE_BREAKS + '<pre><ul>';
+                        for (k = 0, kLen = nodes.length; k < kLen; k++) {
+                            node = nodes[k];
+                            linkText = node.label;
+                            sourceDescription = node.sourceDescription;
+                            if (sourceDescription){
+                                linkText += ' via ' + sourceDescription;
+                            }
+                            note += '<li><a class="findNode" id="' + node.id +  '" href="#">'  + linkText + '</a></li>';
+                        }
+                        note += '</ul></pre>';
+                        _nce.showNote(note);
+                    }
+                }
+                _findNode.val('');
+            });
+
+            addSelectAllNoneGroupsListeners();
+            addNetworkOptionsListeners();
+
+            $(window).on('resize', function() {
+                 if (_network) {
                     _network.setSize('100%', getVisNetworkHeight());
                 }
             });
-
-            $('#selectedLevel-list').change(function () {
-                reload($('#selectedLevel-list').val());
-            });
-
-            $('#hierarchical').change(function () {
-                _hierarchical = this.checked;
-                draw();
-            });
-
-            _scopeInput.change(function () {
-                _scope = buildScopeFromText(this.value);
-                load(true);
-            });
         }
-    };
+    }
 
+    function onNoteEvent(e) {
+        var target = e.target;
+        if (e.type === 'change' && target.className.indexOf('missingScopeSelect') > -1) {
+            missingScopeSelect(target);
+        }
+        else if (e.type === 'change' && target.className.indexOf('missingScopeInput') > -1) {
+            missingScopeInput(target);
+        }
+        else if (e.type === 'click' && target.className.indexOf('findNode') > -1) {
+            findNode(target);
+        }
+    }
+
+    function missingScopeInput(target) {
+        var key = target.title;
+        if (key) {
+            _scope[key] = target.value;
+            scopeChange();
+        }
+    }
+
+    function missingScopeSelect(target) {
+        var id, scopeParts, key, value;
+        id = target.selectedOptions[0].title;
+        if (id) {
+            scopeParts = id.split(':');
+            key = scopeParts[0];
+            value = scopeParts[1].trim();
+            _scope[key] = value;
+            scopeChange();
+        }
+    }
+
+    function findNode(target) {
+        var id, params;
+        id = target.id;
+        params = {nodes: [id]};
+        _network.selectNodes([id]);
+        networkSelectNodeEvent(params);
+        _nce.clearNote();
+    }
+
+    function addNetworkOptionsListeners() {
+        $('#networkOptionsButton').click(function () {
+            var button = $('#networkOptionsButton');
+            button.toggleClass('active');
+            _networkOptionsButton = button.hasClass('active');
+            saveToLocalStorage(_networkOptionsButton, NETWORK_OPTIONS_DISPLAY);
+            _networkOptionsSection.toggle();
+            loadNetworkOptionsSectionView();
+        });
+
+        $('#networkOptionsChangeSection').change(function (e) {
+            var target, keys;
+            target = e.target;
+            keys = target.id.split('.');
+            setNetworkOption(target, _networkOptionsInput, keys);
+            networkChangeEvent();
+        });
+    }
+    
+    function addSelectAllNoneGroupsListeners() {
+        $('#selectAll').on('click', function (e) {
+            e.preventDefault();
+            $('#groups').find('button').addClass('active');
+            Array.prototype.push.apply(_selectedGroups, _availableGroupsAllLevels);
+            saveToLocalStorage(_selectedGroups, SELECTED_GROUPS);
+            reload();
+        });
+
+        $('#selectNone').on('click', function (e) {
+            e.preventDefault();
+            $('#groups').find('button').removeClass('active');
+            _selectedGroups = [];
+            saveToLocalStorage(NO_GROUPS_SELECTED, SELECTED_GROUPS);
+            reload();
+        });
+    }
+
+    function setNetworkOption(inputOption, options, keys) {
+        var key, value, errorMessage;
+        if (keys) {
+            key = keys[0];
+            value = options[key];
+            if (typeof value === OBJECT)
+            {
+                keys.splice(key, 1);
+                setNetworkOption(inputOption, value, keys)
+            }
+            else if (BOOLEAN === typeof value)
+            {
+                options[key] = inputOption.checked;
+            }
+            else if (NUMBER === typeof value)
+            {
+                options[key] = Number(inputOption.value);
+            }
+            else if (FUNCTION === typeof value)
+            {
+                //Not currently supporting updating of netork options that are functions (only one).
+            }
+            else
+            {
+                options[key] = inputOption.value;
+            }
+        }
+        else
+        {
+            errorMessage = 'Invalid state encountered while updating network options for parameter ' + inputOption.attr('id') + '.';
+            _nce.showNote(errorMessage);
+            throw new Error(errorMessage);
+        }
+    }
+
+    function initNetworkOptions(container) {
+        var emptyDataSet, emptyNetwork, copy;
+        _basicStabilizationAfterInitNetwork  = true;
+        _networkOptionsSection.hide();
+        _networkOverridesBasic.height = getVisNetworkHeight();
+        emptyDataSet = new vis.DataSet({});
+        emptyNetwork = new vis.Network(container, {nodes: emptyDataSet, edges: emptyDataSet}, {});
+
+        _networkOptionsVis.physics = emptyNetwork.physics.defaultOptions;
+        _networkOptionsVis.layout = emptyNetwork.layoutEngine.defaultOptions;
+        _networkOptionsVis.nodes = emptyNetwork.nodesHandler.defaultOptions;
+        _networkOptionsVis.edges = emptyNetwork.edgesHandler.defaultOptions;
+        _networkOptionsVis.interaction = emptyNetwork.interactionHandler.defaultOptions;
+        _networkOptionsVis.manipulation = emptyNetwork.manipulation.defaultOptions;
+        _networkOptionsVis.groups = emptyNetwork.groups.defaultOptions;
+
+        //TODO: Figure out why these keys throw "unknown" exception in vis when set on the network despite originating
+        //TODO: from vis. Removing keys for now.
+        delete _networkOptionsVis.physics.barnesHut['theta'];
+        delete _networkOptionsVis.physics.forceAtlas2Based['theta'];
+        delete _networkOptionsVis.physics.repulsion['avoidOverlap'];
+
+        copy = $.extend(true, {}, _networkOptionsVis);
+        _networkOptionsBasicStabilization = $.extend(true, copy, _networkOverridesBasic);
+        _networkOptionsInput = $.extend(true, {}, _networkOptionsBasicStabilization);
+        emptyNetwork.destroy();
+    }
+
+    function loadNetworkOptionsSectionView()
+    {
+        var button = $('#networkOptionsButton');
+        var section =  $('#networkOptionsChangeSection');
+        section.empty();
+        button.prop('checked', _networkOptionsButton);
+        if (_networkOptionsButton)
+        {
+            button.addClass('active');
+            _networkOptionsSection.show();
+            buildNetworkOptionsChangeSection( section, null, _networkOptionsInput, _networkOptionsDefaults, _networkOptionsVis);
+        }
+        else
+        {
+            button.removeClass('active');
+            _networkOptionsSection.hide();
+        }
+    }
+
+    function buildNetworkOptionsChangeSection(section, parentKey, networkOptions, networkOptionsDefaults, networkOptionsVis)
+    {
+        var rowBordersDiv, col1Div, col2Div, col3Div, col4Div, col5Div, col2Span, col2Input, col4Input, col5Input, fullKey,
+            defaultValue, value, keys, key, k, kLen, keyVis, valueVis, highlightedClass, readOnly, readOnlyClass, functionTitle;
+
+        keys = Object.keys(networkOptionsDefaults);
+        for (k = 0, kLen = keys.length; k < kLen; k++) {
+            key = keys[k];
+            defaultValue = networkOptionsDefaults[key];
+            value = networkOptions[key];
+            if (networkOptionsVis)
+            {
+                keyVis =  key in networkOptionsVis ? key : null;
+                valueVis = networkOptionsVis[key];
+            }
+            else
+            {
+                keyVis = null;
+                valueVis = null;
+            }
+
+            fullKey = null === parentKey ? key : parentKey + '.' + key;
+
+            if (typeof defaultValue === OBJECT)
+            {
+                buildNetworkOptionsChangeSection(section, fullKey, value, defaultValue, valueVis);
+            }
+            else
+            {
+                rowBordersDiv = $('<div/>').prop({class: "row borders"});
+                col1Div = $('<div/>').prop({class: "col-md-4", align: "right"});
+                col2Div = $('<div/>').prop({class: "col-md-1"});
+                col3Div = $('<div/>').prop({class: "col-md-1"});
+                col4Div = $('<div/>').prop({class: "col-md-2"});
+                col5Div = $('<div/>').prop({class: "col-md-4"});
+
+                highlightedClass = value === defaultValue ? '' : ' highlighted';
+                if (typeof defaultValue === BOOLEAN) {
+                    col2Span = $('<span/>').prop({class: highlightedClass});
+                    col2Input = $('<input/>').prop({class: 'networkOption', id: fullKey, type: "checkbox" });
+                    col2Input[0].checked = value;
+                    col4Input = $('<input/>').prop({class: 'readOnly', id: fullKey + 'Default', type: "checkbox", readOnly: "true"});
+                    col4Input[0].checked = defaultValue;
+                }
+                else {
+                    readOnly = FUNCTION === typeof value;
+                    readOnlyClass = readOnly ? ' readOnly' : '';
+                    functionTitle = "Not currently supporting update of network options that are functions.";
+                    col2Span = $('<span/>');
+                    col2Input = $('<input/>').prop({class: 'networkOption' + highlightedClass + readOnlyClass, id: fullKey, type: "text", readOnly: readOnly, title: functionTitle});
+                    col2Input[0].value = value;
+                    col4Input = $('<input/>').prop({class: 'readOnly', id: fullKey + 'Default', type: "text", readOnly: "true"});
+                    col4Input[0].value = defaultValue;
+                }
+                col1Div[0].innerHTML = fullKey;
+                col2Span.append(col2Input);
+                col2Div.append(col2Span);
+                col3Div[0].innerHTML = NBSP;
+                col4Div.append(col4Input);
+
+                if (keyVis)
+                {
+                    if (valueVis === defaultValue)
+                    {
+                        col5Div[0].innerHTML = NBSP;
+                    }
+                    else if (BOOLEAN === typeof valueVis )
+                    {
+                        col5Input = $('<input/>').prop({class: 'readOnly', id: fullKey, type: "checkbox", readOnly: "true"});
+                        col5Input[0].checked = valueVis;
+                        col5Div.append(col5Input);
+                    }
+                    else
+                    {
+                        col5Input = $('<input/>').prop({class: 'readOnly', id: fullKey, type: "text", readOnly: "true"});
+                        col5Input[0].value = valueVis;
+                        col5Div.append(col5Input);
+                    }
+                }
+                else
+                {
+                    col5Div[0].innerHTML = 'Parameter does not exist in Vis'
+                }
+                rowBordersDiv.append(col1Div);
+                rowBordersDiv.append(col2Div);
+                rowBordersDiv.append(col3Div);
+                rowBordersDiv.append(col4Div);
+                rowBordersDiv.append(col5Div);
+            }
+            section.append(rowBordersDiv);
+        }
+    }
+
+    function scopeChange()
+    {
+        saveToLocalStorage(_scope, SCOPE_MAP);
+        load();
+    }
+
+  
     function buildScopeFromText(scopeString) {
+        var parts, part, key, value, i, iLen;
         var newScope = {};
-        var tuples = scopeString.split(',');
-        for (var i = 0, iLen = tuples.length; i < iLen; i++) {
-            var tuple = tuples[i].split(':');
-            var key = tuple[0].trim();
-            var value = tuple[1].trim();
-            newScope[key] = value;
-            var shouldInsertNewExpression = true;
-            for (var j = 0, jLen = _savedScope.length; j < jLen; j++) {
-                var expression = _savedScope[j];
-                if (expression.isApplied && expression.key === key) {
-                    expression.value = value;
-                    shouldInsertNewExpression = false;
-                    break;
+        newScope['@type'] = _scope['@type'];
+        if (scopeString) {
+            parts = scopeString.split(',');
+            for ( i = 0, iLen = parts.length; i < iLen; i++) {
+                part = parts[i].split(':');
+                key = part[0].trim();
+                value = part[1];
+                if (value) {
+                    newScope[key] = value.trim();
                 }
             }
-            if (shouldInsertNewExpression) {
-                _savedScope.push = {isApplied: true, key: key, value: value};
-            }
-        }
-        saveScope();
+         }
         return newScope;
     }
 
-    var reload = function (level) {
-        trimNetworkData(level);
-        draw();
+    function reload() {
+        updateNetworkData();
         loadSelectedLevelListView();
-        loadAvailableGroupsView();
+        loadGroupsView();
         loadCountsView();
         _visualizerInfo.show();
         _visualizerNetwork.show();
-    };
+     }
 
-    var load = function (reloadJson)
+    function loadCellValues(node, note) {
+        _nce.clearNotes({noteIds: _noteIdList});
+        setTimeout(function () {loadCellValuesFromServer(node);}, PROGRESS_DELAY);
+        _nce.showNote(note);
+    }
+
+    function loadCellValuesFromServer(node)
     {
-        var differentCube = _nce.getSelectedCubeName() !== _loadedCubeName;
+        var message, options, result, json;
+        node.details = null;
+        _visInfo.nodes = {};
+        _visInfo.edges = {};
 
-        if (reloadJson || differentCube) {
-            _nce.clearError();
+        options =  {startCubeName: _selectedCubeName, visInfo: _visInfo, node: node};
 
-            var info = _nce.getInfoDto();
-            if (!info) {
-                _visualizerContent.hide();
-                _nce.showNote('Failed to load visualizer: ' + TWO_LINE_BREAKS + 'No cube selected.');
-                return;
+        result = _nce.call('ncubeController.getVisualizerCellValues', [_nce.getSelectedTabAppId(), options]);
+        _nce.clearNote();
+        if (false === result.status) {
+            _nce.showNote('Failed to load ' + _visInfo.loadCellValuesLabel + ': ' + TWO_LINE_BREAKS + result.data);
+            return node;
+        }
+
+        json = result.data;
+
+        if (STATUS_SUCCESS === json.status) {
+            displayMessages(json.visInfo.messages);
+            node = json.visInfo.nodes['@items'][0];
+            loadDataForNode(node)
+        }
+        else {
+            message = json.message;
+            if (null !== json.stackTrace) {
+                message = message + TWO_LINE_BREAKS + json.stackTrace
             }
+            _nce.showNote('Failed to load ' + _visInfo.loadCellValuesLabel +  ': ' + TWO_LINE_BREAKS + message);
+        }
+        return node;
+    }
 
-            if (differentCube)
-            {
-                //TODO: Save off settings to local storage so they can be retrieved here and used in load of different cube.
-                _selectedLevel = null;
-                _selectedGroups = null;
-                _scope = buildScopeFromText(buildScopeText());
-                _hierarchical = false;
-                _network = null;
-            }
-
-            var options =
-            {
-                selectedLevel: _selectedLevel,
-                startCubeName: _nce.getSelectedCubeName(),
-                scope: _scope,
-                selectedGroups: _selectedGroups
-            };
-
-
-            var result = _nce.call('ncubeController.getVisualizerJson', [_nce.getSelectedTabAppId(), options]);
-            if (result.status === false) {
-                _nce.showNote('Failed to load visualizer: ' + TWO_LINE_BREAKS + result.data);
-                return;
-            }
-
-            var json = result.data;
-
-            if (json.status === 'success') {
-                if (json.message !== null) {
-                    _nce.showNote(json.message);
-                }
-                _loadedCubeName = _nce.getSelectedCubeName();
-                loadNetworkData(json.map);
-                trimNetworkData(null);
-                draw();
-                loadSelectedLevelListView();
-                loadScopeView();
-                loadHierarchicalView();
-                loadAvailableGroupsView();
-                loadCountsView();
-                _visualizerContent.show();
-                _visualizerInfo.show();
-                _visualizerNetwork.show();
-            }
-            else if (json.status === 'missingScope') {
-                _nce.showNote(json.message);
-                _loadedCubeName = _nce.getSelectedCubeName();
-                _scope = json.scope;
-                loadScopeView();
-                _visualizerContent.show();
-                _visualizerInfo.hide();
-                _visualizerNetwork.hide();
-            }
-            else {
-                _visualizerContent.hide();
-                var message = json.message;
-                if (json.stackTrace != null) {
-                    message = message + TWO_LINE_BREAKS + json.stackTrace
-                }
-                _nce.showNote('Failed to load visualizer: ' + TWO_LINE_BREAKS + message);
+    function displayMessages(messages){
+        var j, jLen, items;
+        if (messages) {
+            items = messages['@items'];
+            for (j = 0, jLen = items.length; j < jLen; j++) {
+                _noteIdList.push(_nce.showNote(items[j]));
             }
         }
-    };
+    }
+
+    function loadDataForNode(node){
+        var dataSetNode;
+        dataSetNode = _nodeDataSet.get(node.id);
+        dataSetNode.details = node.details;
+        dataSetNode.showCellValuesLink = node.showCellValuesLink;
+        dataSetNode.showCellValues = node.showCellValues;
+        dataSetNode.cellValuesLoaded = node.cellValuesLoaded;
+        dataSetNode.executeCell = node.executeCell;
+        dataSetNode.executeCells = node.executeCells;
+        _nodeDataSet.update(dataSetNode);
+
+        _nodeDetails[0].innerHTML = node.details;
+        _nodeCellValues = $('#nodeCellValues');
+        _nodeAddTypes = $('#nodeAddTypes');
+        _nodeCellValues[0].innerHTML = '';
+        _nodeCellValues.append(createCellValuesLink(node));
+    }
+
+    function load() {
+        if (_okToLoadFromServer) {
+            _okToLoadFromServer = false;
+            _dataLoadStart = performance.now();
+            $("#dataLoadStatus").val('loading');
+            $("#dataLoadDuration").val(DOT_DOT_DOT);
+            _nce.clearNotes({noteIds: _noteIdList});
+            setTimeout(function () {
+                loadFromServer();
+            }, PROGRESS_DELAY);
+            _noteIdList.push(_nce.showNote('Loading data...'));
+        }
+    }
+
+    function loadFromServer() {
+        var options, result, json, message;
+        clearVisLayoutEast();
+        destroyNetwork();
+
+        if (!_nce.getSelectedCubeName()) {
+             _visualizerContent.hide();
+            _nce.showNote('Failed to load visualizer: ' + TWO_LINE_BREAKS + 'No cube selected.');
+            _okToLoadFromServer = true;
+            return;
+        }
+
+        //TODO: The .replace is temporary until figured out why nce.getSelectedCubeName()
+        //TODO: occasionally contains a cube name with "_" instead of "." (e.g. rpm_class_product instead of
+        //TODO: rpm.class.product) after a page refresh.
+        _selectedCubeName = _nce.getSelectedCubeName().replace(/_/g, '.');
+
+        if (_loadedAppId && !appIdMatch(_loadedAppId, _nce.getSelectedTabAppId())) {
+            _visInfo = null;
+        }
+        else if (_loadedCubeName && _loadedCubeName !== _selectedCubeName){
+            getAllFromLocalStorage();
+         }
+
+        if (_visInfo){
+            _visInfo.nodes = {};
+            _visInfo.edges = {};
+            options =  {startCubeName: _selectedCubeName, scope: _scope, visInfo: _visInfo};
+        }
+        else{
+            getAllFromLocalStorage();
+            options =  {startCubeName: _selectedCubeName, scope: _scope};
+        }
+
+
+        result = _nce.call('ncubeController.getVisualizerJson', [_nce.getSelectedTabAppId(), options]);
+        _nce.clearNotes({noteIds: _noteIdList});
+        if (!result.status) {
+            _nce.showNote(result.data);
+             _visualizerContent.hide();
+            _okToLoadFromServer = true;
+            return;
+        }
+
+        json = result.data;
+
+        if (json.status === STATUS_SUCCESS) {
+            displayMessages(json.visInfo.messages);
+            loadData(json.visInfo, json.status);
+            initNetwork();
+            loadSelectedLevelListView();
+            saveAllToLocalStorage();
+            loadScopeView();
+            loadHierarchicalView();
+            loadGroupsView();
+            loadCountsView();
+            _visualizerContent.show();
+            _visualizerInfo.show();
+            _visualizerNetwork.show();
+        }
+        else if (STATUS_MISSING_START_SCOPE === json.status) {
+            displayMessages(json.visInfo.messages);
+            loadData(json.visInfo, json.status);
+            saveAllToLocalStorage();
+            loadScopeView();
+            _visualizerContent.show();
+            _visualizerInfo.hide();
+            _visualizerNetwork.hide();
+            _networkOptionsSection.hide();
+        }
+        else {
+             _visualizerContent.hide();
+            message = json.message;
+            if (null !== json.stackTrace) {
+                message = message + TWO_LINE_BREAKS + json.stackTrace
+            }
+            _nce.showNote('Failed to load visualizer: ' + TWO_LINE_BREAKS + message);
+        }
+        $("#dataLoadStatus").val(COMPLETE);
+        $("#dataLoadDuration").val(Math.round(performance.now() - _dataLoadStart));
+        _okToLoadFromServer = true;
+    }
+
+     function appIdMatch(appIdA, appIdB)
+    {
+        return appIdA.appId === appIdB.appId &&
+            appIdA.version === appIdB.version &&
+            appIdA.status ===  appIdB.status &&
+            appIdA.branch === appIdB.branch;
+    }
+
+    function clearVisLayoutEast(){
+        _nodeDetailsTitle1[0].innerHTML = '';
+        _nodeDetailsTitle2[0].innerHTML = '';
+        _nodeCubeLink[0].innerHTML = '';
+        _nodeVisualizer[0].innerHTML = '';
+        _nodeCellValues[0].innerHTML = '';
+        _nodeAddTypes.innerHTML = '';
+        _nodeDetails[0].innerHTML = '';
+        _layout.close('east');
+    }
 
     function loadHierarchicalView() {
         $('#hierarchical').prop('checked', _hierarchical);
     }
 
     function loadScopeView() {
-        delete _scope['@type'];
-        _scopeInput.val(getScopeString());
+        var scope = getScopeString();
+        _scopeInput.val(scope);
+        _scopeInput.prop('title', scope);
     }
 
-    function loadAvailableGroupsView()
-    {
-        var div = $('#availableGroupsAllLevels');
-        div.empty();
+    function loadGroupsView() {
+        var groupName, id, available, label, title, input, selected, button, groups,
+            background, fontMap, color, groupMap, boxShadow, j, jLen, k, kLen, divGroups, groupSuffix, allGroups;
+
+        divGroups = $('#groups');
+        divGroups.empty();
+        groups = _networkOptionsInput.groups;
+        groupSuffix =  _visInfo.groupSuffix;
+        allGroups = _visInfo.allGroups;
 
         _availableGroupsAllLevels.sort();
-        for (var j = 0; j < _availableGroupsAllLevels.length; j++)
-        {
-            var groupName = _availableGroupsAllLevels[j];
-            var id = groupName + _groupSuffix;
-            var input = $('<input>').attr({type: 'checkbox', id: id});
+        for (j = 0, jLen = _availableGroupsAllLevels.length; j < jLen; j++) {
+            color = null;
+            boxShadow = '';
+            groupName = _availableGroupsAllLevels[j];
+            id = groupName + groupSuffix;
+            available = groupCurrentlyAvailable(id);
+            label = allGroups[groupName];
+            title = available ? "Show/hide " + label + " in the graph" : "Increase level to enable show/hide of " + label + " in the graph";
 
-            var selected = false;
-            for (var k = 0; k < _selectedGroups.length; k++)
-            {
-                if (groupIdsEqual(id, _selectedGroups[k]))
-                {
+            selected = false;
+            for (k = 0, kLen = _selectedGroups.length; k < kLen; k++) {
+                if (groupIdsEqual(id, _selectedGroups[k])) {
                     selected = true;
                     break;
                 }
             }
-            input.prop('checked', selected);
 
-            input.change(function () {
-                selectedGroupChangeEvent(this);
+            groupMap = groups.hasOwnProperty(groupName) ? groups[groupName] : _networkOptionsInput.groups[UNSPECIFIED];
+            background = groupMap.color;
+            fontMap = groupMap.font;
+            if (fontMap) {
+                color = fontMap.hasOwnProperty('buttonColor') ? fontMap.buttonColor : fontMap.color;
+            }
+            if (!color) {
+                color = '#000000';
+            }
+
+            button = $('<button/>').addClass('btn');
+            if (selected) {
+                button.addClass('active btn-primary-group');
+                boxShadow = 'box-shadow: 0 4px #575757;';
+            } else if (available) {
+                button.addClass('btn-default-group');
+            } else {
+                button.addClass('btn-default-group');
+                button.attr({disabled: 'disabled'});
+            }
+            button.attr({style:'background: ' +  background + '; color: ' + color + ';font-size: 12px; padding: 3px; margin-right: 3px; margin-bottom: 7px;border-radius: 15px;' + boxShadow});
+            button.attr({'data-cat': label, 'data-toggle': "buttons", 'id': id, 'title': title});
+            input = $('<input>').attr({type: 'checkbox', autocomplete: 'off'});
+            button.append(input);
+            button.append(label);
+            button.click(function (e) {
+                e.preventDefault();
+                groupChangeEvent(this.id);
             });
-
-            div.append(input);
-            div.append(NBSP + _allGroups[groupName] + NBSP + NBSP);
+            divGroups.append(button);
         }
     }
 
     function getScopeString(){
-        var scopeString = '';
-        var keys = Object.keys(_scope);
-        for (var i = 0, len = keys.length; i < len; i++) {
-            var key = keys[i];
-            scopeString += key + ':' + _scope[key] + ', ';
+        var scopeLen, key, i, len, scope, scopeString, keys;
+        scope = $.extend(true, {}, _scope);
+        delete scope['@type'];
+        delete scope['@id'];
+        scopeString = '';
+        keys = Object.keys(scope);
+        for (i = 0, len = keys.length; i < len; i++) {
+            key = keys[i];
+            scopeString += key + ': ' + scope[key] + ', ';
         }
-        var scopeLen = scopeString.length;
-        if (scopeLen > 1) {
+        scopeLen = scopeString.length;
+        if (1 < scopeLen) {
             scopeString = scopeString.substring(0, scopeLen - 2);
         }
         return scopeString;
     }
 
-    function selectedGroupChangeEvent(group)
+    function groupChangeEvent(groupId)
     {
-        if (group.checked) {
-            for (var k = 0, kLen = _availableGroupsAllLevels.length; k < kLen; k++)
-            {
-                if (groupIdsEqual(group.id, _availableGroupsAllLevels[k])) {
-                    _selectedGroups.push(_availableGroupsAllLevels[k]);
-                    break;
-                }
-            }
-        }
-        else {
-            for (var i = 0, len = _selectedGroups.length; i < len; i++) {
-                if (groupIdsEqual(group.id, _selectedGroups[i])) {
-                    _selectedGroups.splice(i, 1);
-                    break;
-                }
-            }
-        }
+        var button, i, len, k, kLen;
 
-        if (groupCurrentlyAvailable(group)){
-            reload(_selectedLevel);
-        }
+        $('#groups').find('button').each(function()
+        {
+            button = $(this);
+            if(button.attr('id') === groupId){
+
+                if  (button.hasClass('active'))
+                {
+                    for (i = 0, len = _selectedGroups.length; i < len; i++) {
+                        if (groupIdsEqual(groupId, _selectedGroups[i])) {
+                            _selectedGroups.splice(i, 1);
+                            button.removeClass('active');
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    for (k = 0, kLen = _availableGroupsAllLevels.length; k < kLen; k++)
+                    {
+                        if (groupIdsEqual(groupId, _availableGroupsAllLevels[k])) {
+                            _selectedGroups.push(_availableGroupsAllLevels[k]);
+                            button.addClass('active');
+                            break;
+                        }
+                    }
+                }
+                saveToLocalStorage(_selectedGroups, SELECTED_GROUPS);
+                reload();
+             }
+        });
     }
 
-    function groupCurrentlyAvailable(group){
-        var currentlyIncluded = false;
-
-        for (var l = 0; l < _availableGroupsAtLevel.length; l++)
+    function groupCurrentlyAvailable(groupId)
+    {
+        var l;
+        for ( l = 0; l < _availableGroupsAtLevel.length; l++)
         {
-            if (groupIdsEqual(group.id, _availableGroupsAtLevel[l]))
+            if (groupIdsEqual(groupId, _availableGroupsAtLevel[l]))
             {
-                currentlyIncluded = true;
-                break;
+                return true;
             }
         }
-
-        if (group.checked && !currentlyIncluded) {
-            var groupIdPrefix = group.id.split(_groupSuffix)[0];
-            var levelLabel = _selectedLevel === 1 ? 'level' : 'levels';
-            _nce.showNote('The group ' + groupIdPrefix + ' is not included in the ' + _selectedLevel + ' ' + levelLabel + ' currently displayed. Increase the levels to include the group.', 'Note', 5000);
-        }
-
-        return currentlyIncluded
+        return false
     }
 
     function groupIdsEqual(groupId1, groupId2)
     {
-        var groupId1Prefix = groupId1.split(_groupSuffix)[0];
-        var groupId2Prefix = groupId2.split(_groupSuffix)[0];
+        var groupSuffix = _visInfo.groupSuffix;
+        var groupId1Prefix = groupId1.split(groupSuffix)[0];
+        var groupId2Prefix = groupId2.split(groupSuffix)[0];
         return groupId1Prefix === groupId2Prefix;
     }
 
     function loadCountsView()
     {
-        var maxLevelLabel = _maxLevel === 1 ? 'level' : 'levels';
-        var nodeCountLabel = _nodeCount === 1 ? 'node' : 'nodes';
-        $('#counts')[0].textContent = _nodeCount + ' ' + nodeCountLabel + ' over ' +  _maxLevel + ' ' + maxLevelLabel;
+        var  maxLevel = _visInfo.maxLevel;
+        var totalNodeCount = _nodes.length;
+        var maxLevelLabel = 1 === maxLevel ? 'level' : 'levels';
+        var nodeCountLabel = 1 === totalNodeCount ? 'node' : 'nodes';
+
+        var nodesDisplayingAtLevelCount = _network.body.data.nodes.length;
+        var nodesAtLevelLabel = 1 === nodesDisplayingAtLevelCount ? 'node' : 'nodes';
+
+        $('#levelCounts')[0].textContent = nodesDisplayingAtLevelCount  + ' ' + nodesAtLevelLabel + ' of ' + _countNodesAtLevel + ' displaying at current level';
+        $('#totalCounts')[0].textContent = totalNodeCount + ' ' + nodeCountLabel + ' total over ' +  maxLevel + ' ' + maxLevelLabel ;
     }
 
     function loadSelectedLevelListView()
     {
+        var option, j;
         var select = $('#selectedLevel-list');
         select.empty();
 
-        for (var j = 1; j <= _maxLevel; j++)
+        for (j = 1; j <= _visInfo.maxLevel; j++)
         {
-            var option = $('<option/>');
+            option = $('<option/>');
             option[0].textContent = j.toString();
             select.append(option);
         }
@@ -358,534 +852,583 @@ var Visualizer = (function ($) {
     function getVisNetworkHeight() {
         return  '' + ($(this).height() - $('#network').offset().top);
     }
-
-    function trimNetworkData(level)
+    
+    function isSelectedGroup(node)
     {
+        var j, jLen;
+        if (_selectedGroups) {
+            for (j = 0, jLen = _selectedGroups.length; j < jLen; j++) {
+                if (groupIdsEqual(node.group, _selectedGroups[j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function updateNetworkData()
+    {
+        updateNetworkDataNodes();
+        updateNetworkDataEdges();
+        markTopNodeSpecial();
+     }
+
+
+    function updateNetworkDataNodes()
+    {
+        var node, selectedGroup, groupNamePrefix, i, iLen;
+        var groupSuffix = _visInfo.groupSuffix;
+        var nodeIdsToRemove = [];
+        var nodesToAddBack = [];
+        var level = _selectedLevel;
         var selectedGroups = [];
         var availableGroupsAtLevel = [];
-        var nodes = [];
-        var edges = [];
-        var nodesAtLevel = [];
-        var edgesAtLevel = [];
-        var nodesAboveLevel = [];
-        var edgesAboveLevel = [];
-        var nodesToProcess = [];
-        var edgesToProcess = [];
+        _countNodesAtLevel = 0;
 
-        var levelInt = null;
-        if (level !=null) {
-            levelInt = parseInt(level);
-        }
-        var selectedLevelInt = parseInt(_selectedLevel);
-
-        //determine which nodes and edges to process
-        if (levelInt === null) {
-            level =  _selectedLevel;
-            levelInt =  selectedLevelInt;
-            Array.prototype.push.apply(nodesToProcess, _nodesAllLevels);
-            Array.prototype.push.apply(edgesToProcess, _edgesAllLevels);
-        }
-        else if (levelInt <= selectedLevelInt){
-            Array.prototype.push.apply(nodesToProcess, _nodesAtLevel);
-            Array.prototype.push.apply(edgesToProcess, _edgesAtLevel);
-            Array.prototype.push.apply(nodesAboveLevel, _nodesAboveLevel);
-            Array.prototype.push.apply(edgesAboveLevel, _edgesAboveLevel);
-        }
-        else if (levelInt > selectedLevelInt){
-            Array.prototype.push.apply(nodesToProcess, _nodesAboveLevel);
-            Array.prototype.push.apply(edgesToProcess, _edgesAboveLevel);
-            Array.prototype.push.apply(nodes, _nodesAtLevel);
-            Array.prototype.push.apply(edges, _edgesAtLevel);
-            Array.prototype.push.apply(nodesAtLevel, _nodesAtLevel);
-            Array.prototype.push.apply(edgesAtLevel, _edgesAtLevel);
-        }
-
-        //collect nodes
-        for (var i = 0, iLen = nodesToProcess.length; i < iLen; i++)
+        //given the selected level, determine nodes to exclude, nodes to add back, selected groups and available groups
+        for (i = 0, iLen = _nodes.length; i < iLen; i++)
         {
-            var isSelectedGroup = false;
-            var node  = nodesToProcess[i];
+            node  = _nodes[i];
 
-            for (var j = 0, jLen = _selectedGroups.length; j < jLen; j++)
+            selectedGroup = isSelectedGroup(node);
+
+            if (parseInt(node.level) > level)
             {
-                if (groupIdsEqual(node.group, _selectedGroups[j])){
-                    isSelectedGroup = true;
-                    break;
+                nodeIdsToRemove.push(node.id);
+            }
+            else {
+                if (selectedGroup) {
+                    //collect selected groups at level
+                    groupNamePrefix = node.group.replace(groupSuffix, '');
+                    if (_selectedGroups.indexOf(groupNamePrefix) > -1 && selectedGroups.indexOf(groupNamePrefix) === -1) {
+                        selectedGroups.push(groupNamePrefix);
+                    }
+                    if (!_nodeDataSet.get(node.id)){
+                        nodesToAddBack.push(node);
+                    }
                 }
-            }
-
-            if (parseInt(node.level) <= levelInt) {
-                nodesAtLevel.push(node);
-                if (isSelectedGroup ) {
-                    nodes.push(node);
+                else{
+                    nodeIdsToRemove.push(node.id);
                 }
-            } else {
-                nodesAboveLevel.push(node);
+                //collect available groups at level
+                groupNamePrefix = node.group.replace(groupSuffix, '');
+                if (availableGroupsAtLevel.indexOf(groupNamePrefix) === -1)
+                {
+                    availableGroupsAtLevel.push(groupNamePrefix)
+                }
+                _countNodesAtLevel++;
             }
         }
-
-        //collect edges
-        for (var k = 0, kLen = edgesToProcess.length; k < kLen; k++)
-        {
-            var edge  = edgesToProcess[k];
-
-            if (parseInt(edge.level) <= levelInt) {
-                edges.push(edge);
-                edgesAtLevel.push(edge);
-            } else {
-                edgesAboveLevel.push(edge);
-            }
-        }
-
-        //collect available groups at level
-        for (var l = 0, lLen = nodesAtLevel.length; l < lLen; l++) {
-            var nodeAtLevel = nodesAtLevel[l];
-            var groupNamePrefix = nodeAtLevel.group.replace(_groupSuffix, '');
-            if (availableGroupsAtLevel.indexOf(groupNamePrefix) == -1) {
-                availableGroupsAtLevel.push(groupNamePrefix);
-            }
-        }
-
-        for (var m = 0, mLen = nodes.length; m < mLen; m++)
-        {
-            var node = nodes[m];
-            var groupNamePrefix = node.group.replace(_groupSuffix, '');
-            if (_selectedGroups.indexOf(groupNamePrefix) > -1 && selectedGroups.indexOf(groupNamePrefix) === -1) {
-                selectedGroups.push(groupNamePrefix);
-            }
-        }
-
-        _nodesAtLevel = nodesAtLevel;
-        _edgesAtLevel = edgesAtLevel;
-        _nodesAboveLevel = nodesAboveLevel;
-        _edgesAboveLevel = edgesAboveLevel;
-
+        _nodeDataSet.remove(nodeIdsToRemove);
+        _nodeDataSet.add(nodesToAddBack);
         _selectedGroups = selectedGroups;
         _availableGroupsAtLevel = availableGroupsAtLevel;
-        _selectedLevel = level;
-
-        _nodes = nodes;
-        _edges = edges;
-        _networkData = {nodes:nodes, edges:edges};
     }
 
-    function loadNetworkData(jsonMap) {
-        _allGroups = jsonMap.groups.allGroups;
-        _availableGroupsAllLevels = jsonMap.groups.availableGroupsAllLevels;
-        _selectedGroups = jsonMap.groups.selectedGroups;
-        _selectedLevel = jsonMap.levels.selectedLevel;
-        _groupSuffix = jsonMap.groups.groupSuffix;
-        _scope = jsonMap.scope;
-        _startCube = jsonMap.startCube.substring(jsonMap.startCube.lastIndexOf('.') + 1);
-        _nodeCount = jsonMap.levels.nodeCount;
-        _maxLevel = jsonMap.levels.maxLevel;
-        _nodesAllLevels = jsonMap.nodes;
-        _edgesAllLevels = jsonMap.edges;
+    function updateNetworkDataEdges()
+    {
+        var edge, k, kLen;
+        var edgeIdsToRemove = [];
+        var edgesToAddBack = [];
+
+        //given the selected level, determine edges to exclude and edges to add back
+        if (_edges) {
+            for (k = 0, kLen = _edges.length; k < kLen; k++) {
+                edge = _edges[k];
+
+                if (parseInt(edge.level) > _selectedLevel) {
+                    edgeIdsToRemove.push(edge.id);
+                }
+                else if (!_edgeDataSet.get(edge.id)) {
+                    edgesToAddBack.push(edge);
+                }
+            }
+        }
+        _edgeDataSet.remove(edgeIdsToRemove);
+        _edgeDataSet.add(edgesToAddBack);
     }
 
-    var handleCubeSelected = function() {
+    function loadData(visInfo, status)
+    {
+        var nodes, edges, maxLevel;
+
+        if (!_loadedVisInfoType || _loadedVisInfoType !== visInfo['@type']){
+            _networkOverridesBasic = visInfo.networkOverridesBasic;
+            _networkOverridesFull = visInfo.networkOverridesFull;
+            _networkOverridesTopNode = visInfo.networkOverridesTopNode;
+            formatNetworkOverrides(_networkOverridesBasic);
+            formatNetworkOverrides(_networkOverridesFull);
+            formatNetworkOverrides(_networkOverridesTopNode);
+            //TODO: Figure out why the only way to make _networkOverridesTopNode work is to json stringify, then json parse.
+            _networkOverridesTopNode = JSON.parse(JSON.stringify(_networkOverridesTopNode));
+        }
+
+        if (status === STATUS_SUCCESS) {
+            nodes = visInfo.nodes['@items'];
+            edges = visInfo.edges['@items'];
+            _nodes =  nodes ? nodes : [];
+            _edges = edges ? edges : [];
+            delete visInfo['nodes'];
+            delete visInfo['edges'];
+            _availableGroupsAllLevels = visInfo.availableGroupsAllLevels['@items'];
+            if (_selectedGroups === null){
+                _selectedGroups = _availableGroupsAllLevels;
+            }
+            maxLevel = visInfo.maxLevel;
+            if (_selectedLevel === null){
+                _selectedLevel = visInfo.defaultLevel;
+            }
+            if (_selectedLevel > maxLevel){
+                _selectedLevel = maxLevel;
+            }
+        }
+        _scope = visInfo.scope;
+
+        _visInfo = visInfo;
+
+        _loadedCubeName = _selectedCubeName;
+        _loadedAppId = _nce.getSelectedTabAppId();
+        _loadedVisInfoType = _visInfo['@type'];
+     }
+
+    function formatNetworkOverrides(overrides){
+        var keys,k, kLen, key, value, valueOfValue, type;
+        delete overrides['@type'];
+        keys = Object.keys(overrides);
+        for (k = 0, kLen = keys.length; k < kLen; k++) {
+            key = keys[k];
+            value = overrides[key];
+            if (OBJECT === typeof value){
+                type = value['@type'];
+                if (ARRAY_LIST === type){
+                    valueOfValue = value['@items'].valueOf();
+                    formatNetworkOverrides(valueOfValue);
+                    overrides[key] = valueOfValue;
+                    delete value['@items'];
+                    delete value['@type'];
+                }
+                else{
+                    valueOfValue = value.value;
+                    delete value['@type'];
+                    if (1 === Object.keys(value).length && undefined !== valueOfValue && OBJECT !== typeof valueOfValue)
+                    {
+                        if (BIG_DECIMAL === type){
+                            overrides[key] = parseFloat(valueOfValue);
+                        }
+                        else if (NUMBER === typeof valueOfValue){
+                            overrides[key] = Number(valueOfValue);
+                        }
+                        else{
+                            overrides[key] = valueOfValue;
+                        }
+                    }
+                    else{
+                        formatNetworkOverrides(value);
+                    }
+                }
+            }
+            else{
+                //primitive value
+            }
+        }
+    }
+
+    function handleCubeSelected() {
         load();
-    };
-
-    function clusterDescendantsBySelectedNode(nodeId, immediateDescendantsOnly) {
-        _network.clusteredNodeIds.push(nodeId);
-        clusterDescendants(immediateDescendantsOnly)
     }
 
-    function clusterDescendants(immediateDescendantsOnly) {
-        _network.setData(_networkData);
-        for (var i = 0; i < _network.clusteredNodeIds.length; i++) {
-            var id = _network.clusteredNodeIds[i];
-            clusterDescendantsByNodeId(id, immediateDescendantsOnly);
-        }
-    }
-
-    function clusterDescendantsByNodeId(nodeId, immediateDescendantsOnly) {
-        var clusterOptionsByData = getClusterOptionsByNodeId(nodeId);
-        _network.clusterDescendants(nodeId, immediateDescendantsOnly, clusterOptionsByData, true)
-    }
-
-    function getClusterOptionsByNodeId(nodeId) {
-        var clusterOptionsByData;
-        return clusterOptionsByData = {
-            processProperties: function (clusterOptions, childNodes) {
-                var node = getNodeById(childNodes, nodeId);
-                clusterOptions.label = node.label + ' cluster (double-click to expand)';
-                clusterOptions.title = node.title + TWO_LINE_BREAKS + '(double-click to expand)';
-                return clusterOptions;
-            }
-        };
-    }
-
-    function openClusterByClusterNodeId(clusterNodeId)  //TEMP: gets called when a clustered node is clicked
+     function destroyNetwork()
     {
-        var nodesInCluster = _network.getNodesInCluster(clusterNodeId);
-        for (var i = 0; i < nodesInCluster.length; i++)
-        {
-            var node = nodesInCluster[i];
-            var indexNode = _network.clusteredNodeIds.indexOf(node);
-            if (indexNode !== -1)
-            {
-                _network.clusteredNodeIds.splice(indexNode, 1);
-            }
-        }
-        _network.openCluster(clusterNodeId)
-    }
-
-    function draw()
-    {
-        var container = document.getElementById('network');
-        var options = {
-            height: getVisNetworkHeight(),
-            interaction: {
-                navigationButtons: true,
-                keyboard: {
-                    enabled: false,
-                    speed: {x: 5, y: 5, zoom: 0.02}
-                },
-                zoomView: true
-            },
-            nodes: {
-                scaling: {
-                    min: 16,
-                    max: 32
-                }
-            },
-            edges: {
-                arrows: 'to',
-                color: 'gray',
-                smooth: true,
-                hoverWidth: 3
-            },
-            physics: {
-                barnesHut: {gravitationalConstant: -30000},
-                stabilization: {iterations: 2500}
-            },
-            layout: {
-                hierarchical: _hierarchical,
-                improvedLayout : true,
-                randomSeed:2
-            },
-            groups: {  //TODO: Add other bus types
-                PRODUCT: {
-                    shape: 'box',
-                    color: '#FF9900' // orange
-                },
-                RISK: {
-                    shape: 'square',
-                    color: "#5A1E5C" // purple
-                },
-                COVERAGE: {
-                    shape: 'star',
-                    color: "#dbe92b" // yellow
-                },
-                CONTAINER: {
-                    shape: 'star',
-                    color: "#731d1d" // dark red
-                },
-                LIMIT: {
-                    shape: 'diamond',
-                    color: "#C5000B" // red
-                },
-                DEDUCTIBLE: {
-                    shape: 'diamond',
-                    color: "#ffc0cb " // pink
-                },
-                PREMIUM: {
-                    shape: 'ellipse',
-                    color: "#2be998" // green
-                },
-                RATE: {
-                    shape: 'ellipse',
-                    color: "#2B7CE9" // blue
-                },
-                RATEFACTOR: {
-                    shape: 'ellipse',
-                    color: "#2bdbe9" // light blue
-                },
-                PARTY: {
-                    shape: 'box',
-                    color: '#004000' // dark green
-                },
-                PLACE: {
-                    shape: 'box',
-                    color: '#481849' // dark purple
-                },
-                PRODUCT_ENUM : {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                RISK_ENUM : {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                COVERAGE_ENUM : {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                LIMIT_ENUM : {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                PREMIUM_ENUM : {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                RATE_ENUM : {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                RATEFACTOR_ENUM : {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                CONTAINER_ENUM: {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                DEDUCTIBLE_ENUM: {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                PARTY_ENUM: {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                },
-                PLACE_ENUM: {
-                    shape: 'dot',
-                    color: 'gray'   // gray
-                }
-            }
-        };
-
-        if (_network) { // clean up memory
+        if (_network) {
             _network.destroy();
             _network = null;
         }
-        _network = new vis.Network(container, _networkData, options);
-        customizeNetworkForNce(_network);
-        _network.clusteredNodeIds = [];
-
-        _network.on('select', function(params) {
-            var node = getNodeById(_nodes, params.nodes[0]);
-            if (node) {
-                var cubeName = node.name;
-                var an = $('<a/>');
-                an.addClass('nc-anc');
-                an.html(cubeName);
-                an.click(function (e) {
-                    e.preventDefault();
-                    _nce.selectCubeByName(cubeName);
-                });
-                _nodeTitle[0].innerHTML = 'Class ';
-                _nodeTitle.append(an);
-                _nodeDesc[0].innerHTML = node.desc;
-                _layout.open('east');
-            }
-        });
-
-        _network.on('doubleClick', function (params) {
-            if (params.nodes.length === 1) {
-                if (_network.isCluster(params.nodes[0])) {
-                    openClusterByClusterNodeId(params.nodes[0]);
-                } else {
-                    clusterDescendantsBySelectedNode(params.nodes[0], false);
-                }
-            }
-        });
     }
 
-    function getNodeById(nodes, nodeId) {
-        for (var i = 0, len = nodes.length; i < len; i++) {
-            var node = nodes[i];
-            if (node.id === nodeId) {
-                return node;
+    function markTopNodeSpecial()  {
+        var node, keys, k, kLen, key;
+        node = _nodeDataSet.get(1);
+        if (node) {
+            if (_networkOverridesTopNode) {
+                keys = Object.keys(_networkOverridesTopNode);
+                for (k = 0, kLen = keys.length; k < kLen; k++) {
+                    key = keys[k];
+                    node[key] = _networkOverridesTopNode[key];
+                }
+                _nodeDataSet.update(node);
             }
         }
     }
 
-    function customizeNetworkForNce(network) {
-        network.clustering.clusterDescendants = function(nodeId, immediateDescendantsOnly, options) {
-            var collectDescendants = function(node, parentNodeId, childEdgesObj, childNodesObj, immediateDescendantsOnly, options, parentClonedOptions, _this) {
+    function initNetwork()
+    {
+        var container;
+        if (_network)
+        {
+            updateNetworkData();
+        }
+        else
+        {
+            container = document.getElementById('network');
+            initNetworkOptions(container);
+            _nodeDataSet = new vis.DataSet({});
+            _nodeDataSet.add(_nodes);
+            _edgeDataSet = new vis.DataSet({});
+            _edgeDataSet.add(_edges);
+            _network = new vis.Network(container, {nodes: _nodeDataSet, edges: _edgeDataSet}, _networkOptionsInput);
+            updateNetworkData();
 
-                // collect the nodes that will be in the cluster
-                for (var i = 0; i < node.edges.length; i++) {
-                    var edge = node.edges[i];
-                    //if (edge.hiddenByCluster !== true) {  //BBH:: commented this line
-                    if (edge.hiddenByCluster !== true && edge.toId != parentNodeId) { //BBH: added this line
-                        var childNodeId = _this._getConnectedId(edge, parentNodeId);
+            _network.on('selectNode', function(params) {
+                networkSelectNodeEvent(params);
+            });
 
-                        // if the child node is not in a cluster (may not be needed now with the edge.hiddenByCluster check)
-                        if (_this.clusteredNodes[childNodeId] === undefined) {
-                            if (childNodeId !== parentNodeId) {
-                                if (options.joinCondition === undefined) {
-                                    childEdgesObj[edge.id] = edge;
-                                    childNodesObj[childNodeId] = _this.body.nodes[childNodeId];
-                                    if (immediateDescendantsOnly == false) {
-                                        collectDescendants(_this.body.nodes[childNodeId], childNodeId, childEdgesObj, childNodesObj, immediateDescendantsOnly, options, parentClonedOptions, _this); //BBH: added this line
-                                    }
-                                } else {
-                                    // clone the options and insert some additional parameters that could be interesting.
-                                    var childClonedOptions = _this._cloneOptions(this.body.nodes[childNodeId]);
-                                    if (options.joinCondition(parentClonedOptions, childClonedOptions) === true) {
-                                        childEdgesObj[edge.id] = edge;
-                                        childNodesObj[childNodeId] = _this.body.nodes[childNodeId];
-                                        if (immediateDescendantsOnly == false) {
-                                            collectDescendants(_this.body.nodes[childNodeId], childNodeId, childEdgesObj, childNodesObj, immediateDescendantsOnly, options, parentClonedOptions, _this); //BBH: added this line
-                                        }
-                                    }
-                                }
-                            } else {
-                                // swallow the edge if it is self-referencing.
-                                childEdgesObj[edge.id] = edge;
-                            }
-                        }
-                    }
-                }
-            };
+            _network.on('deselectNode', function() {
+                clearVisLayoutEast();
+            });
 
-            var refreshData = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
+            _network.on('dragStart', function () {
+                networkChangeEvent()
+            });
 
-            // kill conditions
-            if (nodeId === undefined) {
-                throw new Error('No nodeId supplied to clusterDescendants!');
-            }
-            if (this.body.nodes[nodeId] === undefined) {
-                throw new Error('The nodeId given to clusterDescendants does not exist!');
-            }
+            _network.on('startStabilizing', function () {
+                networkStartStabilizingEvent();
+             });
 
-            var node = this.body.nodes[nodeId];
-            options = this._checkOptions(options, node);
-            if (options.clusterNodeProperties.x === undefined) {
-                options.clusterNodeProperties.x = node.x;
-            }
-            if (options.clusterNodeProperties.y === undefined) {
-                options.clusterNodeProperties.y = node.y;
-            }
-            if (options.clusterNodeProperties.fixed === undefined) {
-                options.clusterNodeProperties.fixed = {};
-                options.clusterNodeProperties.fixed.x = node.options.fixed.x;
-                options.clusterNodeProperties.fixed.y = node.options.fixed.y;
-            }
+            _network.on('stabilized', function (params) {
+                networkStabilizedEvent(params);
+            });
 
-            var childNodesObj = {};
-            var childEdgesObj = {};
-            var parentNodeId = node.id;
-            var parentClonedOptions = this._cloneOptions(node);
-            childNodesObj[parentNodeId] = node;
+            _nodeDataSet.on('add', function () {
+                networkChangeEvent()
+            });
 
-            collectDescendants(node, parentNodeId, childEdgesObj, childNodesObj, immediateDescendantsOnly, options, parentClonedOptions, this);
+            _nodeDataSet.on('remove', function () {
+                networkChangeEvent()
+            });
 
-            this._cluster(childNodesObj, childEdgesObj, options, refreshData);
-        };
+            _edgeDataSet.on('add', function () {
+                networkChangeEvent()
+            });
 
-        network.clustering._cloneOptions = function(item, type) {
-            var clonedOptions = {};
-            var util = vis.util;
-            if (type === undefined || type === 'node') {
-                util.deepExtend(clonedOptions, item.options, true);
-                clonedOptions.x = item.x;
-                clonedOptions.y = item.y;
-                clonedOptions.amountOfConnections = item.edges.length;
-            } else {
-                util.deepExtend(clonedOptions, item.options, true);
-            }
-            return clonedOptions;
-        };
-
-        network.clusterDescendants = function () {
-            return this.clustering.clusterDescendants.apply(this.clustering, arguments);
-        };
+            _edgeDataSet.on('remove', function () {
+                networkChangeEvent()
+            });
+        }
     }
 
-    /*================================= BEGIN SCOPE BUILDER ==========================================================*/
-
-    var availableScopeKeys = ['context','action','state','date','product','coverage','risk','classCode','programType','lob','businessUnit','producer','policyControlDate','quoteDate','LocationState'];
-
-    function addScopeBuilderListeners() {
-        var builderOptions = {
-            title: 'Scope Builder',
-            instructionsTitle: 'Instructions - Scope Builder',
-            instructionsText: 'Add scoping for visualization.',
-            columns: {
-                isApplied: {
-                    heading: 'Apply',
-                    default: true,
-                    type: PropertyBuilder.COLUMN_TYPES.CHECKBOX
-                },
-                key: {
-                    heading: 'Key',
-                    type: PropertyBuilder.COLUMN_TYPES.SELECT,
-                    selectOptions: availableScopeKeys
-                },
-                value: {
-                    heading: 'Value',
-                    type: PropertyBuilder.COLUMN_TYPES.TEXT
-                }
-            },
-            afterSave: function() {
-                scopeBuilderSave();
-            }
-        };
-
-        $('#scopeBuilderOpen').click(function() {
-            PropertyBuilder.openBuilderModal(builderOptions, _savedScope);
-        });
+    function networkStartStabilizingEvent(){
+        if (_basicStabilizationAfterInitNetwork || _basicStabilizationAfterNetworkUpdate) {
+            _basicStabilizationStart = performance.now();
+            $("#basicStabilizationStatus").val(ITERATING);
+            $("#basicStabilizationIterations").val(DOT_DOT_DOT);
+            $("#basicStabilizationDuration").val(DOT_DOT_DOT);
+            $("#stabilizationStatus").val(DOT_DOT_DOT);
+            $("#stabilizationIterations").val(DOT_DOT_DOT);
+            $("#stabilizationDuration").val(DOT_DOT_DOT);
+            _noteIdList.push(_nce.showNote('Stabilizing network...'));
+        }
+        else if (_fullStabilizationAfterBasic) {
+            _stabilizationStart = performance.now();
+            $("#stabilizationStatus").val(ITERATING);
+        }
+        else{
+            _stabilizationStart = performance.now();
+            $("#basicStabilizationStatus").val(NA);
+            $("#basicStabilizationIterations").val(NA);
+            $("#basicStabilizationDuration").val(NA);
+            $("#stabilizationStatus").val(ITERATING);
+            $("#stabilizationIterations").val(DOT_DOT_DOT);
+            $("#stabilizationDuration").val(DOT_DOT_DOT);
+            _noteIdList.push(_nce.showNote('Stabilizing network...'));
+        }
     }
 
-    function scopeBuilderSave() {
-        saveScope();
-        var newScope = buildScopeText();
-        _scopeInput.val(newScope);
-        _scope = buildScopeFromText(newScope);
-        load(true);
+    function networkStabilizedEvent(params){
+        var copy;
+        if (_basicStabilizationAfterInitNetwork) {
+            _basicStabilizationAfterInitNetwork = false;
+            copy = $.extend(true, {}, _networkOptionsBasicStabilization);
+            _networkOptionsDefaults = $.extend(true, copy, _networkOverridesFull);
+            _networkOptionsInput = $.extend(true, {}, _networkOptionsDefaults);
+            basicStabilizationComplete(params.iterations);
+        }
+        else if (_basicStabilizationAfterNetworkUpdate) {
+            _basicStabilizationAfterNetworkUpdate = false;
+            _networkOptionsInput = $.extend(true, {}, _networkOptionsInputHold);
+            _networkOptionsInputHold = {};
+            basicStabilizationComplete(params.iterations);
+        }
+        else if (_fullStabilizationAfterBasic) {
+            _fullStabilizationAfterBasic = false;
+             stabilizationComplete(params.iterations);
+        }
+        else{
+            stabilizationComplete(params.iterations);
+         }
+    }
+    
+    function stabilizationComplete(iterations){
+        _nce.clearNote();
+        if (_tempNote) {
+            _nce.showNote(_tempNote, 'Note', 5000);
+        }
+        _tempNote = null;
+        $("#stabilizationStatus").val(COMPLETE);
+        $("#stabilizationIterations").val(iterations);
+        $("#stabilizationDuration").val(Math.round(performance.now() - _stabilizationStart));
+    }
+    
+    function basicStabilizationComplete(iterations){
+        _fullStabilizationAfterBasic = true;
+        $("#basicStabilizationStatus").val(COMPLETE);
+        $("#basicStabilizationIterations").val(iterations);
+        $("#basicStabilizationDuration").val(Math.round(performance.now() - _basicStabilizationStart));
+        updateNetworkOptions();
     }
 
-    function getSavedScope() {
-        var scopeMap = localStorage[getStorageKey(_nce, SCOPE_MAP)];
-        return scopeMap ? JSON.parse(scopeMap) : DEFAULT_SCOPE;
+    function networkChangeEvent(){
+        if (!_basicStabilizationAfterInitNetwork && !_basicStabilizationAfterNetworkUpdate) {
+            _basicStabilizationAfterNetworkUpdate = true;
+            _networkOptionsInputHold = $.extend(true, {}, _networkOptionsInput);
+            _networkOptionsInput = $.extend(true, {}, _networkOptionsBasicStabilization);
+            updateNetworkOptions();
+        }
     }
 
-    function saveScope() {
-        saveOrDeleteValue(_savedScope, getStorageKey(_nce, SCOPE_MAP));
-    }
+    function networkSelectNodeEvent(params)
+    {
+        var nodeId, node, cubeName, appId, typesToAdd, title2;
+        nodeId = params.nodes[0];
+        node = _nodeDataSet.get(nodeId);
 
-    function buildScopeText() {
-        _savedScope = getSavedScope();
-        var scopeText = '';
-        for (var i = 0, len = _savedScope.length; i < len; i++) {
-            var expression = _savedScope[i];
-            if (expression.isApplied) {
-                scopeText += expression.key + ':' + expression.value + ', ';
+        cubeName = node.cubeName;
+        appId =_nce.getSelectedTabAppId();
+
+        _nodeDetailsTitle1[0].innerHTML = node.detailsTitle1;
+        title2 = node.detailsTitle2;
+        if (typeof title2 === STRING){
+            _nodeDetailsTitle2[0].innerHTML = title2;
+            _nodeDetailsTitle1.addClass('title1');
+        }
+        else{
+            _nodeDetailsTitle1.removeClass('title1');
+            _nodeDetailsTitle2[0].innerHTML = '';
+        }
+
+        _nodeVisualizer[0].innerHTML = '';
+        _nodeVisualizer.append(createVisualizeFromHereLink(appId, cubeName, node));
+
+        _nodeCubeLink[0].innerHTML = '';
+        _nodeCubeLink.append(createCubeLink(cubeName, appId));
+
+        if (node.showCellValuesLink) {
+            _nodeCellValues[0].innerHTML = '';
+            _nodeCellValues.append(createCellValuesLink(node));
+         }
+
+        _nodeAddTypes[0].innerHTML = '';
+        if (node.typesToAdd && node.showCellValuesLink) {
+            typesToAdd = node.typesToAdd['@items'];
+            if (typeof typesToAdd === OBJECT && typesToAdd.length > 0) {
+                createAddTypesDropdown(typesToAdd, node.label);
             }
         }
-        scopeText = scopeText.substring(0, scopeText.length - 2);
-        return scopeText;
+
+        _nodeDetails[0].innerHTML = node.details;
+        addNodeDetailsListeners();
+        _layout.open('east');
     }
 
-    /*================================= END SCOPE BUILDER ============================================================*/
+    function addNodeDetailsListeners()
+    {
+        var target;
+        if (!_nodeDetails.hasClass(HAS_EVENT))
+        {
+            _nodeDetails.change(function (e) {
+                target = e.target;
+                if (target.className.indexOf('missingScopeSelect') > -1) {
+                    missingScopeSelect(target);
+                }
+                else if (target.className.indexOf('missingScopeInput') > -1) {
+                    missingScopeInput(target);
+                }
+            });
+            _nodeDetails.click(function (e) {
+                e.preventDefault();
+                target = e.target;
+                if (target.className.indexOf('missingScope') === -1) {
+                    executeCell(target);
+                }
+            });
+            _nodeDetails.addClass(HAS_EVENT)
+        }
+    }
 
-// Let parent (main frame) know that the child window has loaded.
-// The loading of all of the Javascript (deeply) is continuous on the main thread.
-// Therefore, the setTimeout(, 1) ensures that the main window (parent frame)
-// is called after all Javascript has been loaded.
-    setTimeout(function() { window.parent.frameLoaded(); }, 1);
+    function executeCell(target) {
+        var coordinateId;
+        if (target.className.indexOf('expandAll') > -1) {
+            $('pre[class^="coord_"]').show();
+        }
+        else if (target.className.indexOf('collapseAll') > -1) {
+            $('pre[class^="coord_"]').hide();
+        }
+        else if (target.className.indexOf('executedCell') > -1 ||
+            target.className.indexOf('InvalidCoordinateException') > -1 ||
+            target.className.indexOf('CoordinateNotFoundException') > -1 ||
+            target.className.indexOf('Exception') > -1) {
+            coordinateId = target.className.split(' ')[1];
+            $('pre.' + coordinateId).toggle();
+        }
+     }
+
+    function updateNetworkOptions()
+    {
+        loadNetworkOptionsSectionView();
+       _network.setOptions(_networkOptionsInput);
+    }
+
+    function createVisualizeFromHereLink(appId, cubeName, node)
+    {
+        var visualizerLink = $('<a/>');
+        visualizerLink.addClass('nc-anc');
+        visualizerLink.html('New visual from here');
+        visualizerLink.click(function (e) {
+            e.preventDefault();
+            _keepCurrentScope = true;
+            _scope = node.scope;
+            _nce.selectCubeByName(cubeName, appId, TAB_VIEW_TYPE_VISUALIZER + PAGE_ID);
+        });
+        return visualizerLink;
+    }
+
+    function createCubeLink(cubeName, appId)
+    {
+        var cubeLink = $('<a/>');
+        cubeLink.addClass('nc-anc');
+        cubeLink.html('Open n-cube');
+        cubeLink.click(function (e) {
+            e.preventDefault();
+            _nce.selectCubeByName(cubeName, appId, TAB_VIEW_TYPE_NCUBE + PAGE_ID);
+        });
+        return cubeLink;
+    }
+
+    function createCellValuesLink(node) {
+        var note, cellValuesLink = $('<a/>');
+        cellValuesLink.addClass('nc-anc');
+        if (node.showCellValues) {
+            cellValuesLink.html('Hide ' + _visInfo.loadCellValuesLabel);
+        }
+        else {
+            cellValuesLink.html('Show ' + _visInfo.loadCellValuesLabel);
+        }
+        cellValuesLink.click(function (e) {
+            e.preventDefault();
+            node.showCellValues = !node.showCellValues;
+            note = node.showCellValues ? 'Loading ' + _visInfo.loadCellValuesLabel + '...' : 'Hiding ' + _visInfo.loadCellValuesLabel + '...';
+            loadCellValues(node, note);
+        });
+        return cellValuesLink;
+    }
+
+    function createAddTypesDropdown(typesToAdd, label) {
+        var li, addLink, a, ul, i, len;
+
+        addLink = $('<a/>');
+        addLink.prop({class: 'nc-anc', id:"addLink" });
+        addLink.attr("data-toggle", "dropdown");
+        addLink.html('Add to ' + label);
+
+        ul = $('<ul/>');
+        ul.addClass('dropdown-menu');
+
+        for (i = 0, len = typesToAdd.length; i < len; i++) {
+            li = $('<li/>');
+            a = $('<a/>');
+            a.prop({href: '#' });
+            a.html(typesToAdd[i]);
+            a.click(function (e) {
+                e.preventDefault();
+                _nce.showNote('Add ' + this.innerHTML + ' is not yet implemented.');
+            });
+            li.append(a);
+            ul.append(li);
+        }
+
+        _nodeAddTypes.append(addLink);
+        _nodeAddTypes.append(ul);
+    }
+
+    function getFromLocalStorage(key, defaultValue) {
+        var local = localStorage[getStorageKey(_nce, key)];
+        return local ? JSON.parse(local) : defaultValue;
+    }
+
+    function getAllFromLocalStorage() {
+        if (_keepCurrentScope) {
+            _keepCurrentScope = false;
+        }
+        else{
+            _scope = getFromLocalStorage(SCOPE_MAP, null);
+        }
+
+        _selectedGroups = getFromLocalStorage(SELECTED_GROUPS, null);
+        if (_selectedGroups === NO_GROUPS_SELECTED) {
+            _selectedGroups = [];
+        }
+        _selectedLevel = getFromLocalStorage(SELECTED_LEVEL, null);
+        _hierarchical = getFromLocalStorage(HIERARCHICAL, false);
+        _networkOptionsButton = getFromLocalStorage(NETWORK_OPTIONS_DISPLAY, false);
+    }
+
+    //TODO: Temporarily override this function in index.js until figured out why nce.getSelectedCubeName()
+    //TODO: occasionally contains a cube name with "_" instead of "." (e.g. rpm_class_product instead of
+    //TODO: rpm.class.product) after a page refresh.
+    function getStorageKey(nce, prefix) {
+        //return prefix + ':' + nce.getSelectedTabAppId().app.toLowerCase() + ':' + nce.getSelectedCubeName().toLowerCase();
+        return prefix + ':' + nce.getSelectedTabAppId().app.toLowerCase() + ':' + _selectedCubeName.toLowerCase();
+    }
+
+    function saveAllToLocalStorage() {
+        saveToLocalStorage(_scope, SCOPE_MAP);
+        saveToLocalStorage(_selectedGroups, SELECTED_GROUPS);
+        saveToLocalStorage(_selectedLevel, SELECTED_LEVEL);
+        saveToLocalStorage(_hierarchical, HIERARCHICAL);
+        saveToLocalStorage(_networkOptionsButton, NETWORK_OPTIONS_DISPLAY);
+    }
+
+    function saveToLocalStorage(value, key) {
+        saveOrDeleteValue(value, getStorageKey(_nce, key));
+    }
+
+    // Let parent (main frame) know that the child window has loaded.
+    // The loading of all of the Javascript (deeply) is continuous on the main thread.
+    // Therefore, the setTimeout(, 1) ensures that the main window (parent frame)
+    // is called after all Javascript has been loaded.
+    if (window.parent.frameLoaded) {
+        setTimeout(function () {
+            window.parent.frameLoaded(document);
+        }, 1);
+    }
 
     return {
         init: init,
         handleCubeSelected: handleCubeSelected,
-        load: load
+        load: load,
+        onNoteEvent: onNoteEvent
     };
 
 })(jQuery);
 
-var tabActivated = function tabActivated(info)
-{
+function tabActivated(info) {
     Visualizer.init(info);
     Visualizer.load();
-};
+}
 
-var cubeSelected = function cubeSelected()
-{
+function cubeSelected() {
     Visualizer.handleCubeSelected();
-};
+}
+
+function onNoteEvent(e, element) {
+    Visualizer.onNoteEvent(e, element);
+}

@@ -14,6 +14,7 @@
      * Set it up as an object under the jQuery namespace
      */
     $.gritter = {};
+    var Gritter;
 
     /**
      * Set up global options that the user can over-ride
@@ -65,9 +66,18 @@
     };
 
     /**
+     * Get notice wrapper
+     * @see Gritter#noticeWrapper();
+     */
+    $.gritter.noticeWrapper = function()
+    {
+        return Gritter.noticeWrapper();
+    };
+
+    /**
      * @constructor
      */
-    var Gritter = {
+    Gritter = {
 
         // Public - options to over-ride with $.gritter.options in "add"
         position: '',
@@ -80,8 +90,9 @@
         _item_count: 0,
         _is_setup: 0,
         _tpl_close: '<a class="gritter-close" href="#" tabindex="1">Close Notification</a>',
+        _tpl_drag: '<a class="gritter-drag" href="#">Enable Drag</a>',
         _tpl_title: '<span class="gritter-title">[[title]]</span>',
-        _tpl_item: '<div id="gritter-item-[[number]]" class="gritter-item-wrapper [[item_class]]" role="alert"><div class="gritter-item">[[close]][[image]][[title]][[text]]<div style="clear:both"></div></div></div>',
+        _tpl_item: '<div id="gritter-item-[[number]]" data-gritter-id="[[number]]" class="gritter-item-wrapper [[item_class]]" role="alert"><div class="gritter-item">[[drag]][[close]][[image]][[title]][[text]]<div style="clear:both"></div></div></div>',
         _tpl_wrap: '<div id="gritter-notice-wrapper"></div>',
 
         /**
@@ -144,8 +155,8 @@
             title = title ? this._str_replace('[[title]]', title, this._tpl_title) : '';
 
             tmp = this._str_replace(
-                ['[[title]]', '[[text]]', '[[close]]', '[[image]]', '[[number]]', '[[class_name]]', '[[item_class]]'],
-                [title, text, this._tpl_close, image_str, this._item_count, '', item_class], tmp
+                ['[[title]]', '[[text]]', '[[drag]]', '[[close]]', '[[image]]', '[[number]]', '[[class_name]]', '[[item_class]]'],
+                [title, text, this._tpl_drag, this._tpl_close, image_str, this._item_count, '', item_class], tmp
             );
 
             var popup = $('#gritter-notice-wrapper').addClass(position);
@@ -196,6 +207,28 @@
                 return false;
             });
 
+            item.draggable({
+                containment: 'body',
+                stack: '#gritter-notice-wrapper div'
+            });
+            item.draggable('disable');
+            $(item).find('.gritter-drag').click(function() {
+                var offset, width;
+                if (item.parent().is('body')) {
+                    item.detach();
+                    $('#gritter-notice-wrapper').append(item);
+                    item.css({position:'', top:'', left:'', width:''});
+                    item.draggable('disable');
+                } else {
+                    offset = item.offset();
+                    width = item.width();
+                    item.detach();
+                    $('body').append(item);
+                    item.css({position: 'absolute', top: offset.top, left: offset.left, width: width});
+                    item.draggable('enable');
+                }
+            });
+
             return number;
 
         },
@@ -214,7 +247,7 @@
             this['_after_close_' + unique_id](e, manual_close);
 
             // Check if the wrapper is empty, if it is.. remove the wrapper
-            if ($('.gritter-item-wrapper').length == 0)
+            if (!$('.gritter-item-wrapper').length)
             {
                 $('#gritter-notice-wrapper').remove();
             }
@@ -231,7 +264,7 @@
          */
         _fade: function(e, unique_id, params, unbind_events)
         {
-            params = params || {},
+            var params = params || {},
                 fade = (typeof(params.fade) != 'undefined') ? params.fade : true,
                 fade_out_speed = params.speed || this.fade_out_speed,
                 manual_close = unbind_events;
@@ -277,7 +310,7 @@
                 e.addClass('hover');
 
                 // Show close button
-                e.find('.gritter-close').show();
+                e.find('.gritter-close, .gritter-drag').show();
 
             }
             // Remove the border styles and hide (X) close button when you mouse out
@@ -286,7 +319,7 @@
                 e.removeClass('hover');
 
                 // Hide close button
-                e.find('.gritter-close').hide();
+                e.find('.gritter-close, .gritter-drag').hide();
             }
         },
 
@@ -328,7 +361,7 @@
          */
         _runSetup: function()
         {
-            for (opt in $.gritter.options)
+            for (var opt in $.gritter.options)
             {
                 this[opt] = $.gritter.options[opt];
             }
@@ -368,6 +401,15 @@
                 $(this).remove();
                 after_close();
             });
+        },
+
+        /**
+         * Get notice wrapper
+         * @return e The notice wrapper element.
+         */
+        noticeWrapper: function()
+        {
+            return $('#gritter-notice-wrapper');
         },
 
         /**

@@ -10,23 +10,24 @@
  */
 
 onmessage = function(e) {
+    var result, data, beforeKeys, statuses, status, i, len, key, afterResult, retObj;
     var obj = e.data.obj;
     var req = new XMLHttpRequest();
 
     req.open('POST', getHeartBeatUrl(), false);
-    req.send(JSON.stringify([obj]));
+    req.send(encodeURIComponent(JSON.stringify([obj])));     // tomcat 8.0.38+ implementeds stricter RFC for valid URL characters.
 
     if (req.response) {
-        var result = JSON.parse(req.response);
-        if (result.status === true) {
-            var data = result.data.compareResults;
-            var beforeKeys = Object.keys(obj);
-            var statuses = [];
-            for (var i = 0, len = beforeKeys.length; i < len; i++) {
-                var key = beforeKeys[i];
-                var afterResult = data[key];
+        result = JSON.parse(req.response);
+        if (result.status) {
+            data = result.data.compareResults;
+            beforeKeys = Object.keys(obj);
+            statuses = [];
+            for (i = 0, len = beforeKeys.length; i < len; i++) {
+                key = beforeKeys[i];
+                afterResult = data[key];
 
-                var status = null;
+                status = null;
                 if (afterResult === null) {
                     status = 'conflict';
                 }
@@ -35,7 +36,7 @@ onmessage = function(e) {
                 }
                 statuses.push({key:key, status:status});
             }
-            var retObj = {obj:statuses, aBuffer:new ArrayBuffer(1024 * 1024)};
+            retObj = {obj:statuses, aBuffer:new ArrayBuffer(1024 * 1024)};
             postMessage(retObj, [retObj.aBuffer]);
         }
     }
@@ -43,13 +44,10 @@ onmessage = function(e) {
     function getHeartBeatUrl() {
         var regexp = /\/([^\/]+)\//g;
         var match = regexp.exec(location.pathname);
-        var url;
+        var url = location.protocol + '//' + location.hostname + ":" + location.port;
 
-        if (match == null || match.length != 2) {
-            url = location.protocol + '//' + location.hostname + ":" + location.port;
-        } else {
-            var ctx = match[1];
-            url = location.protocol + '//' + location.hostname + ":" + location.port + "/" + ctx;
+        if (match !== null && match.length === 2) {
+            url += "/" + match[1];
         }
         url += '/cmd/ncubeController/heartBeat';
         return url;

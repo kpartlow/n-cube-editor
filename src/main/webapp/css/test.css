@@ -91,6 +91,7 @@
     padding: 5px;
     margin: 0;
     overflow: auto;
+    height: calc(100% - 30px);
 }
 
 #testList div.panel-heading {

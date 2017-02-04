@@ -9,6 +9,7 @@
     <meta name="description" content="n-cube editor">
     <meta name="author" content="John DeRegnaucourt">
 
+    <link href="css/jquery-ui-1.11.0.min.css" rel="stylesheet"/>
     <link href="css/bootstrap.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
     <link href="css/bootstrap-select.min.css" rel="stylesheet"/>
@@ -18,7 +19,7 @@
     <link rel="stylesheet" href="highlightjs/idea.css"/>
     <script src="highlightjs/highlight.pack.js"></script>
 
-    <script src="handsontable/handsontable.full.min.js"></script>
+    <script src="handsontable/handsontable.full.js"></script>
     <link rel="stylesheet" media="screen" href="handsontable/handsontable.full.min.css">
 </head>
 <body class="noselect" id="mainBody">
@@ -40,6 +41,9 @@
                 <input id="search-field" type="search" placeholder="Search" />
                 <div id="search-info"></div>
                 <div class="btn-group btn-group-xs" role="group">
+                    <button type="button" id="search-btn-options" class="btn btn-default">
+                        <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
+                    </button>
                     <button type="button" id="search-btn-up" class="btn btn-default">
                         <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
                     </button>
@@ -67,9 +71,6 @@
             </div>
             <div class="modal-body">
                 <form role="form">
-                    <div class="form-group alert alert-warning">
-                        <span class="help-block">Note: All cells will be cleared when an axis is added.</span>
-                    </div>
                     <div class="form-group">
                         <label for="addAxisName">Axis name</label>
                         <input class="form-control" type="text" placeholder="Axis name" id="addAxisName"/>
@@ -197,7 +198,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't add</button>
+                <button id="addAxisCancel" class="btn">Cancel</button>
                 <button id="addAxisOk" class="btn btn-primary">Add</button>
             </div>
         </div>
@@ -225,8 +226,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Don't delete</button>
-                <button id="deleteAxisOk" class="btn btn-primary">Delete</button>
+                <button id="deleteAxisCancel" class="btn">Cancel</button>
+                <button id="deleteAxisOk" class="btn btn-primary">Delete Axis</button>
             </div>
         </div>
     </div>
@@ -251,7 +252,7 @@
                         <div class="form-group">
                             <div class="checkbox">
                                 <label>
-                                    <input id="isRefAxisUpdate" type="checkbox" disabled="true"> Reference Axis
+                                    <input id="isRefAxisUpdate" type="checkbox" disabled="disabled" class="always-disabled"> Reference Axis
                                 </label>
                             </div>
                         </div>
@@ -261,18 +262,6 @@
                                 <div class="axisTableCellRight">
                                     <input id="refAxisAppUpdate" type="text" class="form-control input-sm" readonly>
 
-                                </div>
-                            </div>
-                            <div class="axisTableRow">
-                                <div class="axisTableCellLeft">Branch:</div>
-                                <div class="axisTableCellRight">
-                                    <input id="refAxisBranchUpdate" type="text" value="HEAD" class="form-control input-sm" readonly/>
-                                </div>
-                            </div>
-                            <div class="axisTableRow">
-                                <div class="axisTableCellLeft">Status:</div>
-                                <div class="axisTableCellRight">
-                                    <input id="refAxisStatusUpdate" type="text" value="RELEASE" class="form-control input-sm" readonly/>
                                 </div>
                             </div>
                             <div class="axisTableRow">
@@ -298,7 +287,7 @@
                             <div class="form-group">
                                 <div class="checkbox">
                                     <label>
-                                        <input id="hasRefFilterUpdate" type="checkbox" disabled="true"> Transform
+                                        <input id="hasRefFilterUpdate" type="checkbox" disabled="disabled" class="always-disabled"> Transform
                                     </label>
                                 </div>
                             </div>
@@ -307,18 +296,6 @@
                                     <div class="axisTableCellLeft">Application:</div>
                                     <div class="axisTableCellRight">
                                         <input id="refFilterAppUpdate" type="text" class="form-control input-sm" readonly>
-                                    </div>
-                                </div>
-                                <div class="axisTableRow">
-                                    <div class="axisTableCellLeft">Branch:</div>
-                                    <div class="axisTableCellRight">
-                                        <input id="refFilterBranchUpdate" type="text" value="HEAD" class="form-control input-sm" readonly/>
-                                    </div>
-                                </div>
-                                <div class="axisTableRow">
-                                    <div class="axisTableCellLeft">Status:</div>
-                                    <div class="axisTableCellRight">
-                                        <input id="refFilterStatusUpdate" type="text" value="RELEASE" class="form-control input-sm" readonly/>
                                     </div>
                                 </div>
                                 <div class="axisTableRow">
@@ -447,6 +424,8 @@
                         </div>
                     </div>
                 </div>
+                <label for="hideColumnsAxisSelect">Change Axis: </label>
+                <select id="hideColumnsAxisSelect"></select>
                 <ul id="hideColumnsList" class="list-group">
                 </ul>
             </div>
@@ -455,6 +434,78 @@
                 <button class="btn btn-info btn-sm pull-left select-none" aria-hidden="true">Select None</button>
                 <button id="hideColumnsCancel" class="btn btn-default btn-sm">Cancel</button>
                 <button id="hideColumnsSave" class="btn btn-primary btn-sm">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Large Cube Hide Columns Modal -->
+<div id="setUpHideModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="setUpHideLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="setUpHideLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;height:500px">
+                <div class="panel-group" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="setUpHideHeadingOne">
+                            <h4 class="panel-title">
+                                <a id="setUpHideInstTitle" data-toggle="collapse" data-parent="#accordion" href="#hideCollapseOne"
+                                   aria-expanded="true" aria-controls="hideCollapseOne">Instructions</a>
+                            </h4>
+                        </div>
+                        <div id="setUpHideCollapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="isoHeadingOne">
+                            <div id="setUpHideColInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
+                <ul id="setUpHideList" class="list-group">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button id="setUpHideCancel" class="btn btn-default btn-sm">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Move Axes Modal -->
+<div id="moveAxesModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="moveAxesLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="moveAxesLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;height:500px">
+                <div class="panel-group" role="tablist" aria-multiselectable="true">
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="moveAxesHeadingOne">
+                            <h4 class="panel-title">
+                                <a id="moveAxesInstTitle" data-toggle="collapse" data-parent="#accordion" href="#moveAxesCollapseOne"
+                                   aria-expanded="true" aria-controls="moveAxesCollapseOne">Instructions</a>
+                            </h4>
+                        </div>
+                        <div id="moveAxesCollapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="moveAxesHeadingOne">
+                            <div id="moveAxesInstructions" class="panel-body"></div>
+                        </div>
+                    </div>
+                </div>
+                Left
+                <br/>
+                <br/>
+                <ul id="moveAxesList" class="list-group">
+                </ul>
+                <br/>
+                Right
+            </div>
+            <div class="modal-footer">
+                <button id="moveAxesCancel" class="btn btn-default btn-sm">Close</button>
+                <button id="moveAxesOk" class="btn btn-primary">Apply</button>
             </div>
         </div>
     </div>
@@ -515,9 +566,45 @@
             </div>
 
             <div class="modal-footer">
+                <button id="editCellUp" class="btn btn-info btn-sm"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                <br/>
+                <button id="editCellLeft" class="btn btn-info btn-sm pull-left"><span class="glyphicon glyphicon-arrow-left"></span></button>
+                <button id="editCellDown" class="btn btn-info btn-sm pull-left"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                <button id="editCellRight" class="btn btn-info btn-sm pull-left"><span class="glyphicon glyphicon-arrow-right"></span></button>
                 <button id="editCellClear" class="btn">Clear</button>
                 <button id="editCellCancel" class="btn" aria-hidden="true">Cancel</button>
                 <button id="editCellOk" class="btn btn-primary">OK</button>
+            </div>
+
+        </div>
+    </div>
+
+</div><!-- Search Options Modal -->
+<div id="searchOptionsModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="searchOptionsLabel"
+     aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="searchOptionsLabel" class="modal-title"></h3>
+            </div>
+
+            <div class="modal-body">
+                <form role="form">
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label>
+                                <input id="searchOptionsLoadAllData" type="checkbox">
+                                Load all cube data on search
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button id="searchOptionsCancel" class="btn" aria-hidden="true">Cancel</button>
+                <button id="searchOptionsOk" class="btn btn-primary">OK</button>
             </div>
 
         </div>

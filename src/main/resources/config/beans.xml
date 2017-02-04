@@ -4,18 +4,17 @@
        xmlns:tx="http://www.springframework.org/schema/tx"
        xmlns:p="http://www.springframework.org/schema/p"
        xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
   	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+  	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
   	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
 
-    <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
-        <constructor-arg>
-            <bean class="com.cedarsoftware.service.ncube.NCubeService" />
-        </constructor-arg>
-    </bean>
+    <context:annotation-config />
+    <context:component-scan base-package="com.cedarsoftware" />
+    <aop:aspectj-autoproxy/>
 
-    <bean name="setUser" class="com.cedarsoftware.controller.BeforeAdviceSetUser">
-        <constructor-arg ref="ncubeController"/>
+    <bean name="ncubeController" class="com.cedarsoftware.controller.NCubeController">
     </bean>
 
     <bean id="ncubeTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
@@ -24,12 +23,16 @@
 
     <tx:advice id="ncubeTxAdvice" transaction-manager="ncubeTransactionManager">
         <tx:attributes>
-            <tx:method name="*" propagation="REQUIRED"/>
             <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
             <tx:method name="is*" propagation="REQUIRED" read-only="true"/>
             <tx:method name="has*" propagation="REQUIRED" read-only="true"/>
             <tx:method name="does*" propagation="REQUIRED" read-only="true"/>
             <tx:method name="search*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="load*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="resolveRelativeUrl" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="assert*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="check*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" propagation="REQUIRED"/>
         </tx:attributes>
     </tx:advice>
 
@@ -38,18 +41,7 @@
         <aop:pointcut id="ncubeServiceMethods" expression="execution(* com.cedarsoftware.service.ncube.NCubeService.*(..))"/>
         <aop:advisor advice-ref="ncubeTxAdvice" pointcut-ref="ncubeServiceMethods"/>
 
-        <aop:aspect ref="setUser">
-            <aop:before
-                pointcut="execution(* com.cedarsoftware.controller.NCubeController.*(..))"
-                method="setUserOnThread"/>
-        </aop:aspect>
-
     </aop:config>
-
-    <!--
-    p:username="execdash"
-    p:password="puCupRaQaZe3"
-    -->
 
     <bean id="connectionProvider" class="com.cedarsoftware.util.SpringConnectionProvider">
         <constructor-arg ref="ncubeDataSource" />
@@ -69,38 +61,16 @@
     </bean>
 
     <!--
-        When using mysql as your test database, set an environment variable spring.profiles.active=mysql
-        The profiles list can be comma separated if you need more than one profile
+        Set NCE_JDBC_DRIVER, NCE_JDBC_URL, NCE_JDBC_USER, NCE_JDBC_PWD, and NCE_POOL_QUERY as environment
+        variables or system properties.
     -->
 
-    <!--<bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"-->
-          <!--p:driverClassName="com.mysql.jdbc.Driver"-->
-          <!--p:url="jdbc:mysql://mysqldev.cwge6txtewt5.us-east-1.rds.amazonaws.com:3306/ncube"-->
-          <!--p:username="ncube"-->
-          <!--p:password="ncube"-->
-          <!--p:initialSize="5"-->
-          <!--p:minIdle="5"-->
-          <!--p:maxIdle="10"-->
-          <!--p:maxActive="100"-->
-          <!--p:maxWait="120000"-->
-          <!--p:jmxEnabled="true"-->
-          <!--p:removeAbandoned="true"-->
-          <!--p:removeAbandonedTimeout="180"-->
-          <!--p:testOnBorrow="true"-->
-          <!--p:testOnReturn="false"-->
-          <!--p:testWhileIdle="false"-->
-          <!--p:timeBetweenEvictionRunsMillis="30000"-->
-          <!--p:minEvictableIdleTimeMillis="30000"-->
-          <!--p:validationInterval="60000"-->
-          <!--p:validationQuery="/* ping */">-->
-    <!--</bean>-->
-
-    <bean id="ncubeDataSource" destroy-method="close"
-          class="org.apache.tomcat.jdbc.pool.DataSource"
-          p:driverClassName="oracle.jdbc.driver.OracleDriver"
-          p:url="jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com"
-          p:username="nce"
-          p:password="quality"
+    <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
+          p:driverClassName="#{systemEnvironment['NCE_JDBC_DRIVER'] ?: systemProperties['NCE_JDBC_DRIVER'] ?: 'oracle.jdbc.driver.OracleDriver'}"
+          p:url="#{systemEnvironment['NCE_JDBC_URL'] ?: systemProperties['NCE_JDBC_URL'] ?: 'jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com'}"
+          p:username="#{systemEnvironment['NCE_JDBC_USER'] ?: systemProperties['NCE_JDBC_USER'] ?: 'nce'}"
+          p:password="#{systemEnvironment['NCE_JDBC_PWD'] ?: systemProperties['NCE_JDBC_PWD'] ?: 'quality'}"
+          p:jdbcInterceptors="com.cedarsoftware.util.PoolInterceptor"
           p:initialSize="5"
           p:minIdle="5"
           p:maxIdle="10"
@@ -115,84 +85,7 @@
           p:timeBetweenEvictionRunsMillis="30000"
           p:minEvictableIdleTimeMillis="30000"
           p:validationInterval="60000"
-          p:validationQuery="select 1 from dual">
+          p:validationQuery="#{systemEnvironment['NCE_POOL_QUERY'] ?: systemProperties['NCE_POOL_QUERY'] ?: 'select 1 from dual'}">
     </bean>
 
-
-    <beans profile="mysql">
-        <bean id="ncubeDataSource" destroy-method="close" class="org.apache.tomcat.jdbc.pool.DataSource"
-              p:driverClassName="com.mysql.jdbc.Driver"
-              p:url="jdbc:mysql://localhost:3306/ncube"
-              p:username="ncube"
-              p:password="ncube"
-              p:initialSize="5"
-              p:minIdle="5"
-              p:maxIdle="10"
-              p:maxActive="100"
-              p:maxWait="120000"
-              p:jmxEnabled="true"
-              p:removeAbandoned="true"
-              p:removeAbandonedTimeout="180"
-              p:testOnBorrow="true"
-              p:testOnReturn="false"
-              p:testWhileIdle="false"
-              p:timeBetweenEvictionRunsMillis="30000"
-              p:minEvictableIdleTimeMillis="30000"
-              p:validationInterval="60000"
-              p:validationQuery="/* ping */">
-        </bean>
-    </beans>
-
-    <beans profile="exa-dev">
-        <bean id="ncubeDataSource" destroy-method="close"
-              class="org.apache.tomcat.jdbc.pool.DataSource"
-              p:driverClassName="oracle.jdbc.driver.OracleDriver"
-              p:url="jdbc:oracle:thin:@dm01np-scan.td.afg:1521/app_ncubed.dev.gai.com"
-              p:username="nce"
-              p:password="quality"
-              p:initialSize="5"
-              p:minIdle="5"
-              p:maxIdle="10"
-              p:maxActive="100"
-              p:maxWait="120000"
-              p:jmxEnabled="true"
-              p:removeAbandoned="true"
-              p:removeAbandonedTimeout="180"
-              p:testOnBorrow="true"
-              p:testOnReturn="false"
-              p:testWhileIdle="false"
-              p:timeBetweenEvictionRunsMillis="30000"
-              p:minEvictableIdleTimeMillis="30000"
-              p:validationInterval="60000"
-              p:validationQuery="select 1 from dual">
-        </bean>
-    </beans>
-
-    <beans profile="exa-prod">
-        <bean id="ncubeDataSource" destroy-method="close"
-              class="org.apache.tomcat.jdbc.pool.DataSource"
-              p:driverClassName="oracle.jdbc.driver.OracleDriver"
-              p:url="jdbc:oracle:thin:@dm01-scan.td.afg:1521/app_ncubep.prod.gai.com"
-              p:username="nce"
-              p:password="quality"
-              p:initialSize="5"
-              p:minIdle="5"
-              p:maxIdle="10"
-              p:maxActive="100"
-              p:maxWait="120000"
-              p:jmxEnabled="true"
-              p:removeAbandoned="true"
-              p:removeAbandonedTimeout="180"
-              p:testOnBorrow="true"
-              p:testOnReturn="false"
-              p:testWhileIdle="false"
-              p:timeBetweenEvictionRunsMillis="30000"
-              p:minEvictableIdleTimeMillis="30000"
-              p:validationInterval="60000"
-              p:validationQuery="select 1 from dual">
-        </bean>
-    </beans>
-
-
-<!-- to add cpr provider -->
 </beans>
