@@ -57,12 +57,12 @@ var Visualizer = (function ($) {
     var STATUS_SUCCESS = 'success';
     var STATUS_MISSING_START_SCOPE = 'missingStartScope';
     var UNSPECIFIED = 'UNSPECIFIED';
-    var _noteIdList = [];
     var COMPLETE = 'complete';
     var ITERATING = 'iterating...';
     var DOT_DOT_DOT = '...';
     var NA = 'n/a';
     var NO_GROUPS_SELECTED = 'NO GROUPS SELECTED';
+    var STICKY_NOTE_UNTIL_CLOSE_OR_RELOAD = 'STICKY_NOTE_UNTIL_CLOSE_OR_RELOAD';
 
     //Network layout parameters
     var _hierarchical = false;
@@ -491,7 +491,7 @@ var Visualizer = (function ($) {
      }
 
     function loadCellValues(node, note) {
-        _nce.clearNotes({noteIds: _noteIdList});
+        _nce.clearNotes(STICKY_NOTE_UNTIL_CLOSE_OR_RELOAD);
         setTimeout(function () {loadCellValuesFromServer(node);}, PROGRESS_DELAY);
         _nce.showNote(note);
     }
@@ -534,7 +534,7 @@ var Visualizer = (function ($) {
         if (messages) {
             items = messages['@items'];
             for (j = 0, jLen = items.length; j < jLen; j++) {
-                _noteIdList.push(_nce.showNote(items[j]));
+                _nce.showNote(items[j], null, null, STICKY_NOTE_UNTIL_CLOSE_OR_RELOAD);
             }
         }
     }
@@ -563,11 +563,11 @@ var Visualizer = (function ($) {
             _dataLoadStart = performance.now();
             $("#dataLoadStatus").val('loading');
             $("#dataLoadDuration").val(DOT_DOT_DOT);
-            _nce.clearNotes({noteIds: _noteIdList});
+            _nce.clearNotes(STICKY_NOTE_UNTIL_CLOSE_OR_RELOAD);
             setTimeout(function () {
                 loadFromServer();
             }, PROGRESS_DELAY);
-            _noteIdList.push(_nce.showNote('Loading data...'));
+            _nce.showNote('Loading data...', null, null, STICKY_NOTE_UNTIL_CLOSE_OR_RELOAD);
         }
     }
 
@@ -607,7 +607,7 @@ var Visualizer = (function ($) {
 
 
         result = _nce.call('ncubeController.getVisualizerJson', [_nce.getSelectedTabAppId(), options]);
-        _nce.clearNotes({noteIds: _noteIdList});
+        _nce.clearNotes(STICKY_NOTE_UNTIL_CLOSE_OR_RELOAD);
         if (!result.status) {
             _nce.showNote(result.data);
              _visualizerContent.hide();
@@ -1125,7 +1125,7 @@ var Visualizer = (function ($) {
             $("#stabilizationStatus").val(DOT_DOT_DOT);
             $("#stabilizationIterations").val(DOT_DOT_DOT);
             $("#stabilizationDuration").val(DOT_DOT_DOT);
-            _noteIdList.push(_nce.showNote('Stabilizing network...'));
+           _nce.showNote('Stabilizing network...');
         }
         else if (_fullStabilizationAfterBasic) {
             _stabilizationStart = performance.now();
@@ -1139,7 +1139,7 @@ var Visualizer = (function ($) {
             $("#stabilizationStatus").val(ITERATING);
             $("#stabilizationIterations").val(DOT_DOT_DOT);
             $("#stabilizationDuration").val(DOT_DOT_DOT);
-            _noteIdList.push(_nce.showNote('Stabilizing network...'));
+            _nce.showNote('Stabilizing network...');
         }
     }
 

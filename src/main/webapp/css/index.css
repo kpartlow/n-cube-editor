@@ -106,19 +106,19 @@ body {
     width: 215px;
 }
 
-.tab-menu li {
+.tab-menu li, .top-menu li {
     min-height: 22px;
 }
 
-.tab-menu li a {
+.tab-menu li a, .top-menu li a {
     min-height: inherit;
 }
 
-.tab-menu li button {
+.tab-menu li button, .top-menu li button {
     margin-left: 2px;
 }
 
-.tab-menu li input {
+.tab-menu li input, .top-menu li input {
     margin: 5px 0 0 5px;
     width: 95%;
 }
@@ -524,6 +524,35 @@ span.selected-count {
     position: relative;
 }
 
+.dropdown-submenu .dropdown-menu::-webkit-scrollbar {
+    width: 20px;
+    border: 1px solid #F1F1F1;
+}
+
+.dropdown-submenu .dropdown-menu::-webkit-scrollbar-button:decrement {
+    background: url(../img/scrollbar-up.png) no-repeat top left;
+}
+
+.dropdown-submenu .dropdown-menu::-webkit-scrollbar-button:decrement:disabled {
+    background: url(../img/scrollbar-up-disabled.png) no-repeat top left;
+}
+
+.dropdown-submenu .dropdown-menu::-webkit-scrollbar-button:increment {
+    background: url(../img/scrollbar-down.png) no-repeat top left;
+}
+
+.dropdown-submenu .dropdown-menu::-webkit-scrollbar-button:increment:disabled {
+    background: url(../img/scrollbar-down-disabled.png) no-repeat top left;
+}
+
+.dropdown-submenu .dropdown-menu::-webkit-scrollbar-thumb {
+    background: #C1C1C1;
+}
+
+.dropdown-submenu .dropdown-menu::-webkit-scrollbar-track-piece {
+    background: #F1F1F1;
+}
+
 .dropdown-submenu>.dropdown-menu {
     top: 0;
     left: 100%;
@@ -667,4 +696,9 @@ a.section-all:hover, a.section-none:hover {
 
 .space-grey {
     color: #a5adb0;
+}
+
+ul .checkbox-label {
+    display: inline-block;
+    margin: 0 0 0 20px;
 }
