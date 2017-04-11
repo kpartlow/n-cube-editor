@@ -1,0 +1,7 @@
+.form-builder-data-row {
+    border: 1px solid lightgrey;
+}
+
+.form-builder-data-row td {
+    padding: 1px;
+}

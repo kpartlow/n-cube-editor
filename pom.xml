@@ -3,9 +3,9 @@
     <name>n-cube-editor</name>
     <groupId>com.cedarsoftware</groupId>
     <artifactId>n-cube-editor</artifactId>
-    <packaging>war</packaging>
-    <version>0.8.0-SNAPSHOT</version>
-    <description>n-cube Web Editor / Manager</description>
+    <packaging>jar</packaging>
+    <version>0.9.0-SNAPSHOT</version>
+    <description>NCube Front End</description>
     <url>https://github.com/jdereg/n-cube-editor</url>
 
     <profiles>
@@ -50,13 +50,6 @@
         </license>
     </licenses>
 
-    <!--<parent>-->
-        <!--<groupId>org.springframework.boot</groupId>-->
-        <!--<artifactId>spring-boot-starter-parent</artifactId>-->
-        <!--<version>1.4.0.RELEASE</version>-->
-        <!--<relativePath/> &lt;!&ndash; lookup parent from repository &ndash;&gt;-->
-    <!--</parent>-->
-
     <scm>
         <url>https://github.com/jdereg/n-cube-editor</url>
         <connection>scm:git:git://github.com/jdereg/n-cube-editor.git</connection>
@@ -72,33 +65,22 @@
         </developer>
     </developers>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>1.5.2.RELEASE</version>
+    </parent>
+
     <properties>
-        <version.ncube>3.6.9</version.ncube>
-        <version.json-command-servlet>1.4.1</version.json-command-servlet>
-        <version.log4j>2.5</version.log4j>
-        <version.groovy>2.4.8</version.groovy>
-        <version.junit>4.12</version.junit>
-        <version.spring>4.3.5.RELEASE</version.spring>
-        <version.servlet>3.1.0</version.servlet>
-        <version.tomcat>8.0.32</version.tomcat>
-        <version.mysql>5.1.40</version.mysql>
-        <version.tuckey>4.0.4</version.tuckey>
-        <!--<version.spymemcached>2.12.1</version.spymemcached>-->
-        <version.plugin.assembly>2.6</version.plugin.assembly>
-        <version.plugin.gcloud>2.0.9.111.v20160527</version.plugin.gcloud>
-        <version.plugin.appengine>1.9.38</version.plugin.appengine>
-        <version.plugin.jetty>9.3.10.v20160621</version.plugin.jetty>
-        <version.plugin.compiler>3.5.1</version.plugin.compiler>
-        <version.plugin.nexus>1.6.6</version.plugin.nexus>
-        <version.plugin.deploy>2.8.2</version.plugin.deploy>
-        <version.plugin.source>3.0.0</version.plugin.source>
-        <version.plugin.javadoc>2.10.3</version.plugin.javadoc>
-        <version.plugin.gpg>1.6</version.plugin.gpg>
-        <version.plugin.release>2.5.3</version.plugin.release>
-        <version.plugin.war>2.6</version.plugin.war>
+        <version.ncube>4.0.0-SNAPSHOT</version.ncube>
+        <version.springboot>1.5.2.RELEASE</version.springboot>
+        <version.plugin.maven-compiler>3.6.1</version.plugin.maven-compiler>
         <version.plugin.gmavenplus>1.5</version.plugin.gmavenplus>
-        <version.plugin.surefire>2.19.1</version.plugin.surefire>
+        <version.plugin.nexus>1.6.7</version.plugin.nexus>
+        <version.plugin.gpg>1.6</version.plugin.gpg>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+        <tomcat.version>8.5.12</tomcat.version>
     </properties>
 
     <pluginRepositories>
@@ -132,34 +114,9 @@
         <plugins>
 
             <plugin>
-                <groupId>com.google.appengine</groupId>
-                <artifactId>gcloud-maven-plugin</artifactId>
-                <version>${version.plugin.gcloud}</version>
-                <configuration>
-                    <gcloud_directory>/workspace/google-cloud-sdk</gcloud_directory>
-                    <verbosity>debug</verbosity>
-                    <version>specific_version</version>
-                    <promote>true</promote>
-                    <log_level>info</log_level>
-                    <max_module_instances>2</max_module_instances>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>com.google.appengine</groupId>
-                <artifactId>appengine-maven-plugin</artifactId>
-                <version>${version.plugin.appengine}</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-maven-plugin</artifactId>
-                <version>${version.plugin.jetty}</version>
-            </plugin>
-
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${version.plugin.maven-compiler}</version>
                 <executions>
                     <execution>
                         <id>default-compile</id>
@@ -196,48 +153,6 @@
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>${version.plugin.source}</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>${version.plugin.assembly}</version>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/groovydoc.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>javadoc</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${version.plugin.surefire}</version>
-                <configuration>
-                    <forkCount>2</forkCount>
-                </configuration>
-            </plugin>
-
-            <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
                 <version>${version.plugin.nexus}</version>
@@ -250,187 +165,22 @@
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <version>${version.plugin.war}</version>
-                <configuration>
-                    <packagingExcludes>**/*CprLocal.properties</packagingExcludes>
-                    <archiveClasses>false</archiveClasses>
-                    <attachClasses>false</attachClasses>
-                    <webXml>src\main\webapp\WEB-INF\web.xml</webXml>
-                    <warName>n-cube-editor</warName>
-                </configuration>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${version.springboot}</version>
             </plugin>
-
-            <!--<plugin>-->
-                <!--<groupId>org.springframework.boot</groupId>-->
-                <!--<artifactId>spring-boot-maven-plugin</artifactId>-->
-            <!--</plugin>-->
 
         </plugins>
     </build>
 
     <dependencies>
 
-        <!--<dependency>-->
-            <!--<groupId>net.spy</groupId>-->
-            <!--<artifactId>spymemcached</artifactId>-->
-            <!--<version>${version.spymemcached}</version>-->
-        <!--</dependency>-->
-
-        <dependency>
-            <groupId>org.tuckey</groupId>
-            <artifactId>urlrewritefilter</artifactId>
-            <version>${version.tuckey}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>${version.mysql}</version>
-        </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>oracle</groupId>-->
-            <!--<artifactId>ojdbc6</artifactId>-->
-            <!--<version>11.2.0.3</version>-->
-        <!--</dependency>-->
-
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <version>${version.groovy}</version>
-            <!--<classifier>indy</classifier>-->
-        </dependency>
-
         <dependency>
             <groupId>com.cedarsoftware</groupId>
             <artifactId>n-cube</artifactId>
-            <version>${version.ncube}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.cedarsoftware</groupId>
-            <artifactId>json-command-servlet</artifactId>
-            <version>${version.json-command-servlet}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>${version.log4j}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>${version.log4j}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-web</artifactId>
-            <version>${version.log4j}</version>
-            <scope>runtime</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${version.junit}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-beans</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-tx</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <!--<dependency>-->
-        <!--<groupId>org.springframework</groupId>-->
-        <!--<artifactId>spring-mock</artifactId>-->
-        <!--<version>${version.spring.mock}</version>-->
-        <!--</dependency>-->
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-orm</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aspects</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aop</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${version.spring}</version>
-        </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>org.springframework.boot</groupId>-->
-            <!--<artifactId>spring-boot-starter</artifactId>-->
-            <!--<version></version>-->
-        <!--</dependency>-->
-
-        <!--<dependency>-->
-            <!--<groupId>org.springframework.boot</groupId>-->
-            <!--<artifactId>spring-boot-starter-web</artifactId>-->
-        <!--</dependency>-->
-
-        <!--<dependency>-->
-            <!--<groupId>org.springframework.boot</groupId>-->
-            <!--<artifactId>spring-boot-starter-test</artifactId>-->
-            <!--<scope>test</scope>-->
-        <!--</dependency>-->
-
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>${version.servlet}</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.tomcat</groupId>
-            <artifactId>tomcat-jdbc</artifactId>
-            <version>${version.tomcat}</version>
+            <version>4.0.0-SNAPSHOT</version>
         </dependency>
 
     </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-        </dependencies>
-    </dependencyManagement>
 
 </project>
